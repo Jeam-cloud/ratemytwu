@@ -6,6 +6,7 @@ pytest:
   image: python:3.12
   variables:
     TEST_DATABASE_URL: "sqlite:///./test.db"
+    SUPABASE_URL: "https://dummy-url.supabase.co" 
   before_script:
     - cd backend
     - pip install -r requirements.txt
