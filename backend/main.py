@@ -1,5 +1,5 @@
-from database import db_dependency, Base, engine
-from fastapi import FastAPI, Header
+from database import Base, engine
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes import reviews, professors, courses, departments, bookmarks, users, cards

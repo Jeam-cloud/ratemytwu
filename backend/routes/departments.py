@@ -1,5 +1,5 @@
 from sqlalchemy import select, func, Numeric, cast
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import APIRouter
 
 from models import Professor, Courses, Reviews
 from database import db_dependency
