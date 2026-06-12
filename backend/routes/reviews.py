@@ -1,6 +1,6 @@
 from uuid import UUID
 from sqlalchemy import select
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException
 
 from auth import get_current_user_id
 from database import db_dependency
