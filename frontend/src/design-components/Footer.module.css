@@ -1,0 +1,89 @@
+.footer {
+    background: #050d22;
+    padding: 64px 40px 32px;
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 64px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.brandCol {
+    max-width: 360px;
+}
+
+.logo {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+    margin-bottom: 14px;
+}
+
+.logoRate { color: #fff; }
+.logoMy   { color: #C9A84C; }
+.logoTwu  { color: #fff; }
+
+.tagline {
+    font-size: 13px;
+    color: rgba(255,255,255,.4);
+    line-height: 1.7;
+    margin: 0;
+    font-weight: 300;
+}
+
+.linksCol {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.linksTitle {
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.35);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.link {
+    font-size: 13px;
+    color: rgba(255,255,255,.6);
+    text-decoration: none;
+    transition: color .2s;
+}
+
+.link:hover {
+    color: #fff;
+}
+
+.bottom {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding-top: 28px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: rgba(255,255,255,.3);
+}
+
+@media (max-width: 768px) {
+    .footer {
+        padding: 48px 24px 24px;
+    }
+    .inner {
+        grid-template-columns: 1fr;
+        gap: 36px;
+    }
+    .bottom {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+}

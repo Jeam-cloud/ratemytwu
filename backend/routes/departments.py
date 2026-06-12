@@ -1,0 +1,68 @@
+from sqlalchemy import select, func, Numeric, cast
+from fastapi import Depends, HTTPException, APIRouter
+
+from models import Professor, Courses, Reviews
+from database import db_dependency
+from schema import DepartmentsOut, ProfessorsOut, CoursesOut
+
+
+router = APIRouter(prefix="/department", tags=["department"])
+
+# returns the department and count for professors
+@router.get("", response_model=list[DepartmentsOut])
+def get_departments(db: db_dependency):
+
+    department_by_professor = db.execute(
+        select(Professor.department, func.count(Professor.id)).group_by(Professor.department)
+    ).all()
+
+    professor_department_list = []
+
+    for dept, count in department_by_professor:
+        professor_department_list.append(
+            {"department": dept, "professor_count": count}
+        )
+    
+    return professor_department_list
+
+# return all professors in that specific department
+@router.get("/{department_name}/professors", response_model=list[ProfessorsOut])
+def get_department_professors(department_name: str, db: db_dependency):
+ 
+    professors = db.execute(
+        select(
+            Professor.id,
+            Professor.name,
+            Professor.department,
+            func.round(cast(func.avg(Reviews.rating), Numeric), 2).label("average_rating"),
+            func.round(cast(func.avg(Reviews.difficulty), Numeric), 2).label("average_difficulty"),
+            func.count(Reviews.id).label("review_count")
+        )
+        .outerjoin(Reviews, Reviews.professor_id == Professor.id)
+        .where(Professor.department.contains(department_name))
+        .group_by(Professor.id, Professor.name, Professor.department)
+    ).all()
+
+    professor_list = []
+
+    for p in professors:
+        professor_list.append({
+            "id": p.id,
+            "name": p.name,
+            "department": p.department,
+            "average_rating": p.average_rating,
+            "average_difficulty": p.average_difficulty,
+            "review_count": p.review_count
+        })
+
+    return professor_list
+
+# return all courses in that specific department
+@router.get("/{department_name}/courses", response_model=list[CoursesOut])
+def get_department_courses(department_name: str, db:db_dependency):
+    
+    courses = db.execute(
+        select(Courses).where(Courses.department.contains(department_name))
+    ).scalars().all()
+
+    return courses

@@ -1,0 +1,95 @@
+.section {
+    background: #08142e;
+    padding: 100px 40px;
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.inner {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 64px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    font-weight: 500;
+    margin-bottom: 14px;
+}
+
+.heading {
+    font-size: 42px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    margin: 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.gold {
+    background: linear-gradient(90deg, #C9A84C, #e8c96a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+}
+
+.step {
+    padding: 32px 28px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+}
+
+.stepNum {
+    font-size: 14px;
+    font-weight: 600;
+    color: #C9A84C;
+    margin-bottom: 24px;
+    letter-spacing: .05em;
+}
+
+.stepTitle {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 10px;
+    letter-spacing: -.3px;
+}
+
+.stepBody {
+    font-size: 14px;
+    color: rgba(255,255,255,.5);
+    line-height: 1.7;
+    font-weight: 300;
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: 60px 24px;
+    }
+    .heading {
+        font-size: 32px;
+    }
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .header {
+        margin-bottom: 44px;
+    }
+}

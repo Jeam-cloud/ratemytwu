@@ -1,0 +1,114 @@
+.section {
+    background: #08142e;
+    padding: 120px 40px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.glow {
+    position: absolute;
+    width: 800px;
+    height: 800px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,168,76,.08) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.inner {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.eyebrow {
+    font-size: 12px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #C9A84C;
+    font-weight: 500;
+    margin-bottom: 18px;
+}
+
+.heading {
+    font-size: 48px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -1.2px;
+    margin: 0 0 22px;
+}
+
+.gold {
+    background: linear-gradient(90deg, #C9A84C, #e8c96a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.body {
+    font-size: 16px;
+    color: rgba(255,255,255,.5);
+    line-height: 1.75;
+    margin: 0 0 36px;
+    font-weight: 300;
+    max-width: 540px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.primaryBtn {
+    padding: 14px 28px;
+    background: #C9A84C;
+    color: #08142e;
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 24px rgba(201,168,76,.3);
+    transition: all .2s;
+}
+
+.primaryBtn:hover {
+    background: #d4b050;
+    box-shadow: 0 6px 32px rgba(201,168,76,.5);
+    transform: translateY(-1px);
+}
+
+.secondaryBtn {
+    padding: 14px 28px;
+    background: rgba(255,255,255,.05);
+    color: rgba(255,255,255,.85);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all .2s;
+}
+
+.secondaryBtn:hover {
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.2);
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: 80px 24px;
+    }
+    .heading {
+        font-size: 32px;
+    }
+}

@@ -1,0 +1,115 @@
+.app {
+    font-family: var(--font-sans);
+    color: var(--ink);
+    background: var(--cream);
+    min-height: 100vh;
+}
+.app * { box-sizing: border-box; }
+
+/* ── Top bar ── */
+.app-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--navy);
+    height: 60px;
+    display: flex;
+    align-items: center;
+}
+.app-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Brand */
+.app-brand {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    flex: none;
+}
+.app-wordmark {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 20px;
+    color: #fff;
+}
+.app-wordmark .my { color: var(--gold); }
+
+/* Search */
+.app-search {
+    flex: 1;
+    max-width: 440px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+}
+.app-search input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #fff;
+    font-family: var(--font-sans);
+    font-size: 14px;
+}
+.app-search input::placeholder { color: rgba(255,255,255,0.6); }
+
+/* Nav */
+.app-nav {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+.app-nav a {
+    color: rgba(255,255,255,0.78);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.app-nav a:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+}
+
+/* Avatar + login */
+.app-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--gold);
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex: none;
+    cursor: pointer;
+}
+.app-login {
+    color: rgba(255,255,255,0.85);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    flex: none;
+}
+
+/* Main content */
+.app-main {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
