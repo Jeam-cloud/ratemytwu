@@ -6,3 +6,4 @@ pyjwt[crypto]
 pypdf
 pytest
 httpx
+ruff
