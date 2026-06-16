@@ -1,12 +1,10 @@
 from sqlalchemy import select, func, Numeric, cast
-from fastapi import Depends, APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException
 
 from models import Courses, ProfessorCourse, Professor, Reviews
 from database import db_dependency
-from auth import get_current_user_id
-from schema import CoursesBase, ProfessorsOut, CourseSearchOut, CoursesOut, CourseProfessorOut
+from schema import CoursesBase, CourseSearchOut, CourseProfessorOut
 
-from typing import Annotated
 
 router = APIRouter(prefix="/course", tags=["courses"])
 

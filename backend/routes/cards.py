@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 
 from database import db_dependency
-from models import UserCourseCard, Courses
+from models import UserCourseCard
 from auth import get_current_user_id
 from schema import CardsOut, CreateCardsIn, CreateCardsOut
 

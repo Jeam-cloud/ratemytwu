@@ -3,7 +3,7 @@ from sqlalchemy import select
 
 from database import db_dependency
 from auth import get_current_user_id
-from models import UserBookmarkCourse, Courses
+from models import UserBookmarkCourse
 from schema import BookmarksOut, CoursesOut
 
 from typing import Annotated

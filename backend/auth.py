@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
+# If SUPABASE_URL is missing in the environment, it defaults to the dummy URL
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://fallback.supabase.co")
 JWKS_URL = f"{SUPABASE_URL}/auth/v1/.well-known/jwks.json"
 
 jwks_client = PyJWKClient(JWKS_URL)
