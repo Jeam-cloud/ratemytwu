@@ -36,6 +36,7 @@ def get_department_professors(department_name: str, db: db_dependency):
             Professor.department,
             func.round(cast(func.avg(Reviews.rating), Numeric), 2).label("average_rating"),
             func.round(cast(func.avg(Reviews.difficulty), Numeric), 2).label("average_difficulty"),
+            func.round(cast(func.avg(Reviews.take_again), Numeric), 2).label("average_take_again"),
             func.count(Reviews.id).label("review_count")
         )
         .outerjoin(Reviews, Reviews.professor_id == Professor.id)
@@ -52,6 +53,7 @@ def get_department_professors(department_name: str, db: db_dependency):
             "department": p.department,
             "average_rating": p.average_rating,
             "average_difficulty": p.average_difficulty,
+            "average_take_again": p.average_take_again,
             "review_count": p.review_count
         })
 
