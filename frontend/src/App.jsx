@@ -1,5 +1,6 @@
 import ProfessorList from "./Pages/Professor/ProfessorList"
 import CourseList from "./Pages/Course/CourseList"
+import CoursePage from "./Pages/Course/CoursePage"
 
 import ProfessorPage from "./Pages/Professor/ProfessorPage"
 import ReviewPage from "./Pages/Professor/ReviewPage"
