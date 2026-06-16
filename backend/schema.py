@@ -40,6 +40,7 @@ class ProfessorsOut(BaseModel):
     department: str
     average_rating: float | None
     average_difficulty: float | None
+    average_take_again: float | None
     review_count: int
 
     model_config = {"from_attributes": True}
