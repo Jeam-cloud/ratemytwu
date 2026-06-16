@@ -1,5 +1,5 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import { supabase } from "../supabaseClient"
 
 export default function SignupPage() {
@@ -10,6 +10,16 @@ export default function SignupPage() {
     const [error, setError] = useState(null)
 
     const navigate = useNavigate()
+    const location = useLocation()
+
+    const from = location.state?.from?.pathname || "/dashboard"
+
+        useEffect(() => {
+        supabase.auth.getSession().then(({ data }) => {
+            if (data.session) navigate(from, { replace: true })
+        })
+    }, [])
+
     const handleSubmit = async () => {
         if(!email || !password) {
             setError("Please fill in the required fields.")
@@ -39,10 +49,13 @@ export default function SignupPage() {
             return
         }
 
-        if (!authError) {
-            navigate("/dashboard")
-            console.log("user logged in")
+        if (!response.data.session) {
+            setError("Check your email to confirm your account before logging in.")
+            return
         }
+
+        navigate(from, { replace: true })
+
 
     }
 
@@ -53,6 +66,10 @@ export default function SignupPage() {
                 redirectTo: `${window.location.origin}/dashboard`
             }
         })
+
+        if (response.error) {
+            setError(response.error.message)
+        }
     }
 
     return(
