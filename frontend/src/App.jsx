@@ -3,7 +3,7 @@ import CourseList from "./Pages/Course/CourseList"
 
 import ProfessorPage from "./Pages/Professor/ProfessorPage"
 import ReviewPage from "./Pages/Professor/ReviewPage"
-
+import CoursePage from "./Pages/Course/CoursePage"
 import HomeProf from "./Pages/HomePages/HomeProf"
 import HomeCourse from "./Pages/HomePages/HomeCourse"
 import HomeDepartment from "./Pages/HomePages/HomeDepartment"
