@@ -1,0 +1,355 @@
+/* Compare professors — design-system styled.
+   Uses tokens from src/styles/tokens.css */
+
+.page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(32px, 4.5vw, 44px);
+    color: var(--ink);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+}
+
+.subtitle {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-3);
+    margin: 0 0 28px;
+}
+
+/* ── Slots row ── */
+.slots {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+    gap: 28px;
+}
+
+/* vs badge overlaps the seam between the two cards */
+.vs {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--navy);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 27, 61, 0.25);
+}
+
+/* empty slot */
+.slotEmpty {
+    position: relative;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 24px;
+    min-height: 180px;
+}
+
+.slotSide {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--ink-3);
+}
+
+.searchBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0 14px;
+    height: 48px;
+    margin-top: 12px;
+    transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.searchBar:focus-within {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.searchBar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--ink);
+}
+.searchBar input::placeholder { color: var(--ink-3); }
+
+.slotHint {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 14px 0 0;
+}
+
+/* live-search dropdown */
+.dropdown {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    z-index: 20;
+    margin-top: 6px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 27, 61, 0.18));
+    overflow: hidden;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px;
+    cursor: pointer;
+    text-align: left;
+    transition: background var(--dur) var(--ease);
+}
+.option:last-child { border-bottom: none; }
+.option:hover { background: var(--cream); }
+
+.optAvatar {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--blue-tint);
+    color: var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.optText { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.optName { font-family: var(--font-sans); font-size: 14px; font-weight: 700; color: var(--ink); }
+.optDept { font-family: var(--font-sans); font-size: 12px; color: var(--ink-3); }
+
+.optRating {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    flex: none;
+}
+
+/* filled slot */
+.slotFilled {
+    position: relative;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 28px 24px;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.removeBtn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--cream);
+    color: var(--ink-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.removeBtn:hover { background: var(--cream-deep); color: var(--ink); }
+
+.bigAvatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--blue-tint);
+    color: var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+.slotName {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 2px;
+}
+
+.slotDept {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 0 0 12px;
+}
+
+.reviewsBadge {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+}
+
+/* ── Banner ── */
+.banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 14px 18px;
+    margin: 24px 0 16px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-2);
+}
+.banner strong { color: var(--ink); font-weight: 700; }
+
+.bannerCheck {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(46, 125, 85, 0.14);
+    color: var(--positive);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Comparison table ── */
+.table {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.tableRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+}
+.tableRow:last-child { border-bottom: none; }
+
+.cell {
+    background: var(--white);
+    padding: 20px 22px;
+    display: flex;
+    align-items: center;
+}
+.cell:first-child { justify-content: flex-end; text-align: right; }
+
+/* winning side gets a soft green wash */
+.win {
+    background: rgba(46, 125, 85, 0.08);
+}
+.win .cellValue { color: var(--positive); }
+
+.cellValue {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--ink);
+    line-height: 1;
+}
+
+.unit {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-3);
+    margin-left: 1px;
+}
+.win .unit { color: var(--positive); }
+
+.star { color: var(--star); }
+.check { color: var(--positive); font-size: 16px; }
+
+/* center label column */
+.cellLabel {
+    background: var(--cream);
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.rowLabel {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+}
+
+.rowSub {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 4px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+    .slots { grid-template-columns: 1fr; }
+    .vs {
+        position: static;
+        transform: none;
+        margin: -6px auto;
+    }
+    .cellValue { font-size: 22px; }
+}

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { supabase } from "../supabaseClient"
 import "../styles/layout.css"
 
-export default function Layout({ children, fullBleed = false }) {
+export default function Layout({ children, fullBleed = false, wide = false }) {
     const [session, setSession] = useState(null)
     const [searchInput, setSearchInput] = useState("")
     // when fullBleed (landing), the bar floats over the hero until you scroll
@@ -88,7 +88,7 @@ export default function Layout({ children, fullBleed = false }) {
                 </div>
             </div>
 
-            <main className={fullBleed ? "app-main app-main--full" : "app-main"}>
+            <main className={fullBleed ? "app-main app-main--full" : wide ? "app-main app-main--wide" : "app-main"}>
                 {children}
             </main>
         </div>

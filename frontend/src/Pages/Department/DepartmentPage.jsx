@@ -20,6 +20,9 @@ export default function DepartmentPage() {
     const [bookmarked, setBookmarked] = useState(new Set())
 
     const [error, setError] = useState("")
+    // how many cards are visible in each section (grows by 10 on "See more")
+    const [profsShown, setProfsShown] = useState(10)
+    const [coursesShown, setCoursesShown] = useState(10)
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -40,6 +43,9 @@ export default function DepartmentPage() {
 
         getProfessor()
         getCourse()
+        // reset paging when switching departments
+        setProfsShown(10)
+        setCoursesShown(10)
     }, [department_name])
 
 
@@ -115,7 +121,7 @@ export default function DepartmentPage() {
                 </div>
 
                 <div className={styles.list}>
-                    {profs.map((professor) => {
+                    {profs.slice(0, profsShown).map((professor) => {
                         const initials = getInitials(professor.name)
                         const hasReviews = professor.review_count > 0
 
@@ -150,6 +156,12 @@ export default function DepartmentPage() {
                     })}
                 </div>
 
+                {profsShown < profs.length && (
+                    <button className={styles.seeMore} onClick={() => setProfsShown(n => n + 10)}>
+                        See more professors
+                    </button>
+                )}
+
                 {/* ── Courses ── */}
                 <div className={styles.sectionHead}>
                     <h2 className={styles.sectionTitle}>Courses</h2>
@@ -157,7 +169,7 @@ export default function DepartmentPage() {
                 </div>
 
                 <div className={styles.list}>
-                    {courses.map((course) => {
+                    {courses.slice(0, coursesShown).map((course) => {
                         const isBookmarked = bookmarked.has(course.id)
                         return (
                             <div key={course.id} className={styles.card} onClick={() => navigate(`/course/${course.id}`)}>
@@ -191,6 +203,12 @@ export default function DepartmentPage() {
                         )
                     })}
                 </div>
+
+                {coursesShown < courses.length && (
+                    <button className={styles.seeMore} onClick={() => setCoursesShown(n => n + 10)}>
+                        See more courses
+                    </button>
+                )}
             </div>
         </Layout>
     )

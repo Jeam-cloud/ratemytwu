@@ -184,6 +184,26 @@
     flex: none;
 }
 
+/* ── See more ── */
+.seeMore {
+    display: block;
+    margin: 16px auto 0;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 11px 24px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue);
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.seeMore:hover {
+    border-color: var(--blue);
+    background: var(--blue-tint);
+}
+
 /* ── Bookmark button ── */
 .bookmarkBtn {
     display: inline-flex;

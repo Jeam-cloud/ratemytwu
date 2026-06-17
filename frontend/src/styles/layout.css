@@ -140,3 +140,10 @@
     margin: 0;
     padding: 0;
 }
+
+/* Wide content pages (e.g. the planner) — relaxed width, normal navbar */
+.app-main--wide {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 0;
+}
