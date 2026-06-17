@@ -85,6 +85,10 @@
 }
 
 /* Avatar + login */
+.app-avatar-wrap {
+    position: relative;
+    flex: none;
+}
 .app-avatar {
     width: 34px;
     height: 34px;
@@ -98,7 +102,46 @@
     font-size: 14px;
     flex: none;
     cursor: pointer;
+    border: none;
+    font-family: var(--font-sans);
 }
+
+/* Account dropdown */
+.app-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+}
+.app-menu {
+    position: absolute;
+    top: 44px;
+    right: 0;
+    z-index: 50;
+    min-width: 170px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 27, 61, 0.18));
+    padding: 6px;
+}
+.app-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.app-menu-item:hover { background: var(--cream); color: var(--ink); }
+.app-menu-signout { color: var(--negative); }
+.app-menu-signout:hover { background: var(--danger-tint, rgba(176,71,59,0.09)); color: var(--negative); }
 .app-login {
     color: rgba(255,255,255,0.85);
     text-decoration: none;

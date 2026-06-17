@@ -8,7 +8,14 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
     const [searchInput, setSearchInput] = useState("")
     // when fullBleed (landing), the bar floats over the hero until you scroll
     const [scrolled, setScrolled] = useState(false)
+    const [menuOpen, setMenuOpen] = useState(false)
     const navigate = useNavigate()
+
+    const handleSignOut = async () => {
+        setMenuOpen(false)
+        await supabase.auth.signOut()
+        navigate("/login")
+    }
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -73,13 +80,31 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <Link to="/?mode=course">Courses</Link>
                         <Link to="/departments">Departments</Link>
                         <Link to="/compare">Compare</Link>
-                        {session && <Link to="/dashboard">Dashboard</Link>}
                     </nav>
 
                     {/* Avatar / auth */}
                     {session ? (
-                        <div className="app-avatar" onClick={() => navigate("/dashboard")}>
-                            {getInitials()}
+                        <div className="app-avatar-wrap">
+                            <button
+                                className="app-avatar"
+                                onClick={() => setMenuOpen((o) => !o)}
+                                aria-label="Account menu"
+                            >
+                                {getInitials()}
+                            </button>
+                            {menuOpen && (
+                                <>
+                                    <div className="app-menu-backdrop" onClick={() => setMenuOpen(false)} />
+                                    <div className="app-menu">
+                                        <button className="app-menu-item" onClick={() => { setMenuOpen(false); navigate("/dashboard") }}>
+                                            Dashboard
+                                        </button>
+                                        <button className="app-menu-item app-menu-signout" onClick={handleSignOut}>
+                                            Sign out
+                                        </button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <Link to="/login" className="app-login">Log in</Link>
