@@ -42,6 +42,15 @@ export default function Dashboard() {
     const [cards, setCards] = useState([])
     const [editingYears, setEditingYears] = useState(false)
     const [pendingYears, setPendingYears] = useState(null)
+    // the calendar year the student began (Fall of this year = year 1)
+    const [startYear, setStartYear] = useState(new Date().getFullYear())
+    // draft value for the first-visit prompt's start-year dropdown
+    const [startDraft, setStartDraft] = useState(new Date().getFullYear())
+
+    // start-year options: a generous window around now (covers returning students)
+    const thisYear = new Date().getFullYear()
+    const startYearOptions = []
+    for (let y = thisYear - 10; y <= thisYear + 1; y++) startYearOptions.push(y)
 
     const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
     const percent = Math.round((totalCredits / 120) * 100)
@@ -54,6 +63,11 @@ export default function Dashboard() {
         const saved = localStorage.getItem("year")
         if (saved) {
             setYears(Number(saved))
+        }
+        const savedStart = localStorage.getItem("startYear")
+        if (savedStart) {
+            setStartYear(Number(savedStart))
+            setStartDraft(Number(savedStart))
         }
 
         // GET cards request
@@ -84,9 +98,15 @@ export default function Dashboard() {
         setYears(year)
     }
 
+    // persists the start year (the calendar year of the student's first Fall term)
+    const handleStartYear = (year) => {
+        localStorage.setItem("startYear", year)
+        setStartYear(year)
+        setStartDraft(year)
+    }
+
     // generates the labels of the columns and how many columns based on years
     const generateColumns = (years) => {
-        const startYear = new Date().getFullYear()
         const columns = []
 
         for (let i = 0; i < years; i++) {
@@ -245,11 +265,28 @@ export default function Dashboard() {
                         <div className={styles.main}>
                             {years === null ? (
                                 <div className={styles.lifespan}>
-                                    <p className={styles.lifespanTitle}>How many years until you graduate?</p>
-                                    <p className={styles.lifespanSub}>This sets up your planner terms, starting this fall.</p>
+                                    <p className={styles.lifespanTitle}>Set up your planner</p>
+                                    <p className={styles.lifespanSub}>Pick the year you started at TWU, then how many years your degree spans.</p>
+
+                                    <label className={styles.lifespanLabel}>I started in</label>
+                                    <select
+                                        className={styles.lifespanSelect}
+                                        value={startDraft}
+                                        onChange={(e) => setStartDraft(Number(e.target.value))}
+                                    >
+                                        {startYearOptions.map((y) => (
+                                            <option key={y} value={y}>Fall {y}</option>
+                                        ))}
+                                    </select>
+
+                                    <label className={styles.lifespanLabel}>Degree length</label>
                                     <div className={styles.lifespanBtns}>
                                         {[3, 4, 5, 6, 7, 8].map((y) => (
-                                            <button key={y} className={styles.lifespanBtn} onClick={() => handleYear(y)}>
+                                            <button
+                                                key={y}
+                                                className={styles.lifespanBtn}
+                                                onClick={() => { handleStartYear(startDraft); handleYear(y) }}
+                                            >
                                                 {y} years
                                             </button>
                                         ))}
@@ -261,6 +298,7 @@ export default function Dashboard() {
                                         <DashBoardColumn
                                             key={`${col.year}-${col.term}`}
                                             col={col}
+                                            startYear={startYear}
                                             cards={cards.filter(c => c.year === col.year && c.term === col.term)}
                                             onDelete={handleDelete}
                                             onUpdate={handleUpdate}
@@ -338,8 +376,20 @@ export default function Dashboard() {
                                     </svg>
                                 </button>
                             </div>
-                            <p className={styles.yearModalSub}>How many years does your degree span?</p>
+                            <p className={styles.yearModalSub}>Adjust when you started and how long your degree spans.</p>
 
+                            <label className={styles.lifespanLabel}>Starting year</label>
+                            <select
+                                className={styles.lifespanSelect}
+                                value={startYear}
+                                onChange={(e) => handleStartYear(Number(e.target.value))}
+                            >
+                                {startYearOptions.map((y) => (
+                                    <option key={y} value={y}>Fall {y}</option>
+                                ))}
+                            </select>
+
+                            <label className={styles.lifespanLabel}>Degree length</label>
                             <div className={styles.yearGrid}>
                                 {[3, 4, 5, 6, 7, 8].map((y) => {
                                     const blocked = y < maxUsedYear

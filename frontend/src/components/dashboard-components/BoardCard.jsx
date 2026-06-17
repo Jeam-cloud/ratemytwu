@@ -11,7 +11,7 @@ const STATUS_TONE = {
     "Completed": styles.toneCompleted,
 }
 
-export default function BoardCard({ card, onDelete, onUpdate }) {
+export default function BoardCard({ card, onDelete, onUpdate, startYear }) {
     const [menuOpen, setMenuOpen] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
 
@@ -119,7 +119,7 @@ export default function BoardCard({ card, onDelete, onUpdate }) {
                         <div className={styles.modalHead}>
                             <div>
                                 <h3 className={styles.modalTitle}>Edit {card.code}</h3>
-                                <p className={styles.modalSub}>{card.term} {new Date().getFullYear() + (card.year - 1)}</p>
+                                <p className={styles.modalSub}>{card.term} {(startYear ?? new Date().getFullYear()) + (card.year - 1)}</p>
                             </div>
                             <button className={styles.modalClose} onClick={() => setModalOpen(false)} aria-label="Close">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
