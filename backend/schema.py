@@ -129,7 +129,16 @@ class CourseProfessorOut(BaseModel):
     name: str
     department: str
     average_rating: float | None
+    average_difficulty: float | None
     review_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class CourseDetailOut(BaseModel):
+    code: str
+    department: str
+    professors: list[CourseProfessorOut]
 
     model_config = {"from_attributes": True}
     

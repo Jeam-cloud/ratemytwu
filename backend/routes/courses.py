@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 
 from models import Courses, ProfessorCourse, Professor, Reviews
 from database import db_dependency
-from schema import CoursesBase, CourseSearchOut, CourseProfessorOut
+from schema import CoursesBase, CourseSearchOut, CourseDetailOut
 
 
 router = APIRouter(prefix="/course", tags=["courses"])
@@ -41,8 +41,8 @@ def get_courses(search_course: str, db: db_dependency):
     return course_list
 
 
-# each clickable course returns all professors teaching it
-@router.get("/{course_id}", response_model=list[CourseProfessorOut])
+# each clickable course returns the course info plus all professors teaching it
+@router.get("/{course_id}", response_model=CourseDetailOut)
 def get_course_taught(course_id: int, db: db_dependency):
 
     course = db.execute(
@@ -58,6 +58,7 @@ def get_course_taught(course_id: int, db: db_dependency):
             Professor.name,
             Professor.department,
             func.round(cast(func.avg(Reviews.rating), Numeric), 2).label("average_rating"),
+            func.round(cast(func.avg(Reviews.difficulty), Numeric), 2).label("average_difficulty"),
             func.count(Reviews.id).label("review_count")
         )
         .join(ProfessorCourse, ProfessorCourse.professor_id == Professor.id)
@@ -74,12 +75,17 @@ def get_course_taught(course_id: int, db: db_dependency):
             "name": pc.name,
             "department": pc.department,
             "average_rating": pc.average_rating,
+            "average_difficulty": pc.average_difficulty,
             "review_count": pc.review_count
         }
 
         course_to_professor_list.append(professor)
-    
-    return course_to_professor_list
+
+    return {
+        "code": course.code,
+        "department": course.department,
+        "professors": course_to_professor_list
+    }
 
 # add course manually for testing data - delete later
 @router.post("/course")

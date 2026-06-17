@@ -1,0 +1,32 @@
+/* Draggable bookmark chip in the planner. Uses tokens from src/styles/tokens.css */
+.card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    cursor: grab;
+    box-shadow: var(--shadow-xs, 0 1px 2px rgba(53,40,32,.05));
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.card:hover {
+    border-color: var(--blue);
+    box-shadow: var(--shadow-sm);
+}
+.card:active { cursor: grabbing; }
+
+.code {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--blue);
+}
+
+.grip {
+    color: var(--ink-3);
+    display: inline-flex;
+}

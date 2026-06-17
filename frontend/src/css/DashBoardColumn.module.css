@@ -1,0 +1,61 @@
+/* A term column in the planner. Uses tokens from src/styles/tokens.css */
+.column {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 16px;
+    transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+/* subtle lift on hover, matching the review cards */
+.column:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+/* highlight when a card is dragged over */
+.over {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.label {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.credits {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--blue);
+    background: var(--blue-tint);
+    border-radius: var(--radius-sm);
+    padding: 3px 9px;
+}
+
+.cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dropzone {
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 22px 12px;
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+}
