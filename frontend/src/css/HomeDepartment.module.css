@@ -1,0 +1,97 @@
+/* Browse by department — design-system styled.
+   Uses tokens from src/styles/tokens.css */
+
+.page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(32px, 4.5vw, 44px);
+    color: var(--ink);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+}
+
+.subtitle {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-3);
+    margin: 0 0 28px;
+}
+
+/* ── Filter ── */
+.searchBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 0 16px;
+    height: 52px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 24px;
+    transition: box-shadow var(--dur) var(--ease);
+}
+.searchBar:focus-within {
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.searchBar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--ink);
+}
+.searchBar input::placeholder { color: var(--ink-3); }
+
+/* ── 2-column tile grid ── */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.tile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 18px 20px;
+    cursor: pointer;
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+.deptName {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.deptCount {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    flex: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr; }
+}
