@@ -2,6 +2,20 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
+import Layout from "../../components/Layout"
+import styles from "../../css/ProfessorPage.module.css"
+
+// 5-star glyph row, filled up to the rounded rating
+function Stars({ value }) {
+    const full = Math.round(value || 0)
+    return (
+        <span className={styles.stars}>
+            {[1, 2, 3, 4, 5].map(i => (
+                <span key={i} className={i <= full ? styles.starOn : styles.starOff}>★</span>
+            ))}
+        </span>
+    )
+}
 
 export default function ProfessorPage() {
     const [results, setResults] = useState(null)
@@ -76,130 +90,160 @@ export default function ProfessorPage() {
         return Math.round((yes / reviews.length) * 100)
     }
 
-    if (!results) return <p>Loading...</p>
+    if (!results) return <Layout><p className={styles.loading}>Loading...</p></Layout>
 
     return (
-        <div className="page">
+        <Layout>
+            <div className={styles.page}>
 
-            <button onClick={() => navigate(-1)}>← Back to results</button>
+                <button className={styles.back} onClick={() => navigate(-1)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                    Back to results
+                </button>
 
-            {/* ── Header ── */}
-            <div className="header">
-                <span className="departmentBadge">{results.department}</span>
-                <h1 className="profName">{results.name}</h1>
-                <p className="profMeta">Department of {results.department} · {reviews.length} {reviews.length === 1 ? "review" : "reviews"}</p>
+                {/* ── Header card ── */}
+                <div className={styles.header}>
+                    <span className={styles.departmentBadge}>{results.department}</span>
+                    <h1 className={styles.profName}>{results.name}</h1>
+                    <p className={styles.profMeta}>
+                        Department of {results.department} · {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
+                    </p>
 
-                {/* Metric cards */}
-                <div className="metricCards">
-                    <div className="metricCard">
-                        <p className="metricLabel">Overall rating</p>
-                        <p className="metricValue">{results.average_rating ?? "—"}<span className="metricDenom">/5</span></p>
+                    {/* Metric cards */}
+                    <div className={styles.metricCards}>
+                        <div className={styles.metricCard}>
+                            <p className={styles.metricLabel}>Overall rating</p>
+                            <p className={styles.metricValue}>
+                                {results.average_rating ?? "—"}<span className={styles.metricDenom}>/5</span>
+                            </p>
+                        </div>
+                        <div className={styles.metricCard}>
+                            <p className={styles.metricLabel}>Difficulty</p>
+                            <p className={styles.metricValue}>
+                                {results.average_difficulty ?? "—"}<span className={styles.metricDenom}>/5</span>
+                            </p>
+                        </div>
+                        <div className={styles.metricCard}>
+                            <p className={styles.metricLabel}>Would take again</p>
+                            <p className={styles.metricValue}>
+                                {takeAgainPercent() ?? "—"}<span className={styles.metricDenom}>%</span>
+                            </p>
+                            <p className={styles.metricSub}>
+                                {reviews.filter(r => r.take_again === 1).length} of {reviews.length} students
+                            </p>
+                        </div>
                     </div>
-                    <div className="metricCard">
-                        <p className="metricLabel">Difficulty</p>
-                        <p className="metricValue">{results.average_difficulty ?? "—"}<span className="metricDenom">/5</span></p>
-                    </div>
-                    <div className="metricCard">
-                        <p className="metricLabel">Would take again</p>
-                        <p className="metricValue">{takeAgainPercent() ?? "—"}<span className="metricDenom">%</span></p>
-                        <p className="metricSub">{reviews.filter(r => r.take_again === 1).length} of {reviews.length} students</p>
+
+                    {/* Qualitative pill tags — most common value across reviews */}
+                    <div className={styles.pillTags}>
+                        {[
+                            { label: "Grading", field: "grading_fairness" },
+                            { label: "Lectures", field: "lecture_quality" },
+                            { label: "Office hours", field: "office_hours" },
+                            { label: "Extensions", field: "extension_policy" },
+                        ].map(({ label, field }) => {
+                            const mode = mostCommon(reviews.map(r => r[field]))
+                            if (!mode) return null
+                            return (
+                                <span key={field} className={styles.pillTag}>
+                                    {label} <strong>{mode}</strong>
+                                </span>
+                            )
+                        })}
                     </div>
                 </div>
 
-                {/* Qualitative pill tags — most common value across reviews */}
-                <div className="pillTags">
-                    {[
-                        { label: "Grading", field: "grading_fairness" },
-                        { label: "Lectures", field: "lecture_quality" },
-                        { label: "Office hours", field: "office_hours" },
-                        { label: "Extensions", field: "extension_policy" },
-                    ].map(({ label, field }) => {
-                        const mode = mostCommon(reviews.map(r => r[field]))
-                        if (!mode) return null
-                        return (
-                            <span key={field} className="pillTag">
-                                {label} <strong>{mode}</strong>
-                            </span>
-                        )
-                    })}
+                {/* ── Courses taught ── */}
+                {courses.length > 0 && (
+                    <section className={styles.coursesSection}>
+                        <p className={styles.sectionKicker}>Courses taught this year</p>
+                        <div className={styles.coursesTaught}>
+                            {courses.map(course => (
+                                <span
+                                    key={course.id}
+                                    className={styles.courseChip}
+                                    onClick={() => navigate(`/course/${course.id}`)}
+                                >
+                                    {course.code}
+                                </span>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* ── Reviews ── */}
+                <section className={styles.reviewsSection}>
+                    <p className={styles.sectionKicker}>
+                        {reviews.length} student {reviews.length === 1 ? "review" : "reviews"}
+                    </p>
+
+                    {reviews.map(review => (
+                        <div key={review.id} className={styles.reviewCard}>
+
+                            {/* Card header */}
+                            <div className={styles.reviewCardHeader}>
+                                <div className={styles.reviewCardHeaderLeft}>
+                                    <span className={styles.reviewCourseCode}>{review.course_code}</span>
+                                    <span className={styles.reviewGradePill}>{review.grade_received}</span>
+                                </div>
+                                <div className={styles.reviewCardHeaderRight}>
+                                    <Stars value={review.rating} />
+                                    <span className={styles.reviewRatingNum}>{review.rating}.0</span>
+                                    <span className={styles.reviewDate}>{formatDate(review.created_at)}</span>
+                                </div>
+                            </div>
+
+                            {/* Mini stats row */}
+                            <div className={styles.reviewMiniStats}>
+                                <span className={styles.miniStat}>Rating <strong>{review.rating}/5</strong></span>
+                                <span className={styles.miniStat}>Difficulty <strong>{review.difficulty}/5</strong></span>
+                                <span className={styles.miniStat}>
+                                    Take again{" "}
+                                    <strong className={review.take_again === 1 ? styles.yes : styles.no}>
+                                        {formatTakeAgain(review.take_again)}
+                                    </strong>
+                                </span>
+                            </div>
+
+                            {/* Written review */}
+                            <p className={styles.reviewText}>{review.review}</p>
+
+                            {/* Course-specific chips */}
+                            <div className={styles.reviewChips}>
+                                {review.group_work && <span className={styles.chip}>{review.group_work}</span>}
+                                {review.exam_format && <span className={styles.chip}>{review.exam_format}</span>}
+                                {review.textbook_required && <span className={styles.chip}>{review.textbook_required === "yes" ? "Textbook required" : "No textbook"}</span>}
+                                {review.attendance && <span className={styles.chip}>Attendance {review.attendance}</span>}
+                                {review.extra_credit && <span className={styles.chip}>{review.extra_credit === "yes" ? "Extra credit" : "No extra credit"}</span>}
+                            </div>
+
+                            {/* Tips */}
+                            {review.tips && (
+                                <div className={styles.reviewTips}>
+                                    <p className={styles.tipsLabel}>Tips</p>
+                                    <p className={styles.tipsText}>{review.tips}</p>
+                                </div>
+                            )}
+
+                            {/* Owner-only delete */}
+                            {currentUserId === review.user_id && (
+                                <button className={styles.deleteBtn} onClick={() => handleDelete(review.id)}>
+                                    Delete review
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </section>
+
+                {/* ── Actions ── */}
+                <div className={styles.actions}>
+                    {error && <p className={styles.errorMsg}>{error}</p>}
+                    <button className={styles.leaveReviewBtn} onClick={redirectReview}>Leave a review</button>
                 </div>
             </div>
-
-            {/* ── Courses taught ── */}
-            <div className="coursesTaught">
-                {courses.map(course => (
-                    <span
-                        key={course.id}
-                        className="courseChip"
-                        onClick={() => navigate(`/course/${course.id}`)}
-                    >
-                        {course.code}
-                    </span>
-                ))}
-            </div>
-
-            {/* ── Reviews ── */}
-            <section className="reviewsSection">
-                <p className="reviewsLabel">{reviews.length} student {reviews.length === 1 ? "review" : "reviews"}</p>
-
-                {reviews.map(review => (
-                    <div key={review.id} className="reviewCard">
-
-                        {/* Card header */}
-                        <div className="reviewCardHeader">
-                            <div className="reviewCardHeaderLeft">
-                                <span className="reviewCourseCode">{review.course_code}</span>
-                                <span className="reviewGradePill">{review.grade_received}</span>
-                            </div>
-                            <div className="reviewCardHeaderRight">
-                                <span className="reviewRating">★ {review.rating}/5</span>
-                                <span className="reviewDate">{formatDate(review.created_at)}</span>
-                            </div>
-                        </div>
-
-                        {/* Mini stats row */}
-                        <div className="reviewMiniStats">
-                            <span className="miniStat">Rating <strong>{review.rating}/5</strong></span>
-                            <span className="miniStat">Difficulty <strong>{review.difficulty}/5</strong></span>
-                            <span className="miniStat">Take again <strong>{formatTakeAgain(review.take_again)}</strong></span>
-                        </div>
-
-                        {/* Written review */}
-                        <p className="reviewText">{review.review}</p>
-
-                        {/* Course-specific chips */}
-                        <div className="reviewChips">
-                            {review.group_work && <span className="chip">{review.group_work}</span>}
-                            {review.exam_format && <span className="chip">{review.exam_format}</span>}
-                            {review.textbook_required && <span className="chip">{review.textbook_required === "yes" ? "Textbook required" : "No textbook"}</span>}
-                            {review.attendance && <span className="chip">Attendance {review.attendance}</span>}
-                            {review.extra_credit && <span className="chip">{review.extra_credit === "yes" ? "Extra credit" : "No extra credit"}</span>}
-                        </div>
-
-                        {/* Tips */}
-                        {review.tips && (
-                            <div className="reviewTips">
-                                <p className="tipsLabel">Tips</p>
-                                <p className="tipsText">{review.tips}</p>
-                            </div>
-                        )}
-
-                        {/* Owner-only delete */}
-                        {currentUserId === review.user_id && (
-                            <button className="deleteBtn" onClick={() => handleDelete(review.id)}>
-                                Delete review
-                            </button>
-                        )}
-                    </div>
-                ))}
-            </section>
-
-            {/* ── Actions ── */}
-            <div className="actions">
-                {error && <p className="errorMsg">{error}</p>}
-                <button className="leaveReviewBtn" onClick={redirectReview}>Leave a review</button>
-            </div>
-        </div>
+        </Layout>
     )
 }
 
