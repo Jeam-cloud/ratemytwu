@@ -107,9 +107,36 @@
     flex: none;
 }
 
+/* ── Landing: floating bar over the hero ── */
+.app-bar--float {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+/* transparent while at the top of the hero */
+.app-bar--transparent {
+    background: transparent;
+}
+/* once scrolled: translucent navy with a blur behind it + a soft shadow */
+.app-bar--float:not(.app-bar--transparent) {
+    background: rgba(0, 40, 86, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 1px 12px rgba(0, 27, 61, 0.18);
+}
+
 /* Main content */
 .app-main {
     max-width: 1120px;
     margin: 0 auto;
     padding: 0 24px;
+}
+
+/* Landing: edge-to-edge sections, no gutters, bar overlays the hero */
+.app-main--full {
+    max-width: none;
+    margin: 0;
+    padding: 0;
 }

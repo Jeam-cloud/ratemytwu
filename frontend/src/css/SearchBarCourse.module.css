@@ -1,3 +1,5 @@
+/* Hero search bar — white surface, blue action button.
+   Shared shape with SearchBarProf. */
 .searchWrap {
     width: 100%;
     max-width: 540px;
@@ -7,18 +9,18 @@
 .searchBar {
     display: flex;
     align-items: center;
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 14px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 0 8px 0 20px;
     height: 60px;
     gap: 12px;
-    transition: border-color .2s, box-shadow .2s;
+    box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 27, 61, 0.18));
+    transition: box-shadow var(--dur) var(--ease);
 }
 
 .searchBar:focus-within {
-    border-color: rgba(201,168,76,.5);
-    box-shadow: 0 0 0 4px rgba(201,168,76,.08), 0 8px 40px rgba(0,0,0,.4);
+    box-shadow: 0 0 0 3px var(--focus-ring), 0 12px 32px rgba(0, 27, 61, 0.18);
 }
 
 .searchBar input {
@@ -27,32 +29,34 @@
     outline: none;
     font-size: 15px;
     background: transparent;
-    color: #fff;
-    font-family: inherit;
-    font-weight: 300;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-weight: 400;
 }
 
 .searchBar input::placeholder {
-    color: rgba(255,255,255,.25);
+    color: var(--ink-3);
 }
 
 .searchBtn {
     height: 44px;
     padding: 0 24px;
     border: none;
-    border-radius: 10px;
-    font-size: 13.5px;
+    border-radius: var(--radius);
+    font-size: 14px;
     font-weight: 600;
-    background: #C9A84C;
-    color: #fff;
+    background: var(--blue);
+    color: var(--white);
     cursor: pointer;
-    font-family: inherit;
+    font-family: var(--font-sans);
     white-space: nowrap;
-    box-shadow: 0 2px 12px rgba(201,168,76,.3);
-    transition: all .2s;
+    transition: background var(--dur) var(--ease);
 }
 
 .searchBtn:hover {
-    background: #d4b050;
-    box-shadow: 0 4px 20px rgba(201,168,76,.5);
+    background: var(--blue-hover);
+}
+
+.searchBtn:active {
+    background: var(--blue-press);
 }
