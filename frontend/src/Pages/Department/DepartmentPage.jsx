@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { API_URL } from "../../config"
+import Layout from "../../components/Layout"
+import styles from "../../css/DepartmentPage.module.css"
 
 import { supabase } from "../../supabaseClient"
 
@@ -32,7 +34,7 @@ export default function DepartmentPage() {
         const getCourse = async () => {
             const response = await fetch(`${API_URL}/department/${department_name}/courses`)
             const data = await response.json()
-            
+
             setCourses(data)
         }
 
@@ -89,65 +91,107 @@ export default function DepartmentPage() {
         })
 
     }
-    
+
     return(
-        <>
+        <Layout>
+            <div className={styles.page}>
 
-        <button onClick={() => navigate("/departments")}>← All departments</button>
-        <h1>{department_name}</h1>
-        <p>{profs.length} professors · {courses.length} courses</p>
+                <button className={styles.back} onClick={() => navigate("/departments")}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                    All departments
+                </button>
 
-        
-            {error && <p>{error}</p>}
-            {/*returns a list of professors in that department that are individually clickable */}
-            {profs.map((professor) => {
-                const initials = getInitials(professor.name)
-                const hasReviews = professor.review_count > 0
+                <h1 className={styles.title}>{department_name}</h1>
+                <p className={styles.subtitle}>{profs.length} professors · {courses.length} courses</p>
 
-                return (
-                    <div key={professor.id} onClick={() => navigate(`/professor/${professor.id}`)}>
-                        <div>
-                            <div>{initials}</div>
-                            <div>
-                                <p>{professor.name}</p>
-                                <p>{professor.department}</p>
-                            </div>
-                        </div>
-                        <div>
-                            {hasReviews ? (
-                                <>
-                                    <p>★ {professor.average_rating}</p>
-                                    <p>{professor.review_count} {professor.review_count === 1 ? "review" : "reviews"}</p>
-                                </>
-                            ) : (
-                                <p>No reviews yet</p>
-                            )}
-                            <span>›</span>
-                        </div>
-                    </div>
-                )
-            })}
+                {error && <p className={styles.error}>{error}</p>}
 
-            {/*returns a list of courses in that department that are individually clickable */}
-            {courses.map((course) => (
-                <div key={course.id} onClick={() => navigate(`/course/${course.id}`)}>
-
-                    {/* Left: code + department */}
-                    <div>
-                        <p>{course.code}</p>
-                        <p>{course.department}</p>
-                    </div>
-
-                    {/* Right: bookmark button + chevron */}
-                    <div>
-                        <button onClick={(e) => handleBookmark(e, course.id)}>
-                            {bookmarked.has(course.id) ? "Bookmarked" : "Bookmark"}
-                        </button>
-                        <span>›</span>
-                    </div>
-
+                {/* ── Professors ── */}
+                <div className={styles.sectionHead}>
+                    <h2 className={styles.sectionTitle}>Professors</h2>
+                    <span className={styles.sectionCount}>{profs.length}</span>
                 </div>
-            ))}
-        </>
+
+                <div className={styles.list}>
+                    {profs.map((professor) => {
+                        const initials = getInitials(professor.name)
+                        const hasReviews = professor.review_count > 0
+
+                        return (
+                            <div key={professor.id} className={styles.card} onClick={() => navigate(`/professor/${professor.id}`)}>
+                                <div className={styles.left}>
+                                    <div className={styles.avatar}>{initials}</div>
+                                    <div>
+                                        <p className={styles.name}>{professor.name}</p>
+                                        <p className={styles.meta}>{professor.department}</p>
+                                    </div>
+                                </div>
+                                <div className={styles.right}>
+                                    {hasReviews ? (
+                                        <div className={styles.stat}>
+                                            <div className={styles.statValue}>
+                                                <span className={styles.star}>★</span> {professor.average_rating}
+                                            </div>
+                                            <div className={styles.statSub}>
+                                                {professor.review_count} {professor.review_count === 1 ? "review" : "reviews"}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <span className={styles.empty}>No reviews yet</span>
+                                    )}
+                                    <svg className={styles.chevron} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="m9 18 6-6-6-6" />
+                                    </svg>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+
+                {/* ── Courses ── */}
+                <div className={styles.sectionHead}>
+                    <h2 className={styles.sectionTitle}>Courses</h2>
+                    <span className={styles.sectionCount}>{courses.length}</span>
+                </div>
+
+                <div className={styles.list}>
+                    {courses.map((course) => {
+                        const isBookmarked = bookmarked.has(course.id)
+                        return (
+                            <div key={course.id} className={styles.card} onClick={() => navigate(`/course/${course.id}`)}>
+                                <div className={styles.left}>
+                                    <div className={styles.courseIcon}>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z" />
+                                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className={styles.code}>{course.code}</p>
+                                        <p className={styles.meta}>{course.professor_count} {course.professor_count === 1 ? "professor" : "professors"}</p>
+                                    </div>
+                                </div>
+                                <div className={styles.right}>
+                                    <button
+                                        className={`${styles.bookmarkBtn} ${isBookmarked ? styles.bookmarked : ""}`}
+                                        onClick={(e) => handleBookmark(e, course.id)}
+                                    >
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill={isBookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
+                                        </svg>
+                                        {isBookmarked ? "Bookmarked" : "Bookmark"}
+                                    </button>
+                                    <svg className={styles.chevron} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="m9 18 6-6-6-6" />
+                                    </svg>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+        </Layout>
     )
 }
