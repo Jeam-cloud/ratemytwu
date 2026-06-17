@@ -377,7 +377,7 @@
 
 /* ── Final CTA ──────────────────────────────────────────── */
 .cta {
-    background: var(--navy-deep);
+    background: var(--navy);
     text-align: center;
     padding: 88px 24px;
 }

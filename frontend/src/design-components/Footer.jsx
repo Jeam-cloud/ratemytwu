@@ -47,8 +47,8 @@ export default function Footer() {
             </div>
 
             <div className={styles.bottom}>
-                <span>Not affiliated with Trinity Western University.</span>
-                <span>Made by a TWU student.</span>
+                <span>Trinity Western University</span>
+                <span>Made by students.</span>
             </div>
         </footer>
     )
