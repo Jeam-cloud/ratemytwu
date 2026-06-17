@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "react-router-dom"
 
 import SearchBarProf from "../../components/SearchBarProf"
@@ -12,12 +12,26 @@ export default function HomeProf() {
     const [mode, setMode] = useState(
         searchParam.get("mode") === "course" ? "course" : "professor"
     )
+    const heroRef = useRef(null)
+    const firstLoad = useRef(true)
+
+    // keep the hero toggle in sync with the ?mode= param so the navbar
+    // Professors/Courses links flip it live (instead of only on remount)
+    useEffect(() => {
+        const next = searchParam.get("mode") === "course" ? "course" : "professor"
+        setMode(next)
+        // on a navbar click while already here, nudge the user to the search
+        if (!firstLoad.current && heroRef.current) {
+            heroRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+        firstLoad.current = false
+    }, [searchParam])
 
     return (
         <>
             <Layout fullBleed>
                 {/* ── Hero ── */}
-                <section className={styles.hero}>
+                <section className={styles.hero} ref={heroRef}>
                     <div className={styles.heroPhoto} />
                     <div className={styles.heroScrim} />
 
@@ -151,12 +165,8 @@ export default function HomeProf() {
                 {/* ── Planner spotlight (navy) ── */}
                 <section className={`${styles.band} ${styles.bandNavy}`}>
                     <div className={styles.bandInner}>
-                        <div className={`${styles.shot} ${styles.shotOnNavy}`}>
-                            <span className={styles.shotLabel}>Dashboard planner</span>
-                            <span className={styles.shotMeta}>4 : 3 screenshot slot</span>
-                        </div>
                         <div className={styles.bandText}>
-                            <span className={styles.onlyPill}>★ Only on RateMyTWU</span>
+                            <span className={styles.kicker}>Planner</span>
                             <h2 className={styles.bandTitle}>
                                 Plan your <em className={styles.titleAccent}>whole degree</em>
                             </h2>
@@ -166,6 +176,10 @@ export default function HomeProf() {
                                 graduation.
                             </p>
                             <a className={styles.bandLink} href="/dashboard">See the planner →</a>
+                        </div>
+                        <div className={`${styles.shot} ${styles.shotOnNavy}`}>
+                            <span className={styles.shotLabel}>Dashboard planner</span>
+                            <span className={styles.shotMeta}>4 : 3 screenshot slot</span>
                         </div>
                     </div>
                 </section>
@@ -179,9 +193,9 @@ export default function HomeProf() {
                     </p>
                     <div className={styles.stats}>
                         {[
-                            { num: "55+", label: "Departments" },
-                            { num: "180+", label: "Professors" },
-                            { num: "636+", label: "Courses" },
+                            { num: "40+", label: "Departments" },
+                            { num: "200+", label: "Professors" },
+                            { num: "600+", label: "Courses" },
                         ].map((s) => (
                             <div key={s.label} className={styles.stat}>
                                 <div className={styles.statNum}>{s.num}</div>
