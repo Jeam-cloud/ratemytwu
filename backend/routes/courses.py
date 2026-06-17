@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 
 from models import Courses, ProfessorCourse, Professor, Reviews
 from database import db_dependency
-from schema import CoursesBase, CourseSearchOut, CourseProfessorOut, CourseDetailOut
+from schema import CoursesBase, CourseSearchOut, CourseDetailOut
 
 
 router = APIRouter(prefix="/course", tags=["courses"])
