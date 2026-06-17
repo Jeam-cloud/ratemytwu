@@ -1,0 +1,29 @@
+/* Selectable chip group — replaces native radios in the review form. */
+.group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.chip {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-2);
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.chip:hover {
+    border-color: var(--border-strong);
+}
+
+.selected {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: var(--white);
+}

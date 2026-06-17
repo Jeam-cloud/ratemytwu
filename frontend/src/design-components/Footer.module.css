@@ -1,89 +1,126 @@
+/* Footer — navy with a faint campus photo, three link columns + disclaimers. */
 .footer {
-    background: #050d22;
-    padding: 64px 40px 32px;
-    border-top: 1px solid rgba(255,255,255,.06);
+    position: relative;
+    overflow: hidden;
+    background: var(--navy-deep);
+    color: var(--white);
+    padding: 120px 24px 40px;
+}
+
+.photo {
+    position: absolute;
+    inset: 0;
+    background: url("/campus-footer.jpg") center / cover no-repeat;
+    z-index: 0;
+}
+
+/* gradient keeps the photo visible up top, darkens toward the links for legibility */
+.scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(0, 27, 61, 0.25) 0%,
+        rgba(0, 27, 61, 0.7) 55%,
+        var(--navy-deep) 100%
+    );
+    z-index: 1;
 }
 
 .inner {
+    position: relative;
+    z-index: 2;
     max-width: 1100px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    gap: 64px;
-    padding-bottom: 48px;
-    border-bottom: 1px solid rgba(255,255,255,.05);
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 40px;
 }
 
 .brandCol {
-    max-width: 360px;
+    max-width: 320px;
 }
 
 .logo {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -.5px;
-    margin-bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    margin-bottom: 16px;
 }
 
-.logoRate { color: #fff; }
-.logoMy   { color: #C9A84C; }
-.logoTwu  { color: #fff; }
+.flame {
+    width: 22px;
+    height: 22px;
+}
+
+.wordmark {
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--white);
+}
+
+.my {
+    color: var(--gold);
+}
 
 .tagline {
-    font-size: 13px;
-    color: rgba(255,255,255,.4);
-    line-height: 1.7;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
     margin: 0;
-    font-weight: 300;
 }
 
 .linksCol {
     display: flex;
     flex-direction: column;
-    gap: 12px;
 }
 
 .linksTitle {
-    font-size: 11px;
-    letter-spacing: .12em;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgba(255,255,255,.35);
-    font-weight: 500;
-    margin-bottom: 4px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 16px;
 }
 
 .link {
-    font-size: 13px;
-    color: rgba(255,255,255,.6);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.82);
     text-decoration: none;
-    transition: color .2s;
+    padding: 6px 0;
+    transition: color var(--dur) var(--ease);
 }
 
 .link:hover {
-    color: #fff;
+    color: var(--white);
 }
 
 .bottom {
+    position: relative;
+    z-index: 2;
     max-width: 1100px;
-    margin: 0 auto;
-    padding-top: 28px;
+    margin: 48px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
     display: flex;
     justify-content: space-between;
-    font-size: 12px;
-    color: rgba(255,255,255,.3);
+    gap: 16px;
+    flex-wrap: wrap;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
 }
 
-@media (max-width: 768px) {
-    .footer {
-        padding: 48px 24px 24px;
-    }
+@media (max-width: 760px) {
     .inner {
-        grid-template-columns: 1fr;
-        gap: 36px;
+        grid-template-columns: 1fr 1fr;
     }
-    .bottom {
-        flex-direction: column;
-        gap: 8px;
-        align-items: center;
+    .brandCol {
+        grid-column: 1 / -1;
     }
 }

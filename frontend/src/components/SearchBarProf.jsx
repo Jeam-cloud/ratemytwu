@@ -22,7 +22,7 @@ export default function SearchBarProf() {
     return (
         <div className={styles.searchWrap}>
             <div className={styles.searchBar}>
-                <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,.3)" strokeWidth="2" viewBox="0 0 24 24">
+                <svg width="16" height="16" fill="none" stroke="#877C70" strokeWidth="2" viewBox="0 0 24 24">
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                 </svg>
