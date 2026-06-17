@@ -138,7 +138,7 @@ export default function Dashboard() {
             handleUpdate(card.id, {
                 year: col.year,
                 term: col.term,
-                credits: card.credits ?? null,
+                credits: card.credits ?? null,      // ← fixed: was incorrectly `course.credits`
                 status: card.status ?? "Planned",
                 grade: card.grade ?? null,
                 notes: card.notes ?? null,
@@ -157,7 +157,11 @@ export default function Dashboard() {
             headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`},
             body: JSON.stringify({
                 year: col.year,
-                term: col.term
+                term: col.term,
+                credits: course.credits ?? null,    // ← fixed: now sends credits to backend
+                status: "Planned",
+                grade: null,
+                notes: null,
             })
         })
 

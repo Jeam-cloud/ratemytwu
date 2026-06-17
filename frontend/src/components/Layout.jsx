@@ -80,6 +80,7 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <Link to="/?mode=course">Courses</Link>
                         <Link to="/departments">Departments</Link>
                         <Link to="/compare">Compare</Link>
+                        <Link to="/dashboard">My Courses</Link>
                     </nav>
 
                     {/* Avatar / auth */}
@@ -96,9 +97,9 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                                 <>
                                     <div className="app-menu-backdrop" onClick={() => setMenuOpen(false)} />
                                     <div className="app-menu">
-                                        <button className="app-menu-item" onClick={() => { setMenuOpen(false); navigate("/dashboard") }}>
+                                        {/* <button className="app-menu-item" onClick={() => { setMenuOpen(false); navigate("/dashboard") }}>
                                             Dashboard
-                                        </button>
+                                        </button> */}
                                         <button className="app-menu-item app-menu-signout" onClick={handleSignOut}>
                                             Sign out
                                         </button>
