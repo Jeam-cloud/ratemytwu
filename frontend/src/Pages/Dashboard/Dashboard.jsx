@@ -71,16 +71,37 @@ export default function Dashboard() {
             const token = data.session.access_token
             const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
 
-            // load planner settings
-            const settingsRes = await fetch(`${API_URL}/planner/settings`, { headers })
-            if (settingsRes.ok) {
-                const settings = await settingsRes.json()
-                if (settings) {
-                    setYears(settings.years)
-                    setStartYear(settings.start_year)
-                    setStartTerm(settings.start_term ?? "Fall")
-                    setStartDraft(settings.start_year)
-                    setStartDraftTerm(settings.start_term ?? "Fall")
+            // load planner settings — try backend first, fall back to localStorage
+            let settingsLoaded = false
+            try {
+                const settingsRes = await fetch(`${API_URL}/planner/settings`, { headers })
+                if (settingsRes.ok) {
+                    const settings = await settingsRes.json()
+                    if (settings) {
+                        setYears(settings.years)
+                        setStartYear(settings.start_year)
+                        setStartTerm(settings.start_term ?? "Fall")
+                        setStartDraft(settings.start_year)
+                        setStartDraftTerm(settings.start_term ?? "Fall")
+                        settingsLoaded = true
+                    }
+                }
+            } catch (_) { /* network error — fall through to localStorage */ }
+
+            // fallback: restore from localStorage if backend had nothing
+            if (!settingsLoaded) {
+                const ly = localStorage.getItem("plannerYears")
+                const lsy = localStorage.getItem("plannerStartYear")
+                const lst = localStorage.getItem("plannerStartTerm")
+                if (ly) {
+                    const y = Number(ly)
+                    const sy = lsy ? Number(lsy) : new Date().getFullYear()
+                    const st = lst ?? "Fall"
+                    setYears(y)
+                    setStartYear(sy)
+                    setStartTerm(st)
+                    setStartDraft(sy)
+                    setStartDraftTerm(st)
                 }
             }
 
@@ -97,13 +118,20 @@ export default function Dashboard() {
     }, [])
 
     const savePlannerSettings = async (years, startYear, startTerm) => {
-        const { data } = await supabase.auth.getSession()
-        const token = data.session.access_token
-        await fetch(`${API_URL}/planner/settings`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ years, start_year: startYear, start_term: startTerm }),
-        })
+        // always cache locally so the board survives if the backend endpoint is unavailable
+        localStorage.setItem("plannerYears", String(years))
+        localStorage.setItem("plannerStartYear", String(startYear))
+        localStorage.setItem("plannerStartTerm", startTerm)
+
+        try {
+            const { data } = await supabase.auth.getSession()
+            const token = data.session.access_token
+            await fetch(`${API_URL}/planner/settings`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ years, start_year: startYear, start_term: startTerm }),
+            })
+        } catch (_) { /* backend unavailable — localStorage copy is the fallback */ }
     }
 
     // updates year state and persists to backend
