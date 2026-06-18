@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core"
 import BoardCard from "./BoardCard"
 import styles from "../../css/DashBoardColumn.module.css"
 
-export default function DashBoardColumn({ col, cards, onDelete, onUpdate, startYear }) {
+export default function DashBoardColumn({ col, cards, onDelete, onUpdate, startYear, autoEditCardId, onAutoEditDone }) {
     const { setNodeRef, isOver } = useDroppable({
         id: `${col.year}-${col.term}`,
         data: { col }
@@ -22,7 +22,7 @@ export default function DashBoardColumn({ col, cards, onDelete, onUpdate, startY
             ) : (
                 <div className={styles.cards}>
                     {cards.map((card) => (
-                        <BoardCard key={card.id} card={card} onDelete={onDelete} onUpdate={onUpdate} startYear={startYear} />
+                        <BoardCard key={card.id} card={card} onDelete={onDelete} onUpdate={onUpdate} startYear={startYear} autoOpen={card.id === autoEditCardId} onAutoEditDone={onAutoEditDone} />
                     ))}
                 </div>
             )}

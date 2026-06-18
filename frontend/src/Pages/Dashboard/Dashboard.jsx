@@ -46,6 +46,7 @@ export default function Dashboard() {
     const [startYear, setStartYear] = useState(new Date().getFullYear())
     // draft value for the first-visit prompt's start-year dropdown
     const [startDraft, setStartDraft] = useState(new Date().getFullYear())
+    const [autoEditCardId, setAutoEditCardId] = useState(null)
 
     // start-year options: a generous window around now (covers returning students)
     const thisYear = new Date().getFullYear()
@@ -171,6 +172,7 @@ export default function Dashboard() {
         }
         const newCard = await response.json()
         setCards((prev) => [...prev, newCard])
+        setAutoEditCardId(newCard.id)
     }
 
     const handleDelete = async (cardId) => {
@@ -306,6 +308,8 @@ export default function Dashboard() {
                                             cards={cards.filter(c => c.year === col.year && c.term === col.term)}
                                             onDelete={handleDelete}
                                             onUpdate={handleUpdate}
+                                            autoEditCardId={autoEditCardId}
+                                            onAutoEditDone={() => setAutoEditCardId(null)}
                                         />
                                     ))}
                                 </div>
