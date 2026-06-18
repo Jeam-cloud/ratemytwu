@@ -2,7 +2,7 @@ from database import Base, engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routes import reviews, professors, courses, departments, bookmarks, users, cards
+from routes import reviews, professors, courses, departments, bookmarks, users, cards, planner
 
 app = FastAPI()
 
@@ -28,6 +28,7 @@ app.include_router(departments.router)
 app.include_router(bookmarks.router)
 app.include_router(users.router)
 app.include_router(cards.router)
+app.include_router(planner.router)
 
 @app.get("/")
 async def home():

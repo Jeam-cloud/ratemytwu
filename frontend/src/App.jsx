@@ -1,4 +1,5 @@
 import ProfessorList from "./Pages/Professor/ProfessorList"
+import SearchResults from "./Pages/Search/SearchResults"
 import CourseList from "./Pages/Course/CourseList"
 import CoursePage from "./Pages/Course/CoursePage"
 
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="/course/:id" element={<CoursePage />} />
             <Route path="/department/:department_name" element={<DepartmentPage />}/>
 
+            <Route path="/search" element={<SearchResults />} />
             <Route path="/compare" element={<CompareProf />} />
             
             {/* user stuff */}

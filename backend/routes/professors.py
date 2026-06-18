@@ -6,22 +6,24 @@ from database import db_dependency
 from auth import get_current_user_id
 from schema import ProfessorBase, ProfessorsOut, ProfessorCoursesOut, ProfessorDetailOut
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 router = APIRouter(prefix="/professor", tags=["professor"])
 
 current_user = Annotated[str, Depends(get_current_user_id)]
 
 
-# search up specific professor
-@router.get("/", response_model=list[ProfessorsOut])
-def get_professor(search_professor: str, db: db_dependency):
+def format_name(name: str) -> str:
+    if not name:
+        return ""
+    return " ".join(word.capitalize() for word in name.strip().split())
 
-    query =search_professor.strip()
-    if len(query) < 2:
-        return []
-    
-    professor = db.execute(
+
+# search up specific professor, or return all sorted by review count when no query
+@router.get("/", response_model=list[ProfessorsOut])
+def get_professor(db: db_dependency, search_professor: Optional[str] = None):
+
+    base_query = (
         select(
             Professor.id,
             Professor.name,
@@ -29,25 +31,32 @@ def get_professor(search_professor: str, db: db_dependency):
             func.round(cast(func.avg(Reviews.rating), Numeric), 2).label("average_rating"),
             func.round(cast(func.avg(Reviews.difficulty), Numeric), 2).label("average_difficulty"),
             func.round(cast(func.avg(Reviews.take_again), Numeric), 2).label("average_take_again"),
-            func.count(Reviews.id).label("review_count")
-            )
-            .outerjoin(Reviews, Reviews.professor_id == Professor.id)
-            .where(Professor.name.ilike(f"%{query}%"))
-            .group_by(Professor.id, Professor.name, Professor.department)
+            func.count(Reviews.id).label("review_count"),
+        )
+        .outerjoin(Reviews, Reviews.professor_id == Professor.id)
+        .group_by(Professor.id, Professor.name, Professor.department)
+    )
+
+    if search_professor and len(search_professor.strip()) >= 2:
+        base_query = base_query.where(Professor.name.ilike(f"%{search_professor.strip()}%"))
+
+    professors = db.execute(
+        base_query.order_by(func.count(Reviews.id).desc())
     ).all()
-    
+
     professor_list = []
 
-    for p in professor:
+    for p in professors:
         professor_list.append({
             "id": p.id,
-            "name": p.name,
+            "name": format_name(p.name),
             "department": p.department,
             "average_rating": p.average_rating,
             "average_difficulty": p.average_difficulty,
             "average_take_again": p.average_take_again,
-            "review_count": p.review_count
+            "review_count": p.review_count,
         })
+
     return professor_list
 
 
@@ -66,16 +75,17 @@ def get_everything(professor_id: int, db: db_dependency):
         select(
             func.round(cast(func.avg(Reviews.rating), Numeric), 2),
             func.round(cast(func.avg(Reviews.difficulty), Numeric), 2),
-            func.round(cast(func.avg(Reviews.take_again), Numeric), 2)
-        ).where(Reviews.professor_id == professor_id)
+            func.round(cast(func.avg(Reviews.take_again), Numeric), 2),
+        )
+        .where(Reviews.professor_id == professor_id)
     ).first()
 
     reviews = db.execute(
         select(Reviews).where(Reviews.professor_id == professor_id)
     ).scalars().all()
 
-
     review_list = []
+
     for r in reviews:
         review_list.append({
             "id": r.id,
@@ -100,15 +110,14 @@ def get_everything(professor_id: int, db: db_dependency):
         })
 
     return {
-        "name": professor.name,
+        "name": format_name(professor.name),
         "department": professor.department,
         "average_rating": average_reviews[0],
         "average_difficulty": average_reviews[1],
         "average_take_again": average_reviews[2],
-
-        "reviews": review_list
-
+        "reviews": review_list,
     }
+
 
 # return all current courses that this specific professor is teaching
 @router.get("/{professor_id}/courses", response_model=list[ProfessorCoursesOut])
@@ -117,9 +126,9 @@ def get_professor_courses(professor_id: int, db: db_dependency):
     professor = db.execute(
         select(Professor).where(Professor.id == professor_id)
     ).scalars().first()
+
     if not professor:
         raise HTTPException(status_code=404, detail="professor not found")
-
 
     professor_to_course = db.execute(
         select(ProfessorCourse).where(ProfessorCourse.professor_id == professor_id)
@@ -128,28 +137,30 @@ def get_professor_courses(professor_id: int, db: db_dependency):
     professor_to_course_list = []
 
     for pc in professor_to_course:
-        course = {
+        professor_to_course_list.append({
             "id": pc.course.id,
             "code": pc.course.code,
-            "department": pc.course.department
-        }
+            "department": pc.course.department,
+        })
 
-        professor_to_course_list.append(course)
-    
     return professor_to_course_list
 
 
 # adds professor manually for testing data - delete later
 @router.post("")
 async def create_professor(professor: ProfessorBase, db: db_dependency):
+
     new_professor = Professor(
-        name=professor.name.lower(),
-        department=professor.department
+        name=format_name(professor.name),
+        department=professor.department,
     )
 
     db.add(new_professor)
     db.commit()
     db.refresh(new_professor)
 
-    return new_professor
-
+    return {
+        "id": new_professor.id,
+        "name": format_name(new_professor.name),
+        "department": new_professor.department,
+    }

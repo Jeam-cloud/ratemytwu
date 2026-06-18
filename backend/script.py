@@ -25,7 +25,7 @@ Base.metadata.create_all(bind=engine)
 COURSE_RE = re.compile(r"^([A-Z]{2,5})\s{1,4}(\d{3,4})\s*$")
 SECTION_RE = re.compile(r"^Sec\.\s+(?:Lab\s+)?(\S+)")
 DATE_RANGE_RE = re.compile(r"^\d{1,2}/\d{1,2}/\d{4}")
-SEM_HR_RE = re.compile(r"^Sem\.\s*Hr\.")
+SEM_HR_RE = re.compile(r"^Sem\.\s*Hr\.\s*([\d.]+)")
 DAYS_RE = re.compile(r"^[MTWRFS]{1,5}$")
 TIME_RE = re.compile(r"^\d{1,2}:\d{2}\s*(AM|PM)$")
 
@@ -116,19 +116,20 @@ def extract_text_from_pdf(pdf_path: str) -> list[str]:
 
 # ── Parser ────────────────────────────────────────────────────────────────────
 
-def parse_timetable(lines: list[str]) -> list[tuple[str, str, str]]:
+def parse_timetable(lines: list[str]) -> list[tuple[str, str, str, int | None]]:
     """
-    Parse timetable lines into (course_code, department, professor_name) triples.
+    Parse timetable lines into (course_code, department, professor_name, credits) tuples.
 
     Handles the multi-line-per-field format used in FA2026 PDFs where:
     - Each field (course code, name, time, date) is on its own line
     - Professor names may be split across two lines with a trailing space or hyphen
     """
-    results: list[tuple[str, str, str]] = []
+    results: list[tuple[str, str, str, int | None]] = []
     seen: set[tuple[str, str]] = set()
 
     current_dept = "Unknown"
     current_course_code: str | None = None
+    current_credits: int | None = None
     in_lab_section = False
 
     i = 0
@@ -144,12 +145,18 @@ def parse_timetable(lines: list[str]) -> list[tuple[str, str, str]]:
         m = COURSE_RE.match(stripped)
         if m:
             current_course_code = f"{m.group(1)} {m.group(2)}"
+            current_credits = None
             in_lab_section = False
             i += 1
             continue
 
-        # ── Sem. Hr. line — skip ─────────────────────────────────────────────
-        if SEM_HR_RE.match(stripped):
+        # ── Sem. Hr. line — capture credits ──────────────────────────────────
+        m_hr = SEM_HR_RE.match(stripped)
+        if m_hr:
+            try:
+                current_credits = int(float(m_hr.group(1)))
+            except (ValueError, TypeError):
+                current_credits = None
             i += 1
             continue
 
@@ -200,7 +207,7 @@ def parse_timetable(lines: list[str]) -> list[tuple[str, str, str]]:
                     key = (current_course_code, name_candidate.lower())
                     if key not in seen:
                         seen.add(key)
-                        results.append((current_course_code, current_dept, name_candidate))
+                        results.append((current_course_code, current_dept, name_candidate, current_credits))
 
             i += 1
             continue
@@ -233,7 +240,7 @@ def upsert(pdf_path: str, semester: str) -> None:
     try:
         prof_count = course_count = link_count = 0
 
-        for course_code, department, prof_name in rows:
+        for course_code, department, prof_name, credits in rows:
             norm_name = prof_name.lower().strip()
 
             prof = db.query(Professor).filter(Professor.name == norm_name).first()
@@ -245,10 +252,12 @@ def upsert(pdf_path: str, semester: str) -> None:
 
             course = db.query(Courses).filter(Courses.code == course_code).first()
             if not course:
-                course = Courses(code=course_code, department=department)
+                course = Courses(code=course_code, department=department, credits=credits)
                 db.add(course)
                 db.flush()
                 course_count += 1
+            elif credits is not None and course.credits is None:
+                course.credits = credits
 
             link = db.query(ProfessorCourse).filter(
                 ProfessorCourse.professor_id == prof.id,

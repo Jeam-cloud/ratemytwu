@@ -44,13 +44,19 @@ export default function Dashboard() {
     const [pendingYears, setPendingYears] = useState(null)
     // the calendar year the student began (Fall of this year = year 1)
     const [startYear, setStartYear] = useState(new Date().getFullYear())
-    // draft value for the first-visit prompt's start-year dropdown
+    const [startTerm, setStartTerm] = useState("Fall")
+    // draft values for the first-visit prompt's dropdowns
     const [startDraft, setStartDraft] = useState(new Date().getFullYear())
+    const [startDraftTerm, setStartDraftTerm] = useState("Fall")
+    const [autoEditCardId, setAutoEditCardId] = useState(null)
 
-    // start-year options: a generous window around now (covers returning students)
+    // semester options: Spring and Fall for a generous window of years
     const thisYear = new Date().getFullYear()
-    const startYearOptions = []
-    for (let y = thisYear - 10; y <= thisYear + 1; y++) startYearOptions.push(y)
+    const startOptions = []
+    for (let y = thisYear - 10; y <= thisYear + 2; y++) {
+        startOptions.push({ year: y, term: "Spring", label: `Spring ${y}` })
+        startOptions.push({ year: y, term: "Fall",   label: `Fall ${y}` })
+    }
 
     const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
     const percent = Math.round((totalCredits / 120) * 100)
@@ -58,61 +64,107 @@ export default function Dashboard() {
     // highest year that still has a course — can't shrink below this without orphaning cards
     const maxUsedYear = cards.length ? Math.max(...cards.map(c => c.year)) : 0
 
-    // loads up how many years the user said last session
+    // loads planner settings and cards from the backend
     useEffect(() => {
-        const saved = localStorage.getItem("year")
-        if (saved) {
-            setYears(Number(saved))
-        }
-        const savedStart = localStorage.getItem("startYear")
-        if (savedStart) {
-            setStartYear(Number(savedStart))
-            setStartDraft(Number(savedStart))
-        }
-
-        // GET cards request
-        const loadCards = async () => {
+        const loadAll = async () => {
             const { data } = await supabase.auth.getSession()
             const token = data.session.access_token
+            const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
 
-            const response = await fetch(`${API_URL}/board/cards`, {
-                method: "GET",
-                headers: {"Content-type": "application/json", "Authorization": `Bearer ${token}`}
-            })
+            // load planner settings — try backend first, fall back to localStorage
+            let settingsLoaded = false
+            try {
+                const settingsRes = await fetch(`${API_URL}/planner/settings`, { headers })
+                if (settingsRes.ok) {
+                    const settings = await settingsRes.json()
+                    if (settings) {
+                        setYears(settings.years)
+                        setStartYear(settings.start_year)
+                        setStartTerm(settings.start_term ?? "Fall")
+                        setStartDraft(settings.start_year)
+                        setStartDraftTerm(settings.start_term ?? "Fall")
+                        settingsLoaded = true
+                    }
+                }
+            } catch (_) { /* network error — fall through to localStorage */ }
 
-            if (!response.ok) {
+            // fallback: restore from localStorage if backend had nothing
+            if (!settingsLoaded) {
+                const ly = localStorage.getItem("plannerYears")
+                const lsy = localStorage.getItem("plannerStartYear")
+                const lst = localStorage.getItem("plannerStartTerm")
+                if (ly) {
+                    const y = Number(ly)
+                    const sy = lsy ? Number(lsy) : new Date().getFullYear()
+                    const st = lst ?? "Fall"
+                    setYears(y)
+                    setStartYear(sy)
+                    setStartTerm(st)
+                    setStartDraft(sy)
+                    setStartDraftTerm(st)
+                }
+            }
+
+            // load cards
+            const cardsRes = await fetch(`${API_URL}/board/cards`, { headers })
+            if (!cardsRes.ok) {
                 setError("Failed to load cards")
                 return
             }
-
-            const data2 = await response.json()
-            setCards(data2)
+            setCards(await cardsRes.json())
         }
 
-        loadCards()
+        loadAll()
     }, [])
 
-    // updates year state variable after being prompted how many years
-    const handleYear = (year) => {
-        localStorage.setItem("year", year)
-        setYears(year)
+    const savePlannerSettings = async (years, startYear, startTerm) => {
+        // always cache locally so the board survives if the backend endpoint is unavailable
+        localStorage.setItem("plannerYears", String(years))
+        localStorage.setItem("plannerStartYear", String(startYear))
+        localStorage.setItem("plannerStartTerm", startTerm)
+
+        try {
+            const { data } = await supabase.auth.getSession()
+            const token = data.session.access_token
+            await fetch(`${API_URL}/planner/settings`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ years, start_year: startYear, start_term: startTerm }),
+            })
+        } catch (_) { /* backend unavailable — localStorage copy is the fallback */ }
     }
 
-    // persists the start year (the calendar year of the student's first Fall term)
-    const handleStartYear = (year) => {
-        localStorage.setItem("startYear", year)
+    // updates year state and persists to backend
+    const handleYear = (year) => {
+        setYears(year)
+        savePlannerSettings(year, startYear, startTerm)
+    }
+
+    // persists the start semester to backend
+    const handleStartSemester = (year, term) => {
         setStartYear(year)
+        setStartTerm(term)
         setStartDraft(year)
+        setStartDraftTerm(term)
+        savePlannerSettings(years ?? 4, year, term)
     }
 
     // generates the labels of the columns and how many columns based on years
     const generateColumns = (years) => {
         const columns = []
 
-        for (let i = 0; i < years; i++) {
-            columns.push({term: "Fall", year: i+1, label: `Fall ${startYear + i}`})
-            columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
-            columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i +1}`})
+        if (startTerm === "Spring") {
+            for (let i = 0; i < years; i++) {
+                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i}`})
+                columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i}`})
+                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
+            }
+        } else {
+            for (let i = 0; i < years; i++) {
+                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
+                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
+                columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i + 1}`})
+            }
         }
 
         return columns
@@ -171,6 +223,7 @@ export default function Dashboard() {
         }
         const newCard = await response.json()
         setCards((prev) => [...prev, newCard])
+        setAutoEditCardId(newCard.id)
     }
 
     const handleDelete = async (cardId) => {
@@ -275,11 +328,15 @@ export default function Dashboard() {
                                     <label className={styles.lifespanLabel}>I started in</label>
                                     <select
                                         className={styles.lifespanSelect}
-                                        value={startDraft}
-                                        onChange={(e) => setStartDraft(Number(e.target.value))}
+                                        value={`${startDraftTerm}-${startDraft}`}
+                                        onChange={(e) => {
+                                            const [term, year] = e.target.value.split("-")
+                                            setStartDraft(Number(year))
+                                            setStartDraftTerm(term)
+                                        }}
                                     >
-                                        {startYearOptions.map((y) => (
-                                            <option key={y} value={y}>Fall {y}</option>
+                                        {startOptions.map((o) => (
+                                            <option key={`${o.term}-${o.year}`} value={`${o.term}-${o.year}`}>{o.label}</option>
                                         ))}
                                     </select>
 
@@ -289,7 +346,7 @@ export default function Dashboard() {
                                             <button
                                                 key={y}
                                                 className={styles.lifespanBtn}
-                                                onClick={() => { handleStartYear(startDraft); handleYear(y) }}
+                                                onClick={() => { handleStartSemester(startDraft, startDraftTerm); handleYear(y) }}
                                             >
                                                 {y} years
                                             </button>
@@ -306,6 +363,8 @@ export default function Dashboard() {
                                             cards={cards.filter(c => c.year === col.year && c.term === col.term)}
                                             onDelete={handleDelete}
                                             onUpdate={handleUpdate}
+                                            autoEditCardId={autoEditCardId}
+                                            onAutoEditDone={() => setAutoEditCardId(null)}
                                         />
                                     ))}
                                 </div>
@@ -382,14 +441,17 @@ export default function Dashboard() {
                             </div>
                             <p className={styles.yearModalSub}>Adjust when you started and how long your degree spans.</p>
 
-                            <label className={styles.lifespanLabel}>Starting year</label>
+                            <label className={styles.lifespanLabel}>Starting semester</label>
                             <select
                                 className={styles.lifespanSelect}
-                                value={startYear}
-                                onChange={(e) => handleStartYear(Number(e.target.value))}
+                                value={`${startTerm}-${startYear}`}
+                                onChange={(e) => {
+                                    const [term, year] = e.target.value.split("-")
+                                    handleStartSemester(Number(year), term)
+                                }}
                             >
-                                {startYearOptions.map((y) => (
-                                    <option key={y} value={y}>Fall {y}</option>
+                                {startOptions.map((o) => (
+                                    <option key={`${o.term}-${o.year}`} value={`${o.term}-${o.year}`}>{o.label}</option>
                                 ))}
                             </select>
 

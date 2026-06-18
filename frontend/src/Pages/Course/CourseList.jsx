@@ -19,20 +19,12 @@ export default function CourseList() {
     const navigate = useNavigate()
 
 
-    // fetch courses based on user input
     useEffect(() => {
+        const url = query
+            ? `${API_URL}/course/?search_course=${query}`
+            : `${API_URL}/course/`
 
-        if (!query) {
-            return
-        }
-        const searchCourse = async () => {
-            const response = await fetch(`${API_URL}/course/?search_course=${query}`)
-            const data = await response.json()
-
-            setResults(data)
-        }
-
-        searchCourse()
+        fetch(url).then(r => r.json()).then(setResults)
     }, [query])
 
     useEffect(() => {
@@ -90,7 +82,7 @@ export default function CourseList() {
     return (
         <Layout>
             <div className={styles.page}>
-                <span className={styles.kicker}>Showing results for</span>
+                <span className={styles.kicker}>{query ? "Showing results for" : "All courses"}</span>
 
                 <div className={styles.searchRow}>
                     <div className={styles.searchBar}>

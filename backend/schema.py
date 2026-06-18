@@ -115,6 +115,7 @@ class CoursesOut(BaseModel):
     id: int
     code: str
     department: str
+    credits: Optional[int] = None
     model_config = {"from_attributes": True}
 
 class CourseSearchOut(BaseModel):
@@ -156,6 +157,19 @@ class BookmarksOut(BaseModel):
     course_id:  int
 
     model_config = {"from_attributes": True}
+
+
+# Planner settings schemas
+class PlannerSettingsOut(BaseModel):
+    years: int
+    start_year: int
+    start_term: str = "Fall"
+    model_config = {"from_attributes": True}
+
+class PlannerSettingsIn(BaseModel):
+    years: int
+    start_year: int
+    start_term: str = "Fall"
 
 
 # Kanban output and input schemas

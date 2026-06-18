@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
@@ -11,9 +11,16 @@ const STATUS_TONE = {
     "Completed": styles.toneCompleted,
 }
 
-export default function BoardCard({ card, onDelete, onUpdate, startYear }) {
+export default function BoardCard({ card, onDelete, onUpdate, startYear, autoOpen, onAutoEditDone }) {
     const [menuOpen, setMenuOpen] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
+
+    useEffect(() => {
+        if (autoOpen) {
+            setModalOpen(true)
+            onAutoEditDone?.()
+        }
+    }, [autoOpen])
 
     // makes the whole card draggable between term columns
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
