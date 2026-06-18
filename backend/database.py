@@ -7,10 +7,7 @@ import os
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
 
-
-
 load_dotenv()
-
 
 test_url = os.getenv("TEST_DATABASE_URL")
 
@@ -21,8 +18,10 @@ else:
     password = quote_plus(os.getenv("DB_PASSWORD"))
     host = os.getenv("DB_HOST")
     user = os.getenv("DB_USER", "postgres")
+    db_name = os.getenv("DB_NAME", "postgres")
+    port = os.getenv("DB_PORT", "5432")
 
-    DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}/postgres"
+    DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db_name}"
 
     engine = create_engine(DATABASE_URL)
 
@@ -38,4 +37,3 @@ def get_db():
         db.close()
 
 db_dependency = Annotated[Session, Depends(get_db)]
-
