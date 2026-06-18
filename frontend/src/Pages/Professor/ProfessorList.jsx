@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom"
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
 import styles from "../../css/ProfessorList.module.css"
+import { toTitleCase } from "../../utils/format"
 
 
 function getInitials(name) {
@@ -22,23 +23,12 @@ export default function ProfessorList() {
     const query = searchParam.get("search_professor")
     const [input, setInput] = useState(query ?? "")
 
-    // fetches professors everytime user searches
-    useEffect( () => {
+    useEffect(() => {
+        const url = query
+            ? `${API_URL}/professor/?search_professor=${query}`
+            : `${API_URL}/professor/`
 
-        if (!query) {
-            return
-        }
-
-        const fetchProfessors =  async () => {
-
-            const response = await fetch(`${API_URL}/professor/?search_professor=${query}`)
-            const data = await response.json()
-
-            setResults(data)
-        }
-
-        fetchProfessors()
-
+        fetch(url).then(r => r.json()).then(setResults)
     }, [query])
 
     const handleSearch = () => {
@@ -56,7 +46,7 @@ export default function ProfessorList() {
     return (
         <Layout>
             <div className={styles.page}>
-                <span className={styles.kicker}>Showing results for</span>
+                <span className={styles.kicker}>{query ? "Showing results for" : "All professors"}</span>
 
                 <div className={styles.searchRow}>
                     <div className={styles.searchBar}>
@@ -94,7 +84,7 @@ export default function ProfessorList() {
                                 <div className={styles.left}>
                                     <div className={styles.avatar}>{initials}</div>
                                     <div>
-                                        <p className={styles.name}>{professor.name}</p>
+                                        <p className={styles.name}>{toTitleCase(professor.name)}</p>
                                         <p className={styles.meta}>
                                             {professor.department}
                                             {hasReviews && (

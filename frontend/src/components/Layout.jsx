@@ -38,7 +38,7 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
         if (e.key !== "Enter") return
         const trimmed = searchInput.trim()
         if (trimmed.length < 2) return
-        navigate(`/professor?search_professor=${trimmed}`)
+        navigate(`/search?q=${trimmed}`)
     }
 
     // derive initials from the logged-in user's email
@@ -76,8 +76,8 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
 
                     {/* Nav links */}
                     <nav className="app-nav">
-                        <Link to="/?mode=professor">Professors</Link>
-                        <Link to="/?mode=course">Courses</Link>
+                        <Link to="/professor">Professors</Link>
+                        <Link to="/course">Courses</Link>
                         <Link to="/departments">Departments</Link>
                         <Link to="/compare">Compare</Link>
                         <Link to="/dashboard">My Courses</Link>

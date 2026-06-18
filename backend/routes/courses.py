@@ -5,27 +5,30 @@ from models import Courses, ProfessorCourse, Professor, Reviews
 from database import db_dependency
 from schema import CoursesBase, CourseSearchOut, CourseDetailOut
 
+from typing import Optional
 
 router = APIRouter(prefix="/course", tags=["courses"])
 
-# search up specific courses 
+# search up specific courses, or return all sorted by professor count when no query
 @router.get("/", response_model=list[CourseSearchOut])
-def get_courses(search_course: str, db: db_dependency):
+def get_courses(db: db_dependency, search_course: Optional[str] = None):
 
-    query = search_course.strip()
-    if len(query) < 2:
-        return []
-    
-    courses = db.execute(
+    base_query = (
         select(
             Courses.id,
             Courses.code,
             Courses.department,
             func.count(ProfessorCourse.id).label("professor_count")
-            )
-            .outerjoin(ProfessorCourse, ProfessorCourse.course_id == Courses.id)
-            .where(Courses.code.ilike(f"%{query}%"))
-            .group_by(Courses.id, Courses.code, Courses.department)
+        )
+        .outerjoin(ProfessorCourse, ProfessorCourse.course_id == Courses.id)
+        .group_by(Courses.id, Courses.code, Courses.department)
+    )
+
+    if search_course and len(search_course.strip()) >= 2:
+        base_query = base_query.where(Courses.code.ilike(f"%{search_course.strip()}%"))
+
+    courses = db.execute(
+        base_query.order_by(func.count(ProfessorCourse.id).desc())
     ).all()
 
     course_list = []

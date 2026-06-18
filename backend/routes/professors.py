@@ -6,7 +6,7 @@ from database import db_dependency
 from auth import get_current_user_id
 from schema import ProfessorBase, ProfessorsOut, ProfessorCoursesOut, ProfessorDetailOut
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 router = APIRouter(prefix="/professor", tags=["professor"])
 
@@ -19,16 +19,11 @@ def format_name(name: str) -> str:
     return " ".join(word.capitalize() for word in name.strip().split())
 
 
-# search up specific professor
+# search up specific professor, or return all sorted by review count when no query
 @router.get("/", response_model=list[ProfessorsOut])
-def get_professor(search_professor: str, db: db_dependency):
+def get_professor(db: db_dependency, search_professor: Optional[str] = None):
 
-    query = search_professor.strip()
-
-    if len(query) < 2:
-        return []
-
-    professors = db.execute(
+    base_query = (
         select(
             Professor.id,
             Professor.name,
@@ -39,8 +34,14 @@ def get_professor(search_professor: str, db: db_dependency):
             func.count(Reviews.id).label("review_count"),
         )
         .outerjoin(Reviews, Reviews.professor_id == Professor.id)
-        .where(Professor.name.ilike(f"%{query}%"))
         .group_by(Professor.id, Professor.name, Professor.department)
+    )
+
+    if search_professor and len(search_professor.strip()) >= 2:
+        base_query = base_query.where(Professor.name.ilike(f"%{search_professor.strip()}%"))
+
+    professors = db.execute(
+        base_query.order_by(func.count(Reviews.id).desc())
     ).all()
 
     professor_list = []
