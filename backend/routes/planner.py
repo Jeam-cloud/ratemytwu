@@ -29,11 +29,13 @@ def save_settings(db: db_dependency, user_id: current_user, body: PlannerSetting
     if settings:
         settings.years = body.years
         settings.start_year = body.start_year
+        settings.start_term = body.start_term
     else:
         settings = UserPlannerSettings(
             user_id=user_id,
             years=body.years,
             start_year=body.start_year,
+            start_term=body.start_term,
         )
         db.add(settings)
 

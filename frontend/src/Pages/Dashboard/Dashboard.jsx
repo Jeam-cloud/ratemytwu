@@ -44,14 +44,19 @@ export default function Dashboard() {
     const [pendingYears, setPendingYears] = useState(null)
     // the calendar year the student began (Fall of this year = year 1)
     const [startYear, setStartYear] = useState(new Date().getFullYear())
-    // draft value for the first-visit prompt's start-year dropdown
+    const [startTerm, setStartTerm] = useState("Fall")
+    // draft values for the first-visit prompt's dropdowns
     const [startDraft, setStartDraft] = useState(new Date().getFullYear())
+    const [startDraftTerm, setStartDraftTerm] = useState("Fall")
     const [autoEditCardId, setAutoEditCardId] = useState(null)
 
-    // start-year options: a generous window around now (covers returning students)
+    // semester options: Spring and Fall for a generous window of years
     const thisYear = new Date().getFullYear()
-    const startYearOptions = []
-    for (let y = thisYear - 10; y <= thisYear + 1; y++) startYearOptions.push(y)
+    const startOptions = []
+    for (let y = thisYear - 10; y <= thisYear + 2; y++) {
+        startOptions.push({ year: y, term: "Spring", label: `Spring ${y}` })
+        startOptions.push({ year: y, term: "Fall",   label: `Fall ${y}` })
+    }
 
     const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
     const percent = Math.round((totalCredits / 120) * 100)
@@ -73,7 +78,9 @@ export default function Dashboard() {
                 if (settings) {
                     setYears(settings.years)
                     setStartYear(settings.start_year)
+                    setStartTerm(settings.start_term ?? "Fall")
                     setStartDraft(settings.start_year)
+                    setStartDraftTerm(settings.start_term ?? "Fall")
                 }
             }
 
@@ -89,37 +96,47 @@ export default function Dashboard() {
         loadAll()
     }, [])
 
-    const savePlannerSettings = async (years, startYear) => {
+    const savePlannerSettings = async (years, startYear, startTerm) => {
         const { data } = await supabase.auth.getSession()
         const token = data.session.access_token
         await fetch(`${API_URL}/planner/settings`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ years, start_year: startYear }),
+            body: JSON.stringify({ years, start_year: startYear, start_term: startTerm }),
         })
     }
 
     // updates year state and persists to backend
     const handleYear = (year) => {
         setYears(year)
-        savePlannerSettings(year, startYear)
+        savePlannerSettings(year, startYear, startTerm)
     }
 
-    // persists the start year to backend
-    const handleStartYear = (year) => {
+    // persists the start semester to backend
+    const handleStartSemester = (year, term) => {
         setStartYear(year)
+        setStartTerm(term)
         setStartDraft(year)
-        savePlannerSettings(years ?? 4, year)
+        setStartDraftTerm(term)
+        savePlannerSettings(years ?? 4, year, term)
     }
 
     // generates the labels of the columns and how many columns based on years
     const generateColumns = (years) => {
         const columns = []
 
-        for (let i = 0; i < years; i++) {
-            columns.push({term: "Fall", year: i+1, label: `Fall ${startYear + i}`})
-            columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
-            columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i +1}`})
+        if (startTerm === "Spring") {
+            for (let i = 0; i < years; i++) {
+                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i}`})
+                columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i}`})
+                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
+            }
+        } else {
+            for (let i = 0; i < years; i++) {
+                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
+                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
+                columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i + 1}`})
+            }
         }
 
         return columns
@@ -283,11 +300,15 @@ export default function Dashboard() {
                                     <label className={styles.lifespanLabel}>I started in</label>
                                     <select
                                         className={styles.lifespanSelect}
-                                        value={startDraft}
-                                        onChange={(e) => setStartDraft(Number(e.target.value))}
+                                        value={`${startDraftTerm}-${startDraft}`}
+                                        onChange={(e) => {
+                                            const [term, year] = e.target.value.split("-")
+                                            setStartDraft(Number(year))
+                                            setStartDraftTerm(term)
+                                        }}
                                     >
-                                        {startYearOptions.map((y) => (
-                                            <option key={y} value={y}>Fall {y}</option>
+                                        {startOptions.map((o) => (
+                                            <option key={`${o.term}-${o.year}`} value={`${o.term}-${o.year}`}>{o.label}</option>
                                         ))}
                                     </select>
 
@@ -297,7 +318,7 @@ export default function Dashboard() {
                                             <button
                                                 key={y}
                                                 className={styles.lifespanBtn}
-                                                onClick={() => { handleStartYear(startDraft); handleYear(y) }}
+                                                onClick={() => { handleStartSemester(startDraft, startDraftTerm); handleYear(y) }}
                                             >
                                                 {y} years
                                             </button>
@@ -392,14 +413,17 @@ export default function Dashboard() {
                             </div>
                             <p className={styles.yearModalSub}>Adjust when you started and how long your degree spans.</p>
 
-                            <label className={styles.lifespanLabel}>Starting year</label>
+                            <label className={styles.lifespanLabel}>Starting semester</label>
                             <select
                                 className={styles.lifespanSelect}
-                                value={startYear}
-                                onChange={(e) => handleStartYear(Number(e.target.value))}
+                                value={`${startTerm}-${startYear}`}
+                                onChange={(e) => {
+                                    const [term, year] = e.target.value.split("-")
+                                    handleStartSemester(Number(year), term)
+                                }}
                             >
-                                {startYearOptions.map((y) => (
-                                    <option key={y} value={y}>Fall {y}</option>
+                                {startOptions.map((o) => (
+                                    <option key={`${o.term}-${o.year}`} value={`${o.term}-${o.year}`}>{o.label}</option>
                                 ))}
                             </select>
 

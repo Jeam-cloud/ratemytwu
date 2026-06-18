@@ -92,6 +92,7 @@ class UserPlannerSettings(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, unique=True, index=True)
     years: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
     start_year: Mapped[int] = mapped_column(Integer, nullable=False, default=2024)
+    start_term: Mapped[str] = mapped_column(String, nullable=False, default="Fall")
 
 
 class UserCourseCard(Base):
