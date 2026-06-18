@@ -59,51 +59,57 @@ export default function Dashboard() {
     // highest year that still has a course — can't shrink below this without orphaning cards
     const maxUsedYear = cards.length ? Math.max(...cards.map(c => c.year)) : 0
 
-    // loads up how many years the user said last session
+    // loads planner settings and cards from the backend
     useEffect(() => {
-        const saved = localStorage.getItem("year")
-        if (saved) {
-            setYears(Number(saved))
-        }
-        const savedStart = localStorage.getItem("startYear")
-        if (savedStart) {
-            setStartYear(Number(savedStart))
-            setStartDraft(Number(savedStart))
-        }
-
-        // GET cards request
-        const loadCards = async () => {
+        const loadAll = async () => {
             const { data } = await supabase.auth.getSession()
             const token = data.session.access_token
+            const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
 
-            const response = await fetch(`${API_URL}/board/cards`, {
-                method: "GET",
-                headers: {"Content-type": "application/json", "Authorization": `Bearer ${token}`}
-            })
+            // load planner settings
+            const settingsRes = await fetch(`${API_URL}/planner/settings`, { headers })
+            if (settingsRes.ok) {
+                const settings = await settingsRes.json()
+                if (settings) {
+                    setYears(settings.years)
+                    setStartYear(settings.start_year)
+                    setStartDraft(settings.start_year)
+                }
+            }
 
-            if (!response.ok) {
+            // load cards
+            const cardsRes = await fetch(`${API_URL}/board/cards`, { headers })
+            if (!cardsRes.ok) {
                 setError("Failed to load cards")
                 return
             }
-
-            const data2 = await response.json()
-            setCards(data2)
+            setCards(await cardsRes.json())
         }
 
-        loadCards()
+        loadAll()
     }, [])
 
-    // updates year state variable after being prompted how many years
-    const handleYear = (year) => {
-        localStorage.setItem("year", year)
-        setYears(year)
+    const savePlannerSettings = async (years, startYear) => {
+        const { data } = await supabase.auth.getSession()
+        const token = data.session.access_token
+        await fetch(`${API_URL}/planner/settings`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ years, start_year: startYear }),
+        })
     }
 
-    // persists the start year (the calendar year of the student's first Fall term)
+    // updates year state and persists to backend
+    const handleYear = (year) => {
+        setYears(year)
+        savePlannerSettings(year, startYear)
+    }
+
+    // persists the start year to backend
     const handleStartYear = (year) => {
-        localStorage.setItem("startYear", year)
         setStartYear(year)
         setStartDraft(year)
+        savePlannerSettings(years ?? 4, year)
     }
 
     // generates the labels of the columns and how many columns based on years

@@ -24,6 +24,7 @@ class Courses(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     code: Mapped[str] = mapped_column(String, nullable=False)
     department: Mapped[str] = mapped_column(String, nullable=False)
+    credits: Mapped[int] = mapped_column(Integer, nullable=True)
 
     professors = relationship("ProfessorCourse", back_populates="course")
 
@@ -82,6 +83,15 @@ class UserBookmarkCourse(Base):
     course_id: Mapped[int] = mapped_column(Integer, ForeignKey("courses.id"), nullable=False)
 
     courses = relationship("Courses")
+
+
+class UserPlannerSettings(Base):
+    __tablename__ = "user_planner_settings"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, unique=True, index=True)
+    years: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
+    start_year: Mapped[int] = mapped_column(Integer, nullable=False, default=2024)
 
 
 class UserCourseCard(Base):
