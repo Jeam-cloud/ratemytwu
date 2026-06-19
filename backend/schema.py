@@ -61,6 +61,8 @@ class ReviewsOut(BaseModel):
     group_work: Optional[str] = None
     attendance: Optional[str] = None
     exam_format: Optional[str] = None
+    niceness: Optional[str] = None
+    experience: Optional[str] = None
     grading_fairness: Optional[str] = None
     lecture_quality: Optional[str] = None
     textbook_required: Optional[str] = None
