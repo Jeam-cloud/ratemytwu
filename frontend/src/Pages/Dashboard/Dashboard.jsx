@@ -51,13 +51,7 @@ function YearTerms({ group, startTerm, hasSummer, cards, startYear, onDelete, on
     })
 
     return (
-        <div style={{
-            display: "grid",
-            gridTemplateColumns: hasSummer ? "repeat(3, 1fr)" : "repeat(2, 1fr)",
-            gap: "14px",
-            alignItems: "start",
-            marginTop: "12px",
-        }}>
+        <div className={hasSummer ? styles.termsThree : styles.termsTwo}>
             {firstCol  && <DashBoardColumn {...colProps(firstCol)} />}
             {hasSummer && summerCol && <DashBoardColumn {...colProps(summerCol)} />}
             {lastCol   && <DashBoardColumn {...colProps(lastCol)} />}
