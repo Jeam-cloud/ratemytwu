@@ -11,8 +11,10 @@ app.add_middleware(
     allow_origins=[
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://fastapi-postgresql-react-test-hye1s5kpb-my-twu-s-projects.vercel.app",
-    "https://fastapi-postgresql-react-test.vercel.app"],
+    "https://ratemytwu.com",
+    "https://www.ratemytwu.com",
+    "https://ratemytwu.pages.dev"],
+    allow_origin_regex=r"https://.*\.ratemytwu\.pages\.dev",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
