@@ -84,6 +84,9 @@ export default function ReviewPage() {
 
         // checks to see if user selected anything
         if (!courseCode.trim()) { setError("Valid course code required"); return }
+        if (!/^[A-Z]{2,4}\s*\d{3}[A-Z]?$/.test(courseCode.trim().toUpperCase())) {
+            setError("Enter a valid course code, e.g. CMPT 166"); return
+        }
         if (!rating) { setError("Please select a rating"); return}
         if (!difficulty) { setError("Please select a difficulty"); return}
         if (takeAgain === null) { setError("Please answer if you would take again"); return }
@@ -99,6 +102,9 @@ export default function ReviewPage() {
         if (!textBookRequired) { setError("Please select text book required"); return }
         if (!extraCredit) { setError("Please select extra credit"); return }
         if (!gradeReceived) { setError("Please fill out grade received"); return }
+        if (!["A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"].includes(gradeReceived.trim().toUpperCase())) {
+            setError("Enter a valid grade (F to A+)"); return
+        }
         if (review.trim().length < 10) { setError("Please leave a review that is more than 10 characters"); return }
 
         setError("")
@@ -256,7 +262,7 @@ export default function ReviewPage() {
                             type="text"
                             placeholder="BIOL 113"
                             value={courseCode}
-                            onChange={(event) => setCourseCode(event.target.value)}
+                            onChange={(event) => setCourseCode(event.target.value.toUpperCase())}
                             maxLength={9}
                         />
                     </div>
