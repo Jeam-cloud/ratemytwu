@@ -110,3 +110,5 @@ class UserCourseCard(Base):
     notes: Mapped[str] = mapped_column(String, nullable=True)
 
     course = relationship("Courses")
+
+
