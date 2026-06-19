@@ -1,10 +1,11 @@
+import re
 from uuid import UUID
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi import APIRouter, Depends, HTTPException
 
 from auth import get_current_user_id
 from database import db_dependency
-from models import Reviews
+from models import Reviews, Courses
 from schema import ReviewsBase, CreatedReviewsOut
 
 from typing import Annotated
@@ -13,15 +14,38 @@ router = APIRouter(prefix="/professor", tags=["review"])
 
 current_user = Annotated[str, Depends(get_current_user_id)]
 
+# accepted letter grades (F through A+)
+VALID_GRADES = {"A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F"}
+COURSE_CODE_RE = re.compile(r"^([A-Z]{2,4})\s*(\d{3}[A-Z]?)$")
+
 
 # creates a review
 @router.post("/{professor_id}/review", response_model=CreatedReviewsOut, status_code=201)
 async def create_review(professor_id: int, db: db_dependency, user_id: current_user, reviews: ReviewsBase):
+
+    # ── validate course code: correct format + must be a real course ──
+    code = (reviews.course_code or "").strip().upper()
+    match = COURSE_CODE_RE.match(code)
+    if not match:
+        raise HTTPException(status_code=400, detail="Invalid course code. Use a format like CMPT 166.")
+    code = f"{match.group(1)} {match.group(2)}"  # normalize spacing
+
+    course = db.execute(
+        select(Courses).where(func.replace(Courses.code, " ", "") == code.replace(" ", ""))
+    ).scalars().first()
+    if not course:
+        raise HTTPException(status_code=404, detail=f"Course {code} doesn't exist.")
+
+    # ── validate grade (if provided) ──
+    grade = (reviews.grade_received or "").strip().upper()
+    if grade and grade not in VALID_GRADES:
+        raise HTTPException(status_code=400, detail="Invalid grade. Use F through A+.")
+
     new_review = Reviews(
         # identifiers
         user_id=user_id,
         professor_id=professor_id,
-        course_code=reviews.course_code,
+        course_code=code,
         
         # professor-specific
         rating=reviews.rating,
@@ -43,7 +67,7 @@ async def create_review(professor_id: int, db: db_dependency, user_id: current_u
 
         # written by user
         review=reviews.review,
-        grade_received=reviews.grade_received,
+        grade_received=grade or None,
         tips=reviews.tips,
 
 
