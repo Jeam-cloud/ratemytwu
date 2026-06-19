@@ -10,10 +10,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
     "http://localhost:5173",
+    "http://localhost:8000",
     "http://127.0.0.1:5173",
     "https://ratemytwu.com",
     "https://www.ratemytwu.com",
-    "https://ratemytwu.pages.dev"],
+    "https://ratemytwu.pages.dev",
+    ],
     allow_origin_regex=r"https://.*\.ratemytwu\.pages\.dev",
     allow_credentials=True,
     allow_methods=["*"],
