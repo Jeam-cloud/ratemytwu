@@ -22,13 +22,17 @@ export default function ProfessorList() {
 
     const query = searchParam.get("search_professor")
     const [input, setInput] = useState(query ?? "")
+    const [shown, setShown] = useState(20)
 
     useEffect(() => {
         const url = query
             ? `${API_URL}/professor/?search_professor=${query}`
             : `${API_URL}/professor/`
 
-        fetch(url).then(r => r.json()).then(setResults)
+        fetch(url).then(r => r.json()).then((data) => {
+            setResults(data)
+            setShown(20) // reset paging on a new search
+        })
     }, [query])
 
     const handleSearch = () => {
@@ -70,7 +74,7 @@ export default function ProfessorList() {
                 </p>
 
                 <div className={styles.list}>
-                    {results.map((professor) => {
+                    {results.slice(0, shown).map((professor) => {
                         const initials = getInitials(professor.name)
                         const hasReviews = professor.review_count > 0
 
@@ -122,6 +126,12 @@ export default function ProfessorList() {
                         )
                     })}
                 </div>
+
+                {shown < results.length && (
+                    <button className={styles.seeMore} onClick={() => setShown(n => n + 20)}>
+                        See more professors
+                    </button>
+                )}
             </div>
         </Layout>
     )
