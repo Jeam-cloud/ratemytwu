@@ -124,3 +124,13 @@
         grid-column: 1 / -1;
     }
 }
+
+@media (max-width: 480px) {
+    .footer { padding: 80px 20px 32px; }
+    .inner { grid-template-columns: 1fr; gap: 28px; }
+    .bottom {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}

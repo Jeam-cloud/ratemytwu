@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { DndContext } from "@dnd-kit/core"
+import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core"
 
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
@@ -84,6 +84,13 @@ export default function Dashboard() {
     const { reviews, deleteReview } = useReview()
     const { bookmark } = useBookMark()
     const navigate = useNavigate()
+
+    // PointerSensor for mouse; TouchSensor (press-and-hold) enables dragging on
+    // mobile while normal swipes still scroll the page
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    )
     const [years, setYears] = useState(null)
     const [error, setError] = useState(null)
     const [cards, setCards] = useState([])
@@ -425,7 +432,7 @@ export default function Dashboard() {
                 {error && <p className={styles.error}>{error}</p>}
 
                 {/* ── Board ── */}
-                <DndContext onDragEnd={handleDragEnd}>
+                <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
                     <div className={styles.board}>
 
                         {/* Left rail — bookmarks + GPA */}

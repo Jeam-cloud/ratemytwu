@@ -9,7 +9,10 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
     // when fullBleed (landing), the bar floats over the hero until you scroll
     const [scrolled, setScrolled] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
+    const [mobileOpen, setMobileOpen] = useState(false)
     const navigate = useNavigate()
+
+    const closeMobile = () => setMobileOpen(false)
 
     const handleSignOut = async () => {
         setMenuOpen(false)
@@ -111,7 +114,37 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <Link to="/login" className="app-login">Log in</Link>
                     )}
 
+                    {/* Hamburger (mobile only) */}
+                    <button
+                        className="app-hamburger"
+                        aria-label="Menu"
+                        onClick={() => setMobileOpen((o) => !o)}
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            {mobileOpen ? <path d="M18 6 6 18M6 6l12 12" /> : <path d="M3 12h18M3 6h18M3 18h18" />}
+                        </svg>
+                    </button>
+
                 </div>
+
+                {/* Mobile dropdown menu */}
+                {mobileOpen && (
+                    <div className="app-mobile-menu">
+                        <Link to="/professor" onClick={closeMobile}>Professors</Link>
+                        <Link to="/course" onClick={closeMobile}>Courses</Link>
+                        <Link to="/departments" onClick={closeMobile}>Departments</Link>
+                        <Link to="/compare" onClick={closeMobile}>Compare</Link>
+                        <Link to="/dashboard" onClick={closeMobile}>My Courses</Link>
+                        <div className="app-mobile-divider" />
+                        {session ? (
+                            <button className="app-mobile-signout" onClick={() => { closeMobile(); handleSignOut() }}>
+                                Sign out
+                            </button>
+                        ) : (
+                            <Link to="/login" onClick={closeMobile}>Log in</Link>
+                        )}
+                    </div>
+                )}
             </div>
 
             <main className={fullBleed ? "app-main app-main--full" : wide ? "app-main app-main--wide" : "app-main"}>

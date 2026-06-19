@@ -418,3 +418,32 @@
     .bandInner { grid-template-columns: 1fr; gap: 32px; }
     .bandCream .shot { order: 2; }
 }
+
+/* phones */
+@media (max-width: 600px) {
+    .hero {
+        min-height: 90vh;
+        padding: 88px 20px 96px;
+    }
+    .heroTitle {
+        font-size: clamp(28px, 8.5vw, 38px);
+        line-height: 1.12;
+    }
+    .heroSub {
+        font-size: 15px;
+        margin-bottom: 24px;
+    }
+    .segmented { flex-wrap: wrap; }
+
+    .pillars,
+    .trust { padding: 56px 20px; }
+    .band { padding: 56px 20px; }
+    .bandInner { gap: 28px; }
+
+    .bandTitle,
+    .bandTitleDark { font-size: clamp(26px, 7vw, 32px); }
+
+    .stats { gap: 32px; }
+    .cta { padding: 64px 20px; }
+    .ctaTitle { font-size: clamp(26px, 7vw, 34px); }
+}

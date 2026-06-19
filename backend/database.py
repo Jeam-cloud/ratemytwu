@@ -23,7 +23,11 @@ else:
 
     DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db_name}"
 
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,   # check a connection is alive before using it; reconnect if the DB dropped it
+        pool_recycle=300,     # recycle connections older than 5 min so they never go stale
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
