@@ -15,6 +15,7 @@ export default function CourseList() {
 
     const query = searchParam.get("search_course")
     const [input, setInput] = useState(query ?? "")
+    const [shown, setShown] = useState(20)
 
     const navigate = useNavigate()
 
@@ -24,7 +25,10 @@ export default function CourseList() {
             ? `${API_URL}/course/?search_course=${query}`
             : `${API_URL}/course/`
 
-        fetch(url).then(r => r.json()).then(setResults)
+        fetch(url).then(r => r.json()).then((data) => {
+            setResults(data)
+            setShown(20) // reset paging on a new search
+        })
     }, [query])
 
     useEffect(() => {
@@ -108,7 +112,7 @@ export default function CourseList() {
                 {error && <p className={styles.error}>{error}</p>}
 
                 <div className={styles.list}>
-                    {results.map((course) => {
+                    {results.slice(0, shown).map((course) => {
                         const isBookmarked = bookmarked.has(course.id)
                         return (
                             <div
@@ -141,6 +145,12 @@ export default function CourseList() {
                         )
                     })}
                 </div>
+
+                {shown < results.length && (
+                    <button className={styles.seeMore} onClick={() => setShown(n => n + 20)}>
+                        See more courses
+                    </button>
+                )}
             </div>
         </Layout>
     )

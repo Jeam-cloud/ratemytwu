@@ -79,7 +79,7 @@ export default function LoginPage() {
                 <input
                     className={styles.input}
                     type="email"
-                    placeholder="you@mytwu.ca"
+                    placeholder="john.doe@gmail.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={handleKeyDown}
