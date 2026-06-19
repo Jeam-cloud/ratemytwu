@@ -351,5 +351,9 @@
         transform: none;
         margin: -6px auto;
     }
-    .cellValue { font-size: 22px; }
+    .cellValue { font-size: 20px; }
+    .cell { padding: 14px 10px; }
+    .cellLabel { padding: 14px 8px; }
+    .rowLabel { font-size: 11px; }
+    .unit { font-size: 12px; }
 }

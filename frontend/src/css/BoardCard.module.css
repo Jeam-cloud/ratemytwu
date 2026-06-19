@@ -6,6 +6,9 @@
     border-radius: var(--radius);
     padding: 14px;
     box-shadow: var(--shadow-xs, 0 1px 2px rgba(53,40,32,.05));
+    /* keep long unbroken text from blowing out the card / grid width
+       (no overflow:hidden — it would clip the ⋮ action menu) */
+    min-width: 0;
 }
 
 .cardTop {
@@ -20,6 +23,8 @@
     font-size: 14px;
     font-weight: 700;
     color: var(--ink);
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .cardTopRight {
@@ -96,8 +101,13 @@
     line-height: 1.45;
     color: var(--ink-2);
     margin: 10px 0 0;
+    /* wrap long unbroken strings instead of overflowing */
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 .notes svg { flex: none; margin-top: 2px; color: var(--ink-3); }
+.notes span { min-width: 0; overflow-wrap: anywhere; }
 
 /* ── Action sheet ── */
 .menuBackdrop {
