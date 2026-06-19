@@ -22,6 +22,8 @@ TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engin
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_database():
+    # drop first so a leftover/stale test.db is rebuilt from the current models
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     yield
