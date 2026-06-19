@@ -1,6 +1,7 @@
 from database import Base, engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from routes import reviews, professors, courses, departments, bookmarks, users, cards, planner
 
@@ -38,7 +39,14 @@ app.include_router(planner.router)
 async def home():
     return {"hello": "world"}
 
- 
+@app.get("/health")
+def health():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok","db": "up"}
+    except Exception:
+        return {"status": "ok", "db": "down"}
 
 
 
