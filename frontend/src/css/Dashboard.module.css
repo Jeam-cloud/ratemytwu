@@ -57,15 +57,23 @@
 
 /* ── Progress ── */
 .progress {
-    display: flex;
-    align-items: center;
-    gap: 16px;
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     padding: 16px 20px;
     margin-bottom: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.progressMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .progressText {
@@ -76,26 +84,78 @@
 }
 .progressText strong { color: var(--ink); font-weight: 700; }
 
+.progressLegend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-2);
+}
+
+.legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex: none;
+}
+
+.legendDotCompleted { background: var(--positive); }
+.legendDotProgress  { background: var(--blue); }
+.legendDotPlanned   { background: var(--ink-3); }
+
+.progressBarWrap {
+    position: relative;
+}
+
 .progressTrack {
-    flex: 1;
     height: 8px;
     border-radius: 999px;
     background: var(--cream-deep);
     overflow: hidden;
+    display: flex;
 }
 
-.progressFill {
+.progressSegCompleted {
     height: 100%;
-    border-radius: 999px;
+    background: var(--positive);
+    transition: width var(--dur) var(--ease);
+    flex: none;
+}
+
+.progressSegProgress {
+    height: 100%;
     background: var(--blue);
     transition: width var(--dur) var(--ease);
+    flex: none;
 }
 
-.progressPercent {
+.progressSegPlanned {
+    height: 100%;
+    background: var(--ink-3);
+    transition: width var(--dur) var(--ease);
+    flex: none;
+}
+
+.progressTickRow {
+    position: relative;
+    height: 18px;
+    margin-top: 4px;
+}
+
+.progressTickMark {
+    position: absolute;
+    transform: translateX(-50%);
     font-family: var(--font-sans);
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--ink);
+    font-size: 11px;
+    color: var(--ink-3);
     white-space: nowrap;
 }
 
@@ -107,23 +167,231 @@
     align-items: start;
 }
 
-/* term columns: 3 per row, separate from the bookmarked panel */
-.terms {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-    align-items: start;
-}
-
-/* Bookmarked panel — sticky so it stays in view while scrolling */
-.bookmarkPanel {
+/* Left rail — sticky column holding bookmarks + GPA */
+.sideRail {
     position: sticky;
     top: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* term columns — 2-col (no summer) or 3-col (summer active) */
+.termsTwo {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    align-items: start;
+    margin-top: 12px;
+}
+
+.termsThree {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    align-items: start;
+    margin-top: 12px;
+}
+
+/* Add summer button spans all columns */
+.addSummerCard {
+    grid-column: 1 / -1;
+}
+
+/* Year-grouped board */
+.yearList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.yearBlock {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Year header — expanded state */
+.yearHeader {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: none;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-sans);
+    transition: background var(--dur) var(--ease);
+}
+.yearHeader:hover { background: rgba(0,0,0,.03); }
+
+/* Year header — collapsed state */
+.yearHeaderCollapsed {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--font-sans);
+    transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.yearHeaderCollapsed:hover { border-color: var(--blue); box-shadow: 0 0 0 3px var(--focus-ring); }
+
+.yearChevron {
+    flex: none;
+    color: var(--ink-3);
+    transition: transform 0.2s ease;
+    transform: rotate(0deg);
+}
+.yearChevronOpen {
+    transform: rotate(90deg);
+}
+
+.yearTitle {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 17px;
+    color: var(--ink);
+    white-space: nowrap;
+}
+
+.yearSpan {
+    font-size: 13px;
+    color: var(--ink-3);
+    white-space: nowrap;
+}
+
+.yearDivider {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+    margin: 0 4px;
+}
+
+.yearEmptyHint {
+    flex: 1;
+    font-size: 13px;
+    color: var(--ink-3);
+}
+
+.yearCrBadge {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--blue);
+    background: var(--blue-tint);
+    border-radius: var(--radius-sm);
+    padding: 3px 9px;
+    white-space: nowrap;
+    flex: none;
+}
+
+/* Bookmarked panel */
+.bookmarkPanel {
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     padding: 16px;
+}
+
+/* Add summer term placeholder — full-width dashed button below the term columns */
+.addSummerCard {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    padding: 12px;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius-md);
+    background: none;
+    color: var(--ink-3);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.addSummerCard:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: var(--blue-tint);
+}
+
+/* GPA widget */
+.gpaWidget {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 16px;
+}
+
+.gpaKicker {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 0 0 10px;
+}
+
+.gpaValueRow {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.gpaValue {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1;
+}
+
+.gpaDenom {
+    font-size: 14px;
+    color: var(--ink-3);
+}
+
+.gpaPct {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+}
+
+.gpaTrack {
+    height: 7px;
+    border-radius: 999px;
+    background: var(--cream-deep);
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.gpaFill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--blue);
+    transition: width 0.4s ease;
+}
+
+.gpaNote {
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.5;
+    margin: 0;
 }
 
 .bookmarkKicker {
@@ -542,13 +810,13 @@
 
 /* ── Responsive ── */
 @media (max-width: 1000px) {
-    .terms { grid-template-columns: repeat(2, 1fr); }
+    .termsThree { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 760px) {
     .board { grid-template-columns: 1fr; }
-    .bookmarkPanel { position: static; }
+    .sideRail { position: static; }
 }
 @media (max-width: 600px) {
-    .terms { grid-template-columns: 1fr; }
+    .termsTwo, .termsThree { grid-template-columns: 1fr; }
     .reviewDelete { align-self: flex-start; }
 }

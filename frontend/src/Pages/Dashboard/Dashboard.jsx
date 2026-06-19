@@ -32,6 +32,53 @@ function difficultyTone(d) {
     return styles.diffHard
 }
 
+// Renders the Fall | [Summer or Add-summer btn] | Spring grid for one year
+function YearTerms({ group, startTerm, hasSummer, cards, startYear, onDelete, onUpdate, autoEditCardId, onAutoEditDone, onAddSummer, styles }) {
+    const byTerm = (t) => group.columns.find(c => c.term === t)
+    const firstCol  = startTerm === "Spring" ? byTerm("Spring") : byTerm("Fall")
+    const lastCol   = startTerm === "Spring" ? byTerm("Fall")   : byTerm("Spring")
+    const summerCol = byTerm("Summer")
+
+    const colProps = (col) => ({
+        key: `${col.year}-${col.term}`,
+        col,
+        startYear,
+        cards: cards.filter(c => c.year === col.year && c.term === col.term),
+        onDelete,
+        onUpdate,
+        autoEditCardId,
+        onAutoEditDone,
+    })
+
+    return (
+        <div style={{
+            display: "grid",
+            gridTemplateColumns: hasSummer ? "repeat(3, 1fr)" : "repeat(2, 1fr)",
+            gap: "14px",
+            alignItems: "start",
+            marginTop: "12px",
+        }}>
+            {firstCol  && <DashBoardColumn {...colProps(firstCol)} />}
+            {hasSummer && summerCol && <DashBoardColumn {...colProps(summerCol)} />}
+            {lastCol   && <DashBoardColumn {...colProps(lastCol)} />}
+
+            {/* Full-width "Add summer term" button below Fall + Spring */}
+            {!hasSummer && (
+                <button
+                    className={styles.addSummerCard}
+                    style={{ gridColumn: "1 / -1" }}
+                    onClick={onAddSummer}
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M12 5v14" />
+                    </svg>
+                    Add summer term
+                </button>
+            )}
+        </div>
+    )
+}
+
 export default function Dashboard() {
 
     const { reviews, deleteReview } = useReview()
@@ -49,6 +96,24 @@ export default function Dashboard() {
     const [startDraft, setStartDraft] = useState(new Date().getFullYear())
     const [startDraftTerm, setStartDraftTerm] = useState("Fall")
     const [autoEditCardId, setAutoEditCardId] = useState(null)
+    const [expandedYears, setExpandedYears] = useState(new Set([1]))
+    const [summerYears, setSummerYears] = useState(new Set())
+
+    const toggleYear = (yearNum) => {
+        setExpandedYears(prev => {
+            const next = new Set(prev)
+            next.has(yearNum) ? next.delete(yearNum) : next.add(yearNum)
+            return next
+        })
+    }
+
+    // GPA — 4.3 scale, derived from grades entered on board cards
+    const GRADE_PTS = { 'A+':4.3,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D+':1.3,'D':1.0,'D-':0.7,'F':0 }
+    const gradedCards = cards.filter(c => c.grade && c.credits && GRADE_PTS[c.grade] !== undefined)
+    const gpaPoints   = gradedCards.reduce((s, c) => s + GRADE_PTS[c.grade] * c.credits, 0)
+    const gpaCredits  = gradedCards.reduce((s, c) => s + c.credits, 0)
+    const gpa         = gpaCredits > 0 ? (gpaPoints / gpaCredits).toFixed(2) : null
+    const gpaPct      = gpaCredits > 0 ? Math.round(gpaPoints / gpaCredits / 4.3 * 100) : 0
 
     // semester options: Spring and Fall for a generous window of years
     const thisYear = new Date().getFullYear()
@@ -60,6 +125,14 @@ export default function Dashboard() {
 
     const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
     const percent = Math.round((totalCredits / 120) * 100)
+
+    // per-status credit breakdown for the segmented progress bar
+    const completedCredits   = cards.filter(c => c.status === "Completed").reduce((s,c) => s + (c.credits||0), 0)
+    const inProgressCredits  = cards.filter(c => c.status === "In Progress").reduce((s,c) => s + (c.credits||0), 0)
+    const plannedCredits     = cards.filter(c => c.status === "Planned").reduce((s,c) => s + (c.credits||0), 0)
+    const completedPct       = (completedCredits  / 120) * 100
+    const inProgressPct      = (inProgressCredits / 120) * 100
+    const plannedPct         = (plannedCredits    / 120) * 100
 
     // highest year that still has a course — can't shrink below this without orphaning cards
     const maxUsedYear = cards.length ? Math.max(...cards.map(c => c.year)) : 0
@@ -111,7 +184,20 @@ export default function Dashboard() {
                 setError("Failed to load cards")
                 return
             }
-            setCards(await cardsRes.json())
+            const loaded = await cardsRes.json()
+            setCards(loaded)
+            if (loaded.length > 0) {
+                // auto-expand years that have courses
+                setExpandedYears(prev => {
+                    const next = new Set(prev)
+                    loaded.forEach(c => next.add(c.year))
+                    return next
+                })
+                // auto-enable summer for years that already have summer cards
+                const summerSet = new Set()
+                loaded.forEach(c => { if (c.term === "Summer") summerSet.add(c.year) })
+                if (summerSet.size > 0) setSummerYears(summerSet)
+            }
         }
 
         loadAll()
@@ -160,14 +246,30 @@ export default function Dashboard() {
                 columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
             }
         } else {
+            // Fall-start order: Fall | Summer (optional, in slot 2) | Spring
             for (let i = 0; i < years; i++) {
                 columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
-                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
                 columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i + 1}`})
+                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
             }
         }
 
         return columns
+    }
+
+    // group flat columns array into { year, calSpan, columns[] }
+    const getYearGroups = () => {
+        const cols = generateColumns(years ?? 4)
+        const map = {}
+        cols.forEach(col => {
+            if (!map[col.year]) {
+                const calYear = startYear + col.year - 1
+                const span = `${calYear}–${String(calYear + 1).slice(-2)}`
+                map[col.year] = { year: col.year, span, columns: [] }
+            }
+            map[col.year].columns.push(col)
+        })
+        return Object.values(map)
     }
 
     // on drag logic of firing making a new card dragging from bookmarks column to actual column
@@ -286,13 +388,38 @@ export default function Dashboard() {
 
                 {/* ── Progress ── */}
                 <div className={styles.progress}>
-                    <span className={styles.progressText}>
-                        <strong>{totalCredits}</strong> / 120 credits planned
-                    </span>
-                    <div className={styles.progressTrack}>
-                        <div className={styles.progressFill} style={{ width: `${Math.min(percent, 100)}%` }} />
+                    <div className={styles.progressMeta}>
+                        <span className={styles.progressText}>
+                            <strong>{totalCredits}</strong> / 120 credits planned · {percent}% to graduation
+                        </span>
+                        <div className={styles.progressLegend}>
+                            <span className={styles.legendItem}>
+                                <span className={`${styles.legendDot} ${styles.legendDotCompleted}`} />
+                                Completed {completedCredits}
+                            </span>
+                            <span className={styles.legendItem}>
+                                <span className={`${styles.legendDot} ${styles.legendDotProgress}`} />
+                                In progress {inProgressCredits}
+                            </span>
+                            <span className={styles.legendItem}>
+                                <span className={`${styles.legendDot} ${styles.legendDotPlanned}`} />
+                                Planned {plannedCredits}
+                            </span>
+                        </div>
                     </div>
-                    <span className={styles.progressPercent}>{percent}% to graduation</span>
+                    <div className={styles.progressBarWrap}>
+                        <div className={styles.progressTrack}>
+                            <div className={styles.progressSegCompleted} style={{ width: `${Math.min(completedPct, 100)}%` }} />
+                            <div className={styles.progressSegProgress}  style={{ width: `${Math.min(inProgressPct, 100 - completedPct)}%` }} />
+                            <div className={styles.progressSegPlanned}   style={{ width: `${Math.min(plannedPct, 100 - completedPct - inProgressPct)}%` }} />
+                        </div>
+                        <div className={styles.progressTickRow}>
+                            {[30, 60, 90].map(n => (
+                                <span key={n} className={styles.progressTickMark} style={{ left: `${(n/120)*100}%` }}>{n}</span>
+                            ))}
+                            <span className={styles.progressTickMark} style={{ right: 0, left: "auto", transform: "none" }}>120 · grad</span>
+                        </div>
+                    </div>
                 </div>
 
                 {error && <p className={styles.error}>{error}</p>}
@@ -301,24 +428,44 @@ export default function Dashboard() {
                 <DndContext onDragEnd={handleDragEnd}>
                     <div className={styles.board}>
 
-                        {/* Bookmarked panel — sticky in its own column */}
-                        <aside className={styles.bookmarkPanel}>
-                            <p className={styles.bookmarkKicker}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
-                                </svg>
-                                Bookmarked
-                            </p>
-                            {availableBookmarks.length === 0 ? (
-                                <p className={styles.bookmarkEmpty}>No bookmarks left to place.</p>
-                            ) : (
-                                availableBookmarks.map(course => (
-                                    <BookMarkCard key={course.id} course={course} />
-                                ))
-                            )}
+                        {/* Left rail — bookmarks + GPA */}
+                        <aside className={styles.sideRail}>
+                            <div className={styles.bookmarkPanel}>
+                                <p className={styles.bookmarkKicker}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
+                                    </svg>
+                                    Bookmarked
+                                </p>
+                                {availableBookmarks.length === 0 ? (
+                                    <p className={styles.bookmarkEmpty}>No bookmarks left to place.</p>
+                                ) : (
+                                    availableBookmarks.map(course => (
+                                        <BookMarkCard key={course.id} course={course} />
+                                    ))
+                                )}
+                            </div>
+
+                            {/* GPA widget */}
+                            <div className={styles.gpaWidget}>
+                                <p className={styles.gpaKicker}>Cumulative GPA</p>
+                                <div className={styles.gpaValueRow}>
+                                    <span className={styles.gpaValue}>{gpa ?? "—"}</span>
+                                    <span className={styles.gpaDenom}>/ 4.3</span>
+                                    {gpa && <span className={styles.gpaPct}>· {gpaPct}%</span>}
+                                </div>
+                                <div className={styles.gpaTrack}>
+                                    <div className={styles.gpaFill} style={{ width: `${Math.min(gpaPct, 100)}%` }} />
+                                </div>
+                                <p className={styles.gpaNote}>
+                                    {gpaCredits > 0
+                                        ? `Based on ${gpaCredits} graded credits. Planned courses don't count yet.`
+                                        : "Enter grades on completed courses to track your GPA."}
+                                </p>
+                            </div>
                         </aside>
 
-                        {/* Lifespan prompt OR term columns */}
+                        {/* Lifespan prompt OR year-grouped board */}
                         <div className={styles.main}>
                             {years === null ? (
                                 <div className={styles.lifespan}>
@@ -354,19 +501,52 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className={styles.terms}>
-                                    {generateColumns(years).map((col) => (
-                                        <DashBoardColumn
-                                            key={`${col.year}-${col.term}`}
-                                            col={col}
-                                            startYear={startYear}
-                                            cards={cards.filter(c => c.year === col.year && c.term === col.term)}
-                                            onDelete={handleDelete}
-                                            onUpdate={handleUpdate}
-                                            autoEditCardId={autoEditCardId}
-                                            onAutoEditDone={() => setAutoEditCardId(null)}
-                                        />
-                                    ))}
+                                <div className={styles.yearList}>
+                                    {getYearGroups().map(group => {
+                                        const open = expandedYears.has(group.year)
+                                        const yearCards = cards.filter(c => c.year === group.year)
+                                        const yearCredits = yearCards.reduce((s, c) => s + (c.credits || 0), 0)
+
+                                        return (
+                                            <div key={group.year} className={styles.yearBlock}>
+                                                {/* Year header — always visible */}
+                                                <button
+                                                    className={open ? styles.yearHeader : styles.yearHeaderCollapsed}
+                                                    onClick={() => toggleYear(group.year)}
+                                                >
+                                                    <svg
+                                                        className={`${styles.yearChevron} ${open ? styles.yearChevronOpen : ""}`}
+                                                        width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                                    >
+                                                        <path d="m9 18 6-6-6-6" />
+                                                    </svg>
+                                                    <span className={styles.yearTitle}>Year {group.year}</span>
+                                                    <span className={styles.yearSpan}>{group.span}</span>
+                                                    {open && <div className={styles.yearDivider} />}
+                                                    {!open && yearCards.length === 0 && (
+                                                        <span className={styles.yearEmptyHint}>Empty · click to plan</span>
+                                                    )}
+                                                    <span className={styles.yearCrBadge}>{yearCredits} cr</span>
+                                                </button>
+
+                                                {/* Term columns — only when expanded */}
+                                                {open && <YearTerms
+                                                    group={group}
+                                                    startTerm={startTerm}
+                                                    hasSummer={summerYears.has(group.year)}
+                                                    cards={cards}
+                                                    startYear={startYear}
+                                                    onDelete={handleDelete}
+                                                    onUpdate={handleUpdate}
+                                                    autoEditCardId={autoEditCardId}
+                                                    onAutoEditDone={() => setAutoEditCardId(null)}
+                                                    onAddSummer={() => setSummerYears(prev => new Set([...prev, group.year]))}
+                                                    styles={styles}
+                                                />}
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             )}
                         </div>
