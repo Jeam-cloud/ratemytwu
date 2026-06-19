@@ -46,6 +46,8 @@ class Reviews(Base):
     attendance: Mapped[str] = mapped_column(String, nullable=False)
     exam_format: Mapped[str] = mapped_column(String, nullable=False)
     grading_fairness: Mapped[str] = mapped_column(String, nullable=False)
+    niceness: Mapped[str] = mapped_column(String, nullable=False)
+    experience: Mapped[str] = mapped_column(String, nullable=False)
     lecture_quality: Mapped[str] = mapped_column(String, nullable=False)
     textbook_required: Mapped[str] = mapped_column(String, nullable=False)
     grade_received: Mapped[str] = mapped_column(String, nullable=False)

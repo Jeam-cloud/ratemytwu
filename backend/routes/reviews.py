@@ -28,6 +28,8 @@ async def create_review(professor_id: int, db: db_dependency, user_id: current_u
         difficulty=reviews.difficulty,
         take_again=reviews.take_again,
         grading_fairness=reviews.grading_fairness,
+        niceness=reviews.niceness,
+        experience=reviews.experience,
         lecture_quality=reviews.lecture_quality,
         office_hours=reviews.office_hours,
         extension_policy=reviews.extension_policy,
