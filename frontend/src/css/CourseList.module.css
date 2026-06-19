@@ -116,7 +116,7 @@
 }
 
 .left { flex: 1; min-width: 0; }
-.code, .meta { overflow-wrap: anywhere; }
+.code, .meta { overflow-wrap: break-word; }
 
 .code {
     font-family: var(--font-sans);
@@ -191,4 +191,10 @@
 .seeMore:hover {
     border-color: var(--blue);
     background: var(--blue-tint);
+}
+
+@media (max-width: 520px) {
+    .card { flex-wrap: wrap; row-gap: 14px; padding: 16px; }
+    .left { flex: 1 1 100%; }
+    .right { flex: 1 1 100%; justify-content: flex-start; }
 }

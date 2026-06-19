@@ -143,12 +143,14 @@ export default function ProfessorPage() {
                             { label: "Lectures", field: "lecture_quality" },
                             { label: "Office hours", field: "office_hours" },
                             { label: "Extensions", field: "extension_policy" },
+                            { label: "Niceness", field: "niceness" },
+                            { label: "Experience", field: "experience" },
                         ].map(({ label, field }) => {
                             const mode = mostCommon(reviews.map(r => r[field]))
                             if (!mode) return null
                             return (
                                 <span key={field} className={styles.pillTag}>
-                                    {label} <strong>{mode}</strong>
+                                    {label}: <strong>{mode}</strong>
                                 </span>
                             )
                         })}
@@ -214,6 +216,8 @@ export default function ProfessorPage() {
                             <div className={styles.reviewChips}>
                                 {review.group_work && <span className={styles.chip}>{review.group_work}</span>}
                                 {review.exam_format && <span className={styles.chip}>{review.exam_format}</span>}
+                                {review.niceness && <span className={styles.chip}>{review.niceness}</span>}
+                                {review.experience && <span className={styles.chip}>{review.experience}</span>}
                                 {review.textbook_required && <span className={styles.chip}>{review.textbook_required === "yes" ? "Textbook required" : "No textbook"}</span>}
                                 {review.attendance && <span className={styles.chip}>Attendance {review.attendance}</span>}
                                 {review.extra_credit && <span className={styles.chip}>{review.extra_credit === "yes" ? "Extra credit" : "No extra credit"}</span>}
