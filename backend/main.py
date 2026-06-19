@@ -39,7 +39,7 @@ app.include_router(planner.router)
 async def home():
     return {"hello": "world"}
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     try:
         with engine.connect() as conn:
