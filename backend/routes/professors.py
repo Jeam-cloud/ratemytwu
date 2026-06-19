@@ -101,6 +101,8 @@ def get_everything(professor_id: int, db: db_dependency):
             "attendance": r.attendance,
             "exam_format": r.exam_format,
             "grading_fairness": r.grading_fairness,
+            "niceness": r.niceness,
+            "experience": r.experience,
             "lecture_quality": r.lecture_quality,
             "textbook_required": r.textbook_required,
             "grade_received": r.grade_received,
@@ -146,21 +148,3 @@ def get_professor_courses(professor_id: int, db: db_dependency):
     return professor_to_course_list
 
 
-# adds professor manually for testing data - delete later
-@router.post("")
-async def create_professor(professor: ProfessorBase, db: db_dependency):
-
-    new_professor = Professor(
-        name=format_name(professor.name),
-        department=professor.department,
-    )
-
-    db.add(new_professor)
-    db.commit()
-    db.refresh(new_professor)
-
-    return {
-        "id": new_professor.id,
-        "name": format_name(new_professor.name),
-        "department": new_professor.department,
-    }
