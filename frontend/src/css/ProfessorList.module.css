@@ -112,8 +112,12 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    min-width: 0;
+    flex: 1;
+    min-width: 0;   /* iOS Safari: let this column shrink instead of overlapping the stats */
 }
+/* the name/meta text wrapper must also be allowed to shrink */
+.left > div { min-width: 0; }
+.name, .meta { overflow-wrap: anywhere; }
 
 .avatar {
     flex: none;
@@ -213,4 +217,12 @@
 .seeMore:hover {
     border-color: var(--blue);
     background: var(--blue-tint);
+}
+
+@media (max-width: 480px) {
+    .card { padding: 16px; gap: 10px; }
+    .left { gap: 12px; }
+    .right { gap: 12px; }
+    .statValue { font-size: 15px; }
+    .statLabel { font-size: 9px; letter-spacing: 0.06em; }
 }
