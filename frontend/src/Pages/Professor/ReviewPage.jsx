@@ -35,6 +35,8 @@ export default function ReviewPage() {
     const [difficulty, setDifficulty] = useState(null)
     const [takeAgain, setTakeAgain] = useState(null)
     const [gradingFairness, setGradingFairness] = useState("")
+    const [niceness, setNiceness] = useState("")
+    const [experience, setExperience] = useState("")
     const [lectureQuality, setLectureQuality] = useState("")
     const [officeHours, setOfficeHours] = useState("")
     const [extensionPolicy, setExtensionPolicy] = useState("")
@@ -86,6 +88,8 @@ export default function ReviewPage() {
         if (!difficulty) { setError("Please select a difficulty"); return}
         if (takeAgain === null) { setError("Please answer if you would take again"); return }
         if (!gradingFairness) { setError("Please select grading fairness"); return }
+        if (!niceness) { setError("Please select niceness"); return }
+        if (!experience) { setError("Please select experience"); return }
         if (!lectureQuality) { setError("Please select lecture quality"); return }
         if (!officeHours) { setError("Please select office hours"); return }
         if (!extensionPolicy) { setError("Please select extension policy"); return }
@@ -127,6 +131,8 @@ export default function ReviewPage() {
             "take_again": takeAgain === "Yes" ? 1.0 : 0.0,
             "review": review,
             "grading_fairness": gradingFairness,
+            "niceness": niceness,
+            "experience": experience,
             "lecture_quality": lectureQuality,
             "office_hours": officeHours,
             "extension_policy": extensionPolicy,
@@ -208,18 +214,28 @@ export default function ReviewPage() {
                     </div>
 
                     <div className={styles.field}>
+                        <p className={styles.fieldLabel}>Niceness</p>
+                        <RadioOption value={niceness} name="niceness" options={["Very Distant", "Distant", "Neutral", "Friendly", "Very Friendly"]} setFunction={setNiceness} />
+                    </div>
+
+                    <div className={styles.field}>
+                        <p className={styles.fieldLabel}>Experience</p>
+                        <RadioOption value={experience} name="experience" options={["New", "Somewhat Experienced", "Experienced", "Highly Experienced"]} setFunction={setExperience} />
+                    </div>
+
+                    <div className={styles.field}>
                         <p className={styles.fieldLabel}>Lecture quality</p>
-                        <RadioOption value={lectureQuality} name="lectureQuality" options={["very bad", "bad", "decent", "good", "very good"]} setFunction={setLectureQuality} />
+                        <RadioOption value={lectureQuality} name="lectureQuality" options={["Needs Improvement", "Fair", "Average", "Good", "Excellent"]} setFunction={setLectureQuality} />
                     </div>
 
                     <div className={styles.field}>
                         <p className={styles.fieldLabel}>Office hours</p>
-                        <RadioOption value={officeHours} name="officeHours" options={["helpful", "not helpful", "never went"]} setFunction={setOfficeHours} />
+                        <RadioOption value={officeHours} name="officeHours" options={["Helpful", "Not Helpful", "Never Went"]} setFunction={setOfficeHours} />
                     </div>
 
                     <div className={styles.field}>
                         <p className={styles.fieldLabel}>Extension policy</p>
-                        <RadioOption value={extensionPolicy} name="extensionPolicy" options={["lenient", "moderate", "unforgiving"]} setFunction={setExtensionPolicy} />
+                        <RadioOption value={extensionPolicy} name="extensionPolicy" options={["Lenient", "Moderate", "Unforgiving"]} setFunction={setExtensionPolicy} />
                     </div>
                 </div>
 
@@ -252,22 +268,22 @@ export default function ReviewPage() {
 
                     <div className={styles.field}>
                         <p className={styles.fieldLabel}>Attendance</p>
-                        <RadioOption value={attendance} name="attendance" options={["graded", "optional", "recorded but not graded"]} setFunction={setAttendance} />
+                        <RadioOption value={attendance} name="attendance" options={["Graded", "Optional", "Recorded But Not Graded"]} setFunction={setAttendance} />
                     </div>
 
                     <div className={styles.field}>
                         <p className={styles.fieldLabel}>Exam format</p>
-                        <RadioOption value={examFormat} name="examFormat" options={["multiple choice", "written", "mixed", "take-home/online", "other"]} setFunction={setExamFormat} />
+                        <RadioOption value={examFormat} name="examFormat" options={["Multiple Choice", "Written", "Mixed", "Take-home/Online", "Other"]} setFunction={setExamFormat} />
                     </div>
 
                     <div className={styles.splitRow}>
                         <div className={styles.field}>
                             <p className={styles.fieldLabel}>Textbook required?</p>
-                            <RadioOption value={textBookRequired} name="textBookRequired" options={["yes", "no"]} setFunction={setTextBookRequired} />
+                            <RadioOption value={textBookRequired} name="textBookRequired" options={["Yes", "No"]} setFunction={setTextBookRequired} />
                         </div>
                         <div className={styles.field}>
                             <p className={styles.fieldLabel}>Extra credit offered?</p>
-                            <RadioOption value={extraCredit} name="extraCredit" options={["yes", "no"]} setFunction={setExtraCredit} />
+                            <RadioOption value={extraCredit} name="extraCredit" options={["Yes", "No"]} setFunction={setExtraCredit} />
                         </div>
                     </div>
                 </div>
@@ -289,7 +305,13 @@ export default function ReviewPage() {
                             type="text"
                             placeholder="A-"
                             value={gradeReceived}
-                            onChange={(event) => setGradeReceived(event.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value.toUpperCase();
+
+                                if (/^(|A|A\+|A-|B|B\+|B-|C|C\+|C-|D|D\+|D-|F)$/.test(value)) {
+                                    setGradeReceived(value);
+                                }
+                            }}
                             maxLength={2}
                         />
                     </div>
@@ -362,14 +384,17 @@ export default function ReviewPage() {
                         <h2 className={styles.modalTitle}>One last look before you post</h2>
                         <p className={styles.modalText}>
                             Were you completely honest in your review? Your words help the next
-                            student — and <strong>{profName}</strong> is a real person who may read
-                            them. Keep it fair and professional.
+                            student.
+                        </p>
+                        < p className={styles.modalText}>
+                            Also please keep in mind that <strong>{profName}</strong> is a real person who may read
+                            the comments you just posted. Professors are humans too just like you and I, made in God's image.
                         </p>
 
                         <ul className={styles.checklist}>
                             {[
-                                "Honest and specific — what was the course and teaching actually like?",
-                                "Fair, not personal — critique the class, not the person.",
+                                "Honest and specific: what was the course and teaching actually like?",
+                                "Fair, not personal: critique the class, not the person.",
                                 "Nothing you wouldn't say to their face. No insults or name-calling.",
                             ].map((item, i) => (
                                 <li key={i} className={styles.checkItem}>
@@ -383,8 +408,8 @@ export default function ReviewPage() {
                         </ul>
 
                         <p className={styles.modalFine}>
-                            Posted anonymously. Reviews that attack a person rather than the course
-                            may be removed.
+                            Posted without showing your name. Reviews that attack a person rather than the course
+                            may and will be removed.
                         </p>
 
                         <div className={styles.modalActions}>
