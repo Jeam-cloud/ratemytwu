@@ -10,15 +10,8 @@ export default function BookMarkCards({ course }) {
     })
 
     const style = {
-        transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.9 : 1,
-        // required for dnd-kit TouchSensor: lets the element be dragged on touch
-        // instead of the browser treating the gesture as a scroll
         touchAction: "none",
-        // lift the chip above the columns while dragging so it doesn't slide behind them
-        position: "relative",
-        zIndex: isDragging ? 1000 : "auto",
-        boxShadow: isDragging ? "var(--shadow-lg, 0 12px 32px rgba(0,27,61,0.22))" : undefined,
+        opacity: isDragging ? 0 : 1,  // hide original while DragOverlay shows the ghost
     }
 
     return (
