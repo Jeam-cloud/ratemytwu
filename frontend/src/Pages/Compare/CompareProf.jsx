@@ -70,7 +70,7 @@ function CompareSlot({ side, prof, onPick, onClear }) {
 
             {results.length > 0 && (
                 <div className={styles.dropdown}>
-                    {results.map((p) => (
+                    {results.slice(0, 8).map((p) => (
                         <button key={p.id} className={styles.option} onClick={() => pick(p)}>
                             <span className={styles.optAvatar}>{getInitials(p.name)}</span>
                             <span className={styles.optText}>
