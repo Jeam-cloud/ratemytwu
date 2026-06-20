@@ -58,17 +58,23 @@ export default function ReviewPage() {
     const [showConfirm, setShowConfirm] = useState(false)
     const [profName, setProfName] = useState("")
     const [department, setDepartment] = useState("")
+    const [profCourses, setProfCourses] = useState([])
 
     const { id } = useParams()
     const navigate = useNavigate()
 
     useEffect(() => {
         const loadProf = async() => {
-            const response = await fetch(`${API_URL}/professor/${id}/everything`)
-            const data = await response.json()
+            const [profRes, coursesRes] = await Promise.all([
+                fetch(`${API_URL}/professor/${id}/everything`),
+                fetch(`${API_URL}/professor/${id}/courses`)
+            ])
+            const profData = await profRes.json()
+            const coursesData = await coursesRes.json()
 
-            setProfName(data.name)
-            setDepartment(data.department)
+            setProfName(profData.name)
+            setDepartment(profData.department)
+            setProfCourses(coursesData)
         }
         loadProf()
     }, [id])
@@ -255,16 +261,28 @@ export default function ReviewPage() {
                     <div className={styles.field}>
                         <div className={styles.labelRow}>
                             <p className={styles.fieldLabel}>Course code</p>
-                            <span className={styles.optional}>e.g. BIOL 113</span>
                         </div>
-                        <input
-                            className={styles.input}
-                            type="text"
-                            placeholder="BIOL 113"
-                            value={courseCode}
-                            onChange={(event) => setCourseCode(event.target.value.toUpperCase())}
-                            maxLength={9}
-                        />
+                        {profCourses.length > 0 ? (
+                            <select
+                                className={styles.input}
+                                value={courseCode}
+                                onChange={(e) => setCourseCode(e.target.value)}
+                            >
+                                <option value="">Select a course…</option>
+                                {profCourses.map(c => (
+                                    <option key={c.id} value={c.code}>{c.code}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                className={styles.input}
+                                type="text"
+                                placeholder="BIOL 113"
+                                value={courseCode}
+                                onChange={(event) => setCourseCode(event.target.value.toUpperCase())}
+                                maxLength={9}
+                            />
+                        )}
                     </div>
 
                     <div className={styles.field}>
@@ -394,7 +412,7 @@ export default function ReviewPage() {
                         </p>
                         < p className={styles.modalText}>
                             Also please keep in mind that <strong>{profName}</strong> is a real person who may read
-                            the comments you just posted. Professors are humans too just like you and I, made in God's image.
+                            the comments you just posted. Professors are humans too just like you and I, please be thoughful of what you say.
                         </p>
 
                         <ul className={styles.checklist}>
