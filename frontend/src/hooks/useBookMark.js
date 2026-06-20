@@ -12,6 +12,7 @@ export function useBookMark() {
         const loadData = async() => {
 
             const { data } = await supabase.auth.getSession()
+            if (!data.session) return
             const token = data.session.access_token
 
             const response = await fetch(`${API_URL}/bookmark/`, {

@@ -12,6 +12,7 @@ export function useReview() {
         const loadData = async () => {
 
             const response = await supabase.auth.getSession()
+            if (!response.data.session) return
             const token = response.data.session.access_token
 
             const response2 = await fetch(`${API_URL}/user/reviews`, {
