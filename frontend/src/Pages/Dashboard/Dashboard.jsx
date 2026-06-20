@@ -111,7 +111,7 @@ export default function Dashboard() {
 
     // GPA — 4.3 scale, derived from grades entered on board cards
     const GRADE_PTS = { 'A+':4.3,'A':4.0,'A-':3.7,'B+':3.3,'B':3.0,'B-':2.7,'C+':2.3,'C':2.0,'C-':1.7,'D+':1.3,'D':1.0,'D-':0.7,'F':0 }
-    const gradedCards = cards.filter(c => c.grade && c.credits && GRADE_PTS[c.grade] !== undefined)
+    const gradedCards = cards.filter(c => c.grade && c.credits && GRADE_PTS[c.grade] !== undefined && (c.status === "Completed" || c.status === "In Progress"))
     const gpaPoints   = gradedCards.reduce((s, c) => s + GRADE_PTS[c.grade] * c.credits, 0)
     const gpaCredits  = gradedCards.reduce((s, c) => s + c.credits, 0)
     const gpa         = gpaCredits > 0 ? (gpaPoints / gpaCredits).toFixed(2) : null
