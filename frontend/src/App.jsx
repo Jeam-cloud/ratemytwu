@@ -54,11 +54,7 @@ export default function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
 
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-              } />
+            <Route path="/dashboard" element={<Dashboard />} />
 
           </Routes>
 

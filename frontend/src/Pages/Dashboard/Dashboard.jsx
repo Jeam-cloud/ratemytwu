@@ -85,6 +85,9 @@ export default function Dashboard() {
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     )
+    const [isGuest, setIsGuest] = useState(false)
+    const [guestQuery, setGuestQuery] = useState("")
+    const [guestResults, setGuestResults] = useState([])
     const [activeItem, setActiveItem] = useState(null)
     const [years, setYears] = useState(null)
     const [error, setError] = useState(null)
@@ -139,66 +142,61 @@ export default function Dashboard() {
     // highest year that still has a course — can't shrink below this without orphaning cards
     const maxUsedYear = cards.length ? Math.max(...cards.map(c => c.year)) : 0
 
-    // loads planner settings and cards from the backend
+    // loads planner settings and cards — guest mode uses localStorage only
     useEffect(() => {
         const loadAll = async () => {
             const { data } = await supabase.auth.getSession()
-            const token = data.session.access_token
+            const session = data.session
+
+            if (!session) {
+                // ── Guest mode ──
+                setIsGuest(true)
+                const ly = localStorage.getItem("plannerYears")
+                const lsy = localStorage.getItem("plannerStartYear")
+                const lst = localStorage.getItem("plannerStartTerm")
+                if (ly) {
+                    const y = Number(ly), sy = lsy ? Number(lsy) : new Date().getFullYear(), st = lst ?? "Fall"
+                    setYears(y); setStartYear(sy); setStartTerm(st); setStartDraft(sy); setStartDraftTerm(st)
+                }
+                const saved = localStorage.getItem("guestPlannerCards")
+                if (saved) {
+                    const loaded = JSON.parse(saved)
+                    setCards(loaded)
+                    setExpandedYears(prev => { const n = new Set(prev); loaded.forEach(c => n.add(c.year)); return n })
+                    const ss = new Set(); loaded.forEach(c => { if (c.term === "Summer") ss.add(c.year) }); if (ss.size > 0) setSummerYears(ss)
+                }
+                return
+            }
+
+            // ── Logged-in mode ──
+            const token = session.access_token
             const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
 
-            // load planner settings — try backend first, fall back to localStorage
             let settingsLoaded = false
             try {
                 const settingsRes = await fetch(`${API_URL}/planner/settings`, { headers })
                 if (settingsRes.ok) {
                     const settings = await settingsRes.json()
                     if (settings) {
-                        setYears(settings.years)
-                        setStartYear(settings.start_year)
-                        setStartTerm(settings.start_term ?? "Fall")
-                        setStartDraft(settings.start_year)
-                        setStartDraftTerm(settings.start_term ?? "Fall")
-                        settingsLoaded = true
+                        setYears(settings.years); setStartYear(settings.start_year)
+                        setStartTerm(settings.start_term ?? "Fall"); setStartDraft(settings.start_year)
+                        setStartDraftTerm(settings.start_term ?? "Fall"); settingsLoaded = true
                     }
                 }
-            } catch (_) { /* network error — fall through to localStorage */ }
+            } catch (_) {}
 
-            // fallback: restore from localStorage if backend had nothing
             if (!settingsLoaded) {
-                const ly = localStorage.getItem("plannerYears")
-                const lsy = localStorage.getItem("plannerStartYear")
-                const lst = localStorage.getItem("plannerStartTerm")
-                if (ly) {
-                    const y = Number(ly)
-                    const sy = lsy ? Number(lsy) : new Date().getFullYear()
-                    const st = lst ?? "Fall"
-                    setYears(y)
-                    setStartYear(sy)
-                    setStartTerm(st)
-                    setStartDraft(sy)
-                    setStartDraftTerm(st)
-                }
+                const ly = localStorage.getItem("plannerYears"), lsy = localStorage.getItem("plannerStartYear"), lst = localStorage.getItem("plannerStartTerm")
+                if (ly) { const y = Number(ly), sy = lsy ? Number(lsy) : new Date().getFullYear(), st = lst ?? "Fall"; setYears(y); setStartYear(sy); setStartTerm(st); setStartDraft(sy); setStartDraftTerm(st) }
             }
 
-            // load cards
             const cardsRes = await fetch(`${API_URL}/board/cards`, { headers })
-            if (!cardsRes.ok) {
-                setError("Failed to load cards")
-                return
-            }
+            if (!cardsRes.ok) { setError("Failed to load cards"); return }
             const loaded = await cardsRes.json()
             setCards(loaded)
             if (loaded.length > 0) {
-                // auto-expand years that have courses
-                setExpandedYears(prev => {
-                    const next = new Set(prev)
-                    loaded.forEach(c => next.add(c.year))
-                    return next
-                })
-                // auto-enable summer for years that already have summer cards
-                const summerSet = new Set()
-                loaded.forEach(c => { if (c.term === "Summer") summerSet.add(c.year) })
-                if (summerSet.size > 0) setSummerYears(summerSet)
+                setExpandedYears(prev => { const next = new Set(prev); loaded.forEach(c => next.add(c.year)); return next })
+                const summerSet = new Set(); loaded.forEach(c => { if (c.term === "Summer") summerSet.add(c.year) }); if (summerSet.size > 0) setSummerYears(summerSet)
             }
         }
 
@@ -206,20 +204,20 @@ export default function Dashboard() {
     }, [])
 
     const savePlannerSettings = async (years, startYear, startTerm) => {
-        // always cache locally so the board survives if the backend endpoint is unavailable
         localStorage.setItem("plannerYears", String(years))
         localStorage.setItem("plannerStartYear", String(startYear))
         localStorage.setItem("plannerStartTerm", startTerm)
-
+        if (isGuest) return
         try {
             const { data } = await supabase.auth.getSession()
-            const token = data.session.access_token
+            const token = data.session?.access_token
+            if (!token) return
             await fetch(`${API_URL}/planner/settings`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ years, start_year: startYear, start_term: startTerm }),
             })
-        } catch (_) { /* backend unavailable — localStorage copy is the fallback */ }
+        } catch (_) {}
     }
 
     // updates year state and persists to backend
@@ -278,38 +276,62 @@ export default function Dashboard() {
         setActiveItem(event.active.data.current)
     }
 
-    // on drag logic of firing making a new card dragging from bookmarks column to actual column
+    // helper: persist guest cards to localStorage
+    const saveGuestCards = (updated) => localStorage.setItem("guestPlannerCards", JSON.stringify(updated))
+
+    // guest course search
+    const handleGuestSearch = async (e) => {
+        const q = e.target.value
+        setGuestQuery(q)
+        if (q.trim().length < 2) { setGuestResults([]); return }
+        const res = await fetch(`${API_URL}/course/?search_course=${q.trim()}`)
+        const data = await res.json()
+        setGuestResults(data.slice(0, 8))
+    }
+
+    // on drag logic of firing making a new card dragging from bookmarks/search to actual column
     const handleDragEnd = async (event) => {
         const { active, over } = event
 
         setActiveItem(null)
 
-        if (!over) {
-            return
-        }
+        if (!over) return
 
         const col = over.data.current.col
         const dragged = active.data.current
 
-        // moving an existing board card → just update its year/term
+        // moving an existing board card → update its year/term
         if (dragged.card) {
             const card = dragged.card
-            // dropped back in the same term → nothing to do
             if (card.year === col.year && card.term === col.term) return
-
             handleUpdate(card.id, {
-                year: col.year,
-                term: col.term,
-                credits: card.credits ?? null,      // ← fixed: was incorrectly `course.credits`
-                status: card.status ?? "Planned",
-                grade: card.grade ?? null,
-                notes: card.notes ?? null,
+                year: col.year, term: col.term,
+                credits: card.credits ?? null, status: card.status ?? "Planned",
+                grade: card.grade ?? null, notes: card.notes ?? null,
             })
             return
         }
 
-        // otherwise it's a bookmark being placed → create a new card
+        // course being placed → create a new card
         const course = dragged.course
+
+        if (isGuest) {
+            // already on board?
+            if (cards.some(c => c.course_id === course.id)) return
+            const newCard = {
+                id: -Date.now(),   // negative local ID
+                course_id: course.id,
+                year: col.year, term: col.term,
+                code: course.code,
+                credits: course.credits ?? null,
+                status: "Planned", grade: null, notes: null,
+            }
+            const updated = [...cards, newCard]
+            setCards(updated)
+            saveGuestCards(updated)
+            setAutoEditCardId(newCard.id)
+            return
+        }
 
         const { data } = await supabase.auth.getSession()
         const token = data.session.access_token
@@ -317,42 +339,39 @@ export default function Dashboard() {
         const response = await fetch(`${API_URL}/board/${course.id}`, {
             method: "POST",
             headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`},
-            body: JSON.stringify({
-                year: col.year,
-                term: col.term,
-                credits: course.credits ?? null,    // ← fixed: now sends credits to backend
-                status: "Planned",
-                grade: null,
-                notes: null,
-            })
+            body: JSON.stringify({ year: col.year, term: col.term, credits: course.credits ?? null, status: "Planned", grade: null, notes: null })
         })
 
-        if (!response.ok) {
-            setError("Card not created")
-            return
-        }
+        if (!response.ok) { setError("Card not created"); return }
         const newCard = await response.json()
         setCards((prev) => [...prev, newCard])
         setAutoEditCardId(newCard.id)
     }
 
     const handleDelete = async (cardId) => {
+        if (isGuest) {
+            const updated = cards.filter(c => c.id !== cardId)
+            setCards(updated)
+            saveGuestCards(updated)
+            return
+        }
         const { data } = await supabase.auth.getSession()
         const token = data.session.access_token
-
         const response = await fetch(`${API_URL}/board/${cardId}`, {
             method: "DELETE",
             headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`}
         })
-
-        if (!response.ok) {
-            return
-        }
-
+        if (!response.ok) return
         setCards(prev => prev.filter(card => card.id !== cardId))
     }
 
     const handleUpdate = async (cardId, updatedFields) => {
+        if (isGuest) {
+            const updated = cards.map(c => c.id === cardId ? { ...c, ...updatedFields } : c)
+            setCards(updated)
+            saveGuestCards(updated)
+            return
+        }
         const { data } = await supabase.auth.getSession()
         const token = data.session.access_token
 
@@ -393,6 +412,17 @@ export default function Dashboard() {
                         </button>
                     )}
                 </div>
+
+                {/* ── Guest banner ── */}
+                {isGuest && (
+                    <div style={{ background: "var(--blue-tint)", border: "1px solid var(--blue)", borderRadius: "var(--radius-md)", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
+                        <p style={{ margin: 0, fontSize: 14, color: "var(--blue)", fontFamily: "var(--font-sans)" }}>
+                            <strong>You're planning as a guest.</strong> Your planner is saved in this browser only.{" "}
+                            <a href="/login" style={{ color: "var(--blue)", fontWeight: 700 }}>Sign in</a> or{" "}
+                            <a href="/signup" style={{ color: "var(--blue)", fontWeight: 700 }}>create an account</a> to save your courses and reviews.
+                        </p>
+                    </div>
+                )}
 
                 {/* ── Progress ── */}
                 <div className={styles.progress}>
@@ -436,21 +466,52 @@ export default function Dashboard() {
                 <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                     <div className={styles.board}>
 
-                        {/* Left rail — bookmarks + GPA */}
+                        {/* Left rail — bookmarks (logged in) or course search (guest) + GPA */}
                         <aside className={styles.sideRail}>
                             <div className={styles.bookmarkPanel}>
-                                <p className={styles.bookmarkKicker}>
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
-                                    </svg>
-                                    Bookmarked
-                                </p>
-                                {availableBookmarks.length === 0 ? (
-                                    <p className={styles.bookmarkEmpty}>No bookmarks left to place.</p>
+                                {isGuest ? (
+                                    <>
+                                        <p className={styles.bookmarkKicker}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                            </svg>
+                                            Search courses
+                                        </p>
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. CMPT 166"
+                                            value={guestQuery}
+                                            onChange={handleGuestSearch}
+                                            style={{ width: "100%", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "8px 10px", fontSize: 13, fontFamily: "var(--font-sans)", outline: "none", marginBottom: 8, boxSizing: "border-box" }}
+                                        />
+                                        {guestResults.length > 0 && guestQuery.length >= 2 && (
+                                            guestResults.map(course => (
+                                                <BookMarkCard key={course.id} course={course} />
+                                            ))
+                                        )}
+                                        {guestResults.length === 0 && guestQuery.length >= 2 && (
+                                            <p className={styles.bookmarkEmpty}>No courses found.</p>
+                                        )}
+                                        {guestQuery.length < 2 && (
+                                            <p className={styles.bookmarkEmpty}>Type at least 2 characters to search.</p>
+                                        )}
+                                    </>
                                 ) : (
-                                    availableBookmarks.map(course => (
-                                        <BookMarkCard key={course.id} course={course} />
-                                    ))
+                                    <>
+                                        <p className={styles.bookmarkKicker}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
+                                            </svg>
+                                            Bookmarked
+                                        </p>
+                                        {availableBookmarks.length === 0 ? (
+                                            <p className={styles.bookmarkEmpty}>No bookmarks left to place.</p>
+                                        ) : (
+                                            availableBookmarks.map(course => (
+                                                <BookMarkCard key={course.id} course={course} />
+                                            ))
+                                        )}
+                                    </>
                                 )}
                             </div>
 
