@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -190,6 +190,10 @@ class CardsOut(BaseModel):
     grade: Optional[str]
     notes: Optional[str]
 
+VALID_CARD_GRADES = {"A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F"}
+VALID_CARD_TERMS = {"Fall", "Spring", "Summer"}
+VALID_CARD_STATUSES = {"Planned", "In Progress", "Completed"}
+
 class CreateCardsIn(BaseModel):
     year: int
     term: str
@@ -197,6 +201,34 @@ class CreateCardsIn(BaseModel):
     status: Optional[str] = None
     grade: Optional[str] = None
     notes: Optional[str] = None
+
+    @field_validator("credits")
+    @classmethod
+    def credits_range(cls, v):
+        if v is not None and not (0 <= v <= 4):
+            raise ValueError("Credits must be between 0 and 4")
+        return v
+
+    @field_validator("grade")
+    @classmethod
+    def grade_valid(cls, v):
+        if v and v not in VALID_CARD_GRADES:
+            raise ValueError(f"Invalid grade. Must be one of: {', '.join(sorted(VALID_CARD_GRADES))}")
+        return v
+
+    @field_validator("term")
+    @classmethod
+    def term_valid(cls, v):
+        if v not in VALID_CARD_TERMS:
+            raise ValueError("Term must be Fall, Spring, or Summer")
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def status_valid(cls, v):
+        if v and v not in VALID_CARD_STATUSES:
+            raise ValueError("Status must be Planned, In Progress, or Completed")
+        return v
 
 class CreateCardsOut(BaseModel):
     id: int

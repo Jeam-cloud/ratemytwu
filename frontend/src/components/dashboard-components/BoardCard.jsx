@@ -142,8 +142,15 @@ export default function BoardCard({ card, onDelete, onUpdate, startYear, autoOpe
                                 </select>
                             </div>
                             <div className={styles.field}>
-                                <label className={styles.label}>Credits <span className={styles.hint}>e.g. 3, 4, or 5</span></label>
-                                <input className={styles.input} type="number" value={credits} onChange={(e) => setCredits(e.target.value)} placeholder="3" min={0} max={9} />
+                                <label className={styles.label}>Credits</label>
+                                <select className={styles.select} value={credits} onChange={(e) => setCredits(e.target.value)}>
+                                    <option value="">— cr</option>
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                </select>
                             </div>
                             <div className={styles.field}>
                                 <label className={styles.label}>Status</label>
@@ -155,7 +162,22 @@ export default function BoardCard({ card, onDelete, onUpdate, startYear, autoOpe
                             </div>
                             <div className={styles.field}>
                                 <label className={styles.label}>Grade <span className={styles.hint}>optional</span></label>
-                                <input className={styles.input} type="text" value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="B+" maxLength={2} />
+                                <select className={styles.select} value={grade} onChange={(e) => setGrade(e.target.value)}>
+                                    <option value="">—</option>
+                                    <option>A+</option>
+                                    <option>A</option>
+                                    <option>A-</option>
+                                    <option>B+</option>
+                                    <option>B</option>
+                                    <option>B-</option>
+                                    <option>C+</option>
+                                    <option>C</option>
+                                    <option>C-</option>
+                                    <option>D+</option>
+                                    <option>D</option>
+                                    <option>D-</option>
+                                    <option>F</option>
+                                </select>
                             </div>
                         </div>
 
