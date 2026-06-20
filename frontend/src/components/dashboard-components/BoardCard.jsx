@@ -29,12 +29,8 @@ export default function BoardCard({ card, onDelete, onUpdate, startYear, autoOpe
     })
 
     const dragStyle = {
-        transform: CSS.Translate.toString(transform),
-        opacity: isDragging ? 0.9 : 1,
-        touchAction: "none",   // enable dnd-kit TouchSensor dragging on mobile
-        position: "relative",
-        zIndex: isDragging ? 1000 : "auto",
-        boxShadow: isDragging ? "var(--shadow-lg, 0 12px 32px rgba(0,27,61,0.22))" : undefined,
+        touchAction: "none",
+        opacity: isDragging ? 0 : 1,  // hide original while DragOverlay shows the ghost
         cursor: "grab",
     }
 
