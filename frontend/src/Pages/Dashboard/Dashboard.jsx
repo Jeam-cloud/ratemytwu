@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core"
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors } from "@dnd-kit/core"
 
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
@@ -85,6 +85,7 @@ export default function Dashboard() {
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     )
+    const [activeItem, setActiveItem] = useState(null)
     const [years, setYears] = useState(null)
     const [error, setError] = useState(null)
     const [cards, setCards] = useState([])
@@ -273,9 +274,15 @@ export default function Dashboard() {
         return Object.values(map)
     }
 
+    const handleDragStart = (event) => {
+        setActiveItem(event.active.data.current)
+    }
+
     // on drag logic of firing making a new card dragging from bookmarks column to actual column
     const handleDragEnd = async (event) => {
         const { active, over } = event
+
+        setActiveItem(null)
 
         if (!over) {
             return
@@ -426,7 +433,7 @@ export default function Dashboard() {
                 {error && <p className={styles.error}>{error}</p>}
 
                 {/* ── Board ── */}
-                <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+                <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                     <div className={styles.board}>
 
                         {/* Left rail — bookmarks + GPA */}
@@ -552,6 +559,42 @@ export default function Dashboard() {
                             )}
                         </div>
                     </div>
+                    <DragOverlay dropAnimation={null}>
+                        {activeItem?.card && (
+                            <div style={{
+                                background: "var(--white)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "var(--radius)",
+                                padding: "14px",
+                                boxShadow: "0 12px 32px rgba(0,27,61,0.22)",
+                                minWidth: 0,
+                                opacity: 0.95,
+                                cursor: "grabbing",
+                                fontSize: "14px",
+                                fontWeight: "700",
+                                color: "var(--ink)",
+                            }}>
+                                {activeItem.card.code}
+                                {activeItem.card.credits && <span style={{ fontWeight: 400, color: "var(--ink-3)", marginLeft: 8 }}>{activeItem.card.credits} cr</span>}
+                            </div>
+                        )}
+                        {activeItem?.course && (
+                            <div style={{
+                                background: "var(--white)",
+                                border: "1px solid var(--border)",
+                                borderRadius: "var(--radius)",
+                                padding: "14px",
+                                boxShadow: "0 12px 32px rgba(0,27,61,0.22)",
+                                opacity: 0.95,
+                                cursor: "grabbing",
+                                fontSize: "14px",
+                                fontWeight: "700",
+                                color: "var(--blue)",
+                            }}>
+                                {activeItem.course.code}
+                            </div>
+                        )}
+                    </DragOverlay>
                 </DndContext>
 
                 {/* ── Your reviews ── */}
