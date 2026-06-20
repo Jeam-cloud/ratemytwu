@@ -4,7 +4,7 @@ from fastapi import Depends, APIRouter, HTTPException
 from models import Professor, Reviews, ProfessorCourse
 from database import db_dependency
 from auth import get_current_user_id
-from schema import ProfessorBase, ProfessorsOut, ProfessorCoursesOut, ProfessorDetailOut
+from schema import ProfessorsOut, ProfessorCoursesOut, ProfessorDetailOut
 
 from typing import Annotated, Optional
 
