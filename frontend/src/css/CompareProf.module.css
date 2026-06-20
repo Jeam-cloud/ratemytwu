@@ -118,7 +118,9 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 27, 61, 0.18));
-    overflow: hidden;
+    /* cap the list height so big result sets scroll instead of running down the page */
+    max-height: 296px;
+    overflow-y: auto;
 }
 
 .option {
