@@ -27,6 +27,7 @@
 
 .searchBar {
     flex: 1;
+    min-width: 0;   /* iOS: let the field shrink so the button doesn't clip off-screen */
     display: flex;
     align-items: center;
     gap: 12px;
@@ -45,6 +46,8 @@
 
 .searchBar input {
     flex: 1;
+    min-width: 0;
+    width: 100%;
     border: none;
     outline: none;
     background: transparent;
@@ -58,6 +61,7 @@
 }
 
 .searchBtn {
+    flex: none;
     height: 52px;
     padding: 0 28px;
     border: none;
