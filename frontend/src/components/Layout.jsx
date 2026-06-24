@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom"
+import { Link, NavLink, useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { supabase } from "../supabaseClient"
 import "../styles/layout.css"
@@ -79,11 +79,11 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
 
                     {/* Nav links */}
                     <nav className="app-nav">
-                        <Link to="/professor">Professors</Link>
-                        <Link to="/course">Courses</Link>
-                        <Link to="/departments">Departments</Link>
-                        <Link to="/compare">Compare</Link>
-                        <Link to="/dashboard">My Courses</Link>
+                        <NavLink to="/professor" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Professors</NavLink>
+                        <NavLink to="/course" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Courses</NavLink>
+                        <NavLink to="/departments" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Departments</NavLink>
+                        <NavLink to="/compare" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Compare</NavLink>
+                        <NavLink to="/dashboard" className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
                     </nav>
 
                     {/* Avatar / auth */}
@@ -130,11 +130,11 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                 {/* Mobile dropdown menu */}
                 {mobileOpen && (
                     <div className="app-mobile-menu">
-                        <Link to="/professor" onClick={closeMobile}>Professors</Link>
-                        <Link to="/course" onClick={closeMobile}>Courses</Link>
-                        <Link to="/departments" onClick={closeMobile}>Departments</Link>
-                        <Link to="/compare" onClick={closeMobile}>Compare</Link>
-                        <Link to="/dashboard" onClick={closeMobile}>My Courses</Link>
+                        <NavLink to="/professor" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Professors</NavLink>
+                        <NavLink to="/course" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Courses</NavLink>
+                        <NavLink to="/departments" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Departments</NavLink>
+                        <NavLink to="/compare" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Compare</NavLink>
+                        <NavLink to="/dashboard" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
                         <div className="app-mobile-divider" />
                         {session ? (
                             <button className="app-mobile-signout" onClick={() => { closeMobile(); handleSignOut() }}>
