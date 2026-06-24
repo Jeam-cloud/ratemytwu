@@ -3,6 +3,11 @@ from fastapi import APIRouter
 
 from models import Professor, Courses, Reviews, ProfessorCourse
 from database import db_dependency
+
+def format_name(name: str) -> str:
+    if not name:
+        return ""
+    return " ".join(word.capitalize() for word in name.strip().split())
 from schema import DepartmentsOut, ProfessorsOut, CourseSearchOut
 
 
@@ -49,7 +54,7 @@ def get_department_professors(department_name: str, db: db_dependency):
     for p in professors:
         professor_list.append({
             "id": p.id,
-            "name": p.name,
+            "name": format_name(p.name),
             "department": p.department,
             "average_rating": p.average_rating,
             "average_difficulty": p.average_difficulty,

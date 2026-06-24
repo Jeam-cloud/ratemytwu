@@ -32,7 +32,7 @@ TIME_RE = re.compile(r"^\d{1,2}:\d{2}\s*(AM|PM)$")
 NOISE_PREFIXES = (
     "please note:", "crosslisted:", "instruction method:",
     "page ", "trinity western university", "fee: $",
-    "fa 2026", "su 2026",
+    "fa 2026", "su 2026", "sp 2027", "fa 2027", "su 2027",
 )
 
 

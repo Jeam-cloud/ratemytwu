@@ -3,6 +3,11 @@ from fastapi import APIRouter, HTTPException
 
 from models import Courses, ProfessorCourse, Professor, Reviews
 from database import db_dependency
+
+def format_name(name: str) -> str:
+    if not name:
+        return ""
+    return " ".join(word.capitalize() for word in name.strip().split())
 from schema import CoursesBase, CourseSearchOut, CourseDetailOut
 
 from typing import Optional
@@ -75,7 +80,7 @@ def get_course_taught(course_id: int, db: db_dependency):
     for pc in professor_course:
         professor = {
             "id": pc.id,
-            "name": pc.name,
+            "name": format_name(pc.name),
             "department": pc.department,
             "average_rating": pc.average_rating,
             "average_difficulty": pc.average_difficulty,
