@@ -75,7 +75,9 @@ function YearTerms({ group, startTerm, hasSummer, cards, startYear, onDelete, on
 
 export default function Dashboard() {
 
-    const { reviews, deleteReview } = useReview()
+    const { reviews, deleteReview, updateReview } = useReview()
+    const [editingReview, setEditingReview] = useState(null)  // holds the review being edited
+    const [editForm, setEditForm] = useState({})
     const { bookmark } = useBookMark()
     const navigate = useNavigate()
 
@@ -697,12 +699,30 @@ export default function Dashboard() {
                                             <span className={styles.reviewDate}>{formatDate(review.created_at)}</span>
                                         </div>
                                     </div>
-                                    <button
-                                        className={styles.reviewDelete}
-                                        onClick={(e) => { e.stopPropagation(); deleteReview(review.id) }}
-                                    >
-                                        Delete
-                                    </button>
+                                    <div className={styles.reviewActions}>
+                                        <button
+                                            className={styles.reviewEdit}
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setEditingReview(review)
+                                                setEditForm({
+                                                    rating: review.rating,
+                                                    difficulty: review.difficulty,
+                                                    grade_received: review.grade_received || "",
+                                                    review: review.review,
+                                                    tips: review.tips || "",
+                                                })
+                                            }}
+                                        >
+                                            Edit
+                                        </button>
+                                        <button
+                                            className={styles.reviewDelete}
+                                            onClick={(e) => { e.stopPropagation(); deleteReview(review.id) }}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                     <svg className={styles.reviewChevron} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="m9 18 6-6-6-6" />
                                     </svg>
@@ -710,6 +730,104 @@ export default function Dashboard() {
                             ))}
                         </div>
                     </section>
+                )}
+
+                {/* ── Edit review modal ── */}
+                {editingReview && (
+                    <div className={styles.overlay} onClick={() => setEditingReview(null)}>
+                        <div className={styles.editReviewModal} onClick={(e) => e.stopPropagation()}>
+                            <div className={styles.editReviewHead}>
+                                <h3 className={styles.editReviewTitle}>Edit review</h3>
+                                <button className={styles.yearModalClose} onClick={() => setEditingReview(null)} aria-label="Close">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 6 6 18M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div className={styles.editReviewBody}>
+                                {/* Rating */}
+                                <div className={styles.editField}>
+                                    <label className={styles.editLabel}>Rating</label>
+                                    <div className={styles.editRatingRow}>
+                                        {[1,2,3,4,5].map(n => (
+                                            <button
+                                                key={n}
+                                                type="button"
+                                                className={n <= editForm.rating ? styles.starOn : styles.starOff}
+                                                onClick={() => setEditForm(f => ({ ...f, rating: n }))}
+                                            >★</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Difficulty */}
+                                <div className={styles.editField}>
+                                    <label className={styles.editLabel}>Difficulty</label>
+                                    <div className={styles.editRatingRow}>
+                                        {[1,2,3,4,5].map(n => (
+                                            <button
+                                                key={n}
+                                                type="button"
+                                                className={n <= editForm.difficulty ? styles.diffOn : styles.diffOff}
+                                                onClick={() => setEditForm(f => ({ ...f, difficulty: n }))}
+                                            >{n}</button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Grade */}
+                                <div className={styles.editField}>
+                                    <label className={styles.editLabel}>Grade received</label>
+                                    <select
+                                        className={styles.editSelect}
+                                        value={editForm.grade_received}
+                                        onChange={(e) => setEditForm(f => ({ ...f, grade_received: e.target.value }))}
+                                    >
+                                        <option value="">— none —</option>
+                                        {["A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"].map(g => (
+                                            <option key={g} value={g}>{g}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Review text */}
+                                <div className={styles.editField}>
+                                    <label className={styles.editLabel}>Review</label>
+                                    <textarea
+                                        className={styles.editTextarea}
+                                        value={editForm.review}
+                                        onChange={(e) => setEditForm(f => ({ ...f, review: e.target.value }))}
+                                        rows={4}
+                                    />
+                                </div>
+
+                                {/* Tips */}
+                                <div className={styles.editField}>
+                                    <label className={styles.editLabel}>Tips <span className={styles.editOptional}>(optional)</span></label>
+                                    <textarea
+                                        className={styles.editTextarea}
+                                        value={editForm.tips}
+                                        onChange={(e) => setEditForm(f => ({ ...f, tips: e.target.value }))}
+                                        rows={2}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className={styles.editReviewFooter}>
+                                <button className={styles.cancelBtn} onClick={() => setEditingReview(null)}>Cancel</button>
+                                <button
+                                    className={styles.saveBtn}
+                                    onClick={async () => {
+                                        const ok = await updateReview(editingReview.id, editForm)
+                                        if (ok) setEditingReview(null)
+                                    }}
+                                >
+                                    Save changes
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {/* ── Edit planner length modal ── */}

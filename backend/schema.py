@@ -29,6 +29,25 @@ class ReviewsBase(BaseModel):
     office_hours: str
     tips: Optional[str] = None
 
+class UpdateReviewIn(BaseModel):
+    rating: Optional[int] = None
+    difficulty: Optional[int] = None
+    take_again: Optional[float] = None
+    grade_received: Optional[str] = None
+    review: Optional[str] = None
+    tips: Optional[str] = None
+    extension_policy: Optional[str] = None
+    group_work: Optional[str] = None
+    attendance: Optional[str] = None
+    exam_format: Optional[str] = None
+    niceness: Optional[str] = None
+    experience: Optional[str] = None
+    grading_fairness: Optional[str] = None
+    lecture_quality: Optional[str] = None
+    textbook_required: Optional[str] = None
+    extra_credit: Optional[str] = None
+    office_hours: Optional[str] = None
+
 class CoursesBase(BaseModel):
     code: str
 

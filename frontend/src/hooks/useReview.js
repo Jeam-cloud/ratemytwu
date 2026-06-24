@@ -33,6 +33,24 @@ export function useReview() {
     }, [])
 
 
+    const updateReview = async (reviewId, payload) => {
+        const response = await supabase.auth.getSession()
+        const token = response.data.session.access_token
+
+        const response2 = await fetch(`${API_URL}/professor/review/${reviewId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        })
+
+        if (response2.ok) {
+            const updated = await response2.json()
+            setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, ...updated } : r))
+            return true
+        }
+        return false
+    }
+
     const deleteReview = async (reviewId) => {
 
         const response = await supabase.auth.getSession()
@@ -48,5 +66,5 @@ export function useReview() {
         }
     }
 
-    return { reviews, deleteReview }
+    return { reviews, updateReview, deleteReview }
 }
