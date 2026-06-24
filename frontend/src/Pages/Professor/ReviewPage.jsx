@@ -59,6 +59,7 @@ export default function ReviewPage() {
     const [profName, setProfName] = useState("")
     const [department, setDepartment] = useState("")
     const [profCourses, setProfCourses] = useState([])
+    const [courseOther, setCourseOther] = useState(false)
 
     const { id } = useParams()
     const navigate = useNavigate()
@@ -262,26 +263,47 @@ export default function ReviewPage() {
                         <div className={styles.labelRow}>
                             <p className={styles.fieldLabel}>Course code</p>
                         </div>
-                        {profCourses.length > 0 ? (
-                            <select
-                                className={styles.input}
-                                value={courseCode}
-                                onChange={(e) => setCourseCode(e.target.value)}
-                            >
-                                <option value="">Select a course…</option>
-                                {profCourses.map(c => (
-                                    <option key={c.id} value={c.code}>{c.code}</option>
-                                ))}
-                            </select>
+                        {profCourses.length > 0 && !courseOther ? (
+                            <>
+                                <select
+                                    className={styles.input}
+                                    value={courseCode}
+                                    onChange={(e) => {
+                                        if (e.target.value === "__other__") {
+                                            setCourseOther(true)
+                                            setCourseCode("")
+                                        } else {
+                                            setCourseCode(e.target.value)
+                                        }
+                                    }}
+                                >
+                                    <option value="">Select a course…</option>
+                                    {profCourses.map(c => (
+                                        <option key={c.id} value={c.code}>{c.code}</option>
+                                    ))}
+                                    <option value="__other__">Other course…</option>
+                                </select>
+                            </>
                         ) : (
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="BIOL 113"
-                                value={courseCode}
-                                onChange={(event) => setCourseCode(event.target.value.toUpperCase())}
-                                maxLength={9}
-                            />
+                            <>
+                                <input
+                                    className={styles.input}
+                                    type="text"
+                                    placeholder="BIOL 113"
+                                    value={courseCode}
+                                    onChange={(event) => setCourseCode(event.target.value.toUpperCase())}
+                                    maxLength={9}
+                                />
+                                {profCourses.length > 0 && (
+                                    <button
+                                        type="button"
+                                        style={{ marginTop: "6px", fontSize: "0.8rem", background: "none", border: "none", cursor: "pointer", color: "var(--color-primary, #4a6fa5)", textDecoration: "underline", padding: 0 }}
+                                        onClick={() => { setCourseOther(false); setCourseCode("") }}
+                                    >
+                                        ← Back to course list
+                                    </button>
+                                )}
+                            </>
                         )}
                     </div>
 

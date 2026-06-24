@@ -136,14 +136,17 @@ def get_professor_courses(professor_id: int, db: db_dependency):
         select(ProfessorCourse).where(ProfessorCourse.professor_id == professor_id)
     ).scalars().all()
 
+    seen_ids = set()
     professor_to_course_list = []
 
     for pc in professor_to_course:
-        professor_to_course_list.append({
-            "id": pc.course.id,
-            "code": pc.course.code,
-            "department": pc.course.department,
-        })
+        if pc.course.id not in seen_ids:
+            seen_ids.add(pc.course.id)
+            professor_to_course_list.append({
+                "id": pc.course.id,
+                "code": pc.course.code,
+                "department": pc.course.department,
+            })
 
     return professor_to_course_list
 
