@@ -5,6 +5,7 @@ import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
 import { toTitleCase } from "../../utils/format"
 import styles from "../../css/ProfessorList.module.css"
+import courseStyles from "../../css/CourseList.module.css"
 
 function getInitials(name) {
     const parts = name.trim().split(" ")
@@ -146,8 +147,8 @@ export default function SearchResults() {
                                         </div>
                                         <div className={styles.right}>
                                             <button
-                                                className={`${styles.bookmarkBtn ?? ""}`}
-                                                style={{ fontSize: "0.8rem", padding: "0.3rem 0.7rem", border: "1px solid currentColor", borderRadius: "6px", background: "none", cursor: "pointer", color: isBookmarked ? "var(--accent, #1a3a6b)" : "inherit" }}
+                                                className={courseStyles.bookmarkBtn}
+                                                style={{ color: isBookmarked ? "var(--accent, #1a3a6b)" : "inherit" }}
                                                 onClick={(e) => handleBookmark(e, course.id)}
                                             >
                                                 {isBookmarked ? "Bookmarked" : "Bookmark"}
