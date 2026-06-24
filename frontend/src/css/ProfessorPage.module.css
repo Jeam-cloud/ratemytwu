@@ -326,8 +326,28 @@
     margin: 0;
 }
 
-.deleteBtn {
+.reviewOwnerActions {
+    display: flex;
+    gap: 10px;
     margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.editBtn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--ink-2);
+    border-radius: var(--radius);
+    padding: 7px 14px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.editBtn:hover { border-color: var(--blue); color: var(--blue); }
+
+.deleteBtn {
     background: none;
     border: 1px solid var(--negative);
     color: var(--negative);
@@ -370,6 +390,172 @@
     transition: background var(--dur) var(--ease);
 }
 .leaveReviewBtn:hover { background: var(--blue-hover); }
+
+/* ── Edit review modal ── */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(53, 40, 32, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.editModal {
+    width: 100%;
+    max-width: 480px;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 32px rgba(0, 27, 61, 0.18);
+    overflow: hidden;
+}
+
+.editModalHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.editModalTitle {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--ink);
+    margin: 0;
+}
+
+.editModalClose {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--ink-3);
+    padding: 4px;
+    display: flex;
+}
+
+.editModalBody {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.editField {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.editLabel {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.editOptional { font-weight: 400; color: var(--ink-3); }
+
+.editRow { display: flex; gap: 6px; }
+
+.starOn, .starOff {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+}
+.starOn  { color: var(--star, #c9a84c); }
+.starOff { color: var(--border-strong); }
+
+.diffOn, .diffOff {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.diffOn  { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.diffOff { background: none; color: var(--ink-2); }
+
+.editSelect {
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--white);
+    max-width: 160px;
+}
+
+.editTextarea {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--white);
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--dur) var(--ease);
+}
+.editTextarea:focus { border-color: var(--blue); }
+
+.editError {
+    margin: 0 24px 12px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--negative);
+}
+
+.editModalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+
+.editCancelBtn {
+    background: none;
+    border: none;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-2);
+    cursor: pointer;
+    padding: 10px 8px;
+    transition: color var(--dur) var(--ease);
+}
+.editCancelBtn:hover { color: var(--ink); }
+
+.editSaveBtn {
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 10px 22px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease);
+}
+.editSaveBtn:hover { background: var(--blue-hover); }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {

@@ -24,6 +24,9 @@ export default function ProfessorPage() {
     const [currentUserId, setCurrentUserId] = useState("")
     const [session, setSession] = useState(null)
     const [error, setError] = useState("")
+    const [editingReview, setEditingReview] = useState(null)
+    const [editForm, setEditForm] = useState({})
+    const [editSaveError, setEditSaveError] = useState("")
 
     const { id } = useParams()
     const navigate = useNavigate()
@@ -55,6 +58,27 @@ export default function ProfessorPage() {
 
         loadData()
     }, [id])
+
+    const handleUpdate = async () => {
+        const { data } = await supabase.auth.getSession()
+        const token = data.session.access_token
+        const payload = { ...editForm, grade_received: editForm.grade_received || null }
+
+        const res = await fetch(`${API_URL}/professor/review/${editingReview.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        })
+
+        if (res.ok) {
+            const updated = await res.json()
+            setReviews(prev => prev.map(r => r.id === editingReview.id ? { ...r, ...updated } : r))
+            setEditingReview(null)
+        } else {
+            const err = await res.json().catch(() => ({}))
+            setEditSaveError(err.detail || `Error ${res.status}`)
+        }
+    }
 
     const handleDelete = async (reviewId) => {
         const { data } = await supabase.auth.getSession()
@@ -231,11 +255,29 @@ export default function ProfessorPage() {
                                 </div>
                             )}
 
-                            {/* Owner-only delete */}
+                            {/* Owner-only edit + delete */}
                             {currentUserId === review.user_id && (
-                                <button className={styles.deleteBtn} onClick={() => handleDelete(review.id)}>
-                                    Delete review
-                                </button>
+                                <div className={styles.reviewOwnerActions}>
+                                    <button
+                                        className={styles.editBtn}
+                                        onClick={() => {
+                                            setEditSaveError("")
+                                            setEditingReview(review)
+                                            setEditForm({
+                                                rating: review.rating,
+                                                difficulty: review.difficulty,
+                                                grade_received: review.grade_received || "",
+                                                review: review.review,
+                                                tips: review.tips || "",
+                                            })
+                                        }}
+                                    >
+                                        Edit review
+                                    </button>
+                                    <button className={styles.deleteBtn} onClick={() => handleDelete(review.id)}>
+                                        Delete review
+                                    </button>
+                                </div>
                             )}
                         </div>
                     ))}
@@ -247,6 +289,81 @@ export default function ProfessorPage() {
                     <button className={styles.leaveReviewBtn} onClick={redirectReview}>Leave a review</button>
                 </div>
             </div>
+
+            {/* ── Edit review modal ── */}
+            {editingReview && (
+                <div className={styles.overlay} onClick={() => setEditingReview(null)}>
+                    <div className={styles.editModal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.editModalHead}>
+                            <h3 className={styles.editModalTitle}>Edit review</h3>
+                            <button className={styles.editModalClose} onClick={() => setEditingReview(null)} aria-label="Close">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 6 6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className={styles.editModalBody}>
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Rating</label>
+                                <div className={styles.editRow}>
+                                    {[1,2,3,4,5].map(n => (
+                                        <button key={n} type="button"
+                                            className={n <= editForm.rating ? styles.starOn : styles.starOff}
+                                            onClick={() => setEditForm(f => ({ ...f, rating: n }))}>★</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Difficulty</label>
+                                <div className={styles.editRow}>
+                                    {[1,2,3,4,5].map(n => (
+                                        <button key={n} type="button"
+                                            className={n <= editForm.difficulty ? styles.diffOn : styles.diffOff}
+                                            onClick={() => setEditForm(f => ({ ...f, difficulty: n }))}>{n}</button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Grade received</label>
+                                <select className={styles.editSelect}
+                                    value={editForm.grade_received}
+                                    onChange={(e) => setEditForm(f => ({ ...f, grade_received: e.target.value }))}>
+                                    <option value="">— none —</option>
+                                    {["A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"].map(g => (
+                                        <option key={g} value={g}>{g}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Review</label>
+                                <textarea className={styles.editTextarea} rows={4}
+                                    value={editForm.review}
+                                    onChange={(e) => setEditForm(f => ({ ...f, review: e.target.value }))} />
+                            </div>
+
+                            <div className={styles.editField}>
+                                <label className={styles.editLabel}>Tips <span className={styles.editOptional}>(optional)</span></label>
+                                <textarea className={styles.editTextarea} rows={2}
+                                    value={editForm.tips}
+                                    onChange={(e) => setEditForm(f => ({ ...f, tips: e.target.value }))} />
+                            </div>
+                        </div>
+
+                        {editSaveError && (
+                            <p className={styles.editError}>{editSaveError}</p>
+                        )}
+
+                        <div className={styles.editModalFooter}>
+                            <button className={styles.editCancelBtn} onClick={() => setEditingReview(null)}>Cancel</button>
+                            <button className={styles.editSaveBtn} onClick={handleUpdate}>Save changes</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Layout>
     )
 }
