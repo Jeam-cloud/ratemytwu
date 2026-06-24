@@ -46,9 +46,11 @@ export function useReview() {
         if (response2.ok) {
             const updated = await response2.json()
             setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, ...updated } : r))
-            return true
+            return { ok: true }
         }
-        return false
+        const err = await response2.json().catch(() => ({}))
+        console.error("updateReview failed:", response2.status, err)
+        return { ok: false, error: err.detail || `Error ${response2.status}` }
     }
 
     const deleteReview = async (reviewId) => {

@@ -83,6 +83,21 @@
     color: #fff;
     background: rgba(255,255,255,0.08);
 }
+.app-nav a.app-nav-active {
+    color: #fff;
+    background: rgba(255,255,255,0.12);
+    position: relative;
+}
+.app-nav a.app-nav-active::after {
+    content: "";
+    position: absolute;
+    bottom: 4px;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background: var(--gold, #c9a84c);
+    border-radius: 2px;
+}
 
 /* Avatar + login */
 .app-avatar-wrap {
