@@ -76,8 +76,9 @@ function YearTerms({ group, startTerm, hasSummer, cards, startYear, onDelete, on
 export default function Dashboard() {
 
     const { reviews, deleteReview, updateReview } = useReview()
-    const [editingReview, setEditingReview] = useState(null)  // holds the review being edited
+    const [editingReview, setEditingReview] = useState(null)
     const [editForm, setEditForm] = useState({})
+    const [editSaveError, setEditSaveError] = useState("")
     const { bookmark } = useBookMark()
     const navigate = useNavigate()
 
@@ -705,6 +706,7 @@ export default function Dashboard() {
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 setEditingReview(review)
+                                                setEditSaveError("")
                                                 setEditForm({
                                                     rating: review.rating,
                                                     difficulty: review.difficulty,
@@ -814,13 +816,24 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
+                            {editSaveError && (
+                                <p style={{ margin: "0 24px 12px", fontSize: "13px", color: "var(--negative)" }}>
+                                    {editSaveError}
+                                </p>
+                            )}
                             <div className={styles.editReviewFooter}>
                                 <button className={styles.cancelBtn} onClick={() => setEditingReview(null)}>Cancel</button>
                                 <button
                                     className={styles.saveBtn}
                                     onClick={async () => {
-                                        const ok = await updateReview(editingReview.id, editForm)
-                                        if (ok) setEditingReview(null)
+                                        setEditSaveError("")
+                                        const payload = {
+                                            ...editForm,
+                                            grade_received: editForm.grade_received || null,
+                                        }
+                                        const result = await updateReview(editingReview.id, payload)
+                                        if (result.ok) setEditingReview(null)
+                                        else setEditSaveError(result.error || "Failed to save. Try again.")
                                     }}
                                 >
                                     Save changes
