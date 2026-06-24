@@ -91,7 +91,7 @@ export default function ReviewPage() {
 
         // checks to see if user selected anything
         if (!courseCode.trim()) { setError("Valid course code required"); return }
-        if (!/^[A-Z]{2,4}\s*\d{3}[A-Z]?$/.test(courseCode.trim().toUpperCase())) {
+        if (!/^[A-Z]{2,5} \d{3}$/.test(courseCode.trim().toUpperCase())) {
             setError("Enter a valid course code, e.g. CMPT 166"); return
         }
         if (!rating) { setError("Please select a rating"); return}
@@ -285,25 +285,37 @@ export default function ReviewPage() {
                                 </select>
                             </>
                         ) : (
-                            <>
+                            <div className={styles.courseInputWrap}>
                                 <input
                                     className={styles.input}
                                     type="text"
                                     placeholder="BIOL 113"
                                     value={courseCode}
-                                    onChange={(event) => setCourseCode(event.target.value.toUpperCase())}
+                                    onChange={(e) => {
+                                        // strip non-alphanumeric, uppercase
+                                        let raw = e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, "")
+                                        // auto-insert space after 2-5 letters when user types a digit
+                                        const lettersOnly = raw.replace(/[^A-Z]/g, "")
+                                        const digitsOnly  = raw.replace(/[^0-9]/g, "")
+                                        if (lettersOnly.length >= 2 && digitsOnly.length > 0) {
+                                            raw = lettersOnly.slice(0, 5) + " " + digitsOnly.slice(0, 3)
+                                        } else {
+                                            raw = lettersOnly.slice(0, 5)
+                                        }
+                                        setCourseCode(raw)
+                                    }}
                                     maxLength={9}
                                 />
                                 {profCourses.length > 0 && (
                                     <button
                                         type="button"
-                                        style={{ marginTop: "6px", fontSize: "0.8rem", background: "none", border: "none", cursor: "pointer", color: "var(--color-primary, #4a6fa5)", textDecoration: "underline", padding: 0 }}
+                                        className={styles.courseBackLink}
                                         onClick={() => { setCourseOther(false); setCourseCode("") }}
                                     >
                                         ← Back to course list
                                     </button>
                                 )}
-                            </>
+                            </div>
                         )}
                     </div>
 
