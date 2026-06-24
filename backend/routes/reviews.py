@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from auth import get_current_user_id
 from database import db_dependency
 from models import Reviews, Courses
-from schema import ReviewsBase, CreatedReviewsOut
+from schema import ReviewsBase, CreatedReviewsOut, UpdateReviewIn
 
 from typing import Annotated
 
@@ -78,6 +78,35 @@ async def create_review(professor_id: int, db: db_dependency, user_id: current_u
     db.refresh(new_review)
 
     return new_review
+
+
+# updates a review
+@router.patch("/review/{review_id}", response_model=CreatedReviewsOut)
+async def update_review(review_id: UUID, db: db_dependency, user_id: current_user, body: UpdateReviewIn):
+    review = db.execute(
+        select(Reviews).where(Reviews.id == review_id, Reviews.user_id == user_id)
+    ).scalars().first()
+
+    if review is None:
+        raise HTTPException(status_code=404, detail="review not found")
+
+    if body.grade_received is not None:
+        grade = body.grade_received.strip().upper()
+        if grade and grade not in VALID_GRADES:
+            raise HTTPException(status_code=400, detail="Invalid grade.")
+        review.grade_received = grade or None
+
+    for field in ["rating", "difficulty", "take_again", "review", "tips",
+                  "extension_policy", "group_work", "attendance", "exam_format",
+                  "niceness", "experience", "grading_fairness", "lecture_quality",
+                  "textbook_required", "extra_credit", "office_hours"]:
+        val = getattr(body, field)
+        if val is not None:
+            setattr(review, field, val)
+
+    db.commit()
+    db.refresh(review)
+    return review
 
 
 # deletes a review

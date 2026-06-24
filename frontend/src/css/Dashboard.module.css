@@ -636,9 +636,29 @@
     color: var(--ink-3);
 }
 
-.reviewDelete {
+.reviewActions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     flex: none;
     align-self: center;
+}
+
+.reviewEdit {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--ink-3);
+    border-radius: var(--radius);
+    padding: 7px 12px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.reviewEdit:hover { border-color: var(--blue); color: var(--blue); }
+
+.reviewDelete {
     background: none;
     border: 1px solid var(--border);
     color: var(--ink-3);
@@ -651,6 +671,152 @@
     transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .reviewDelete:hover { border-color: var(--negative); color: var(--negative); }
+
+/* ── Edit review modal ── */
+.editReviewModal {
+    width: 100%;
+    max-width: 480px;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg, 0 12px 32px rgba(0,27,61,0.18));
+    overflow: hidden;
+}
+
+.editReviewHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.editReviewTitle {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--ink);
+    margin: 0;
+}
+
+.editReviewBody {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.editField {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.editLabel {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.editOptional {
+    font-weight: 400;
+    color: var(--ink-3);
+}
+
+.editRatingRow {
+    display: flex;
+    gap: 6px;
+}
+
+.starOn, .starOff {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+    transition: color var(--dur) var(--ease);
+}
+.starOn  { color: var(--star, #c9a84c); }
+.starOff { color: var(--border-strong); }
+
+.diffOn, .diffOff {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.diffOn  { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.diffOff { background: none; color: var(--ink-2); }
+
+.editSelect {
+    height: 40px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--white);
+    max-width: 160px;
+}
+
+.editTextarea {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--white);
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--dur) var(--ease);
+}
+.editTextarea:focus { border-color: var(--blue); }
+
+.editReviewFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+
+.cancelBtn {
+    background: none;
+    border: none;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-2);
+    cursor: pointer;
+    padding: 10px 8px;
+    transition: color var(--dur) var(--ease);
+}
+.cancelBtn:hover { color: var(--ink); }
+
+.saveBtn {
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 10px 22px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease);
+}
+.saveBtn:hover { background: var(--blue-hover); }
 
 .reviewChevron {
     flex: none;
