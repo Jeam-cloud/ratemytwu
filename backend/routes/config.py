@@ -1,0 +1,1 @@
+ACTIVE_SEMESTERS = ["Fall2026", "Summer2026", "Spring2027"]
