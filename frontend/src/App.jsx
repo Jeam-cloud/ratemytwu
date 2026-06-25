@@ -21,6 +21,11 @@ import Dashboard from "./Pages/Dashboard/Dashboard"
 
 import ProtectedRoute from "./components/ProtectedRoute"
 
+import HowItWorksPage from "./Pages/Static/HowItWorksPage"
+import ReportPage from "./Pages/Static/ReportPage"
+import ContactPage from "./Pages/Static/ContactPage"
+import PrivacyPage from "./Pages/Static/PrivacyPage"
+
 import { Routes, Route } from "react-router-dom"
 
 export default function App() {
@@ -55,6 +60,12 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
 
             <Route path="/dashboard" element={<Dashboard />} />
+
+            {/* static pages */}
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
+            <Route path="/report" element={<ReportPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
 
           </Routes>
 

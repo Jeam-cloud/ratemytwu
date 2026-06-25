@@ -67,8 +67,24 @@
     font-family: var(--font-sans);
     font-size: 14px;
     color: var(--ink-3);
-    margin: 0 0 24px;
+    margin: 0 0 12px;
 }
+
+.profClaimBtn {
+    display: inline-block;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+}
+.profClaimBtn:hover { color: var(--blue); }
 
 /* Metric cards */
 .metricCards {
@@ -556,6 +572,152 @@
     transition: background var(--dur) var(--ease);
 }
 .editSaveBtn:hover { background: var(--blue-hover); }
+
+/* ── Flag button ── */
+.flagBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 12px;
+    background: none;
+    border: none;
+    padding: 4px 0;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: color var(--dur) var(--ease);
+}
+.flagBtn:hover { color: var(--negative); }
+
+.flagged {
+    color: var(--ink-3);
+    cursor: default;
+}
+.flagged:hover { color: var(--ink-3); }
+
+/* ── Flag modal ── */
+.flagModal {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 32px rgba(0, 27, 61, 0.18);
+    padding: 32px 28px 24px;
+}
+
+.flagModal .editModalClose {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+}
+
+.flagIcon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--blue-tint);
+    color: var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.flagTitle {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 22px;
+    color: var(--ink);
+    margin: 0 0 8px;
+}
+
+.flagDesc {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0 0 20px;
+    line-height: 1.55;
+}
+
+.flagChecklist {
+    background: var(--surface, #f5f3ef);
+    border-radius: var(--radius-md);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 16px;
+}
+
+.flagOption {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.flagOption:hover { background: var(--blue-tint); color: var(--ink); }
+
+.flagOptionSelected {
+    background: var(--blue-tint);
+    color: var(--blue);
+    font-weight: 600;
+}
+
+.flagRadio { display: none; }
+
+.flagNote {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--ink-3);
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+
+.flagModalFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.flagCancelBtn {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 20px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: border-color var(--dur) var(--ease);
+}
+.flagCancelBtn:hover { border-color: var(--ink-2); }
+
+.flagSubmitBtn {
+    background: var(--blue);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 10px 22px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--dur) var(--ease);
+}
+.flagSubmitBtn:hover { background: var(--blue-hover); }
 
 /* ── Responsive ── */
 @media (max-width: 640px) {
