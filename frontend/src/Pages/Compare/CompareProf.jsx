@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/CompareProf.module.css"
 
 function getInitials(name) {
@@ -156,6 +157,7 @@ export default function CompareProf() {
 
     return (
         <Layout>
+            <SEO title="Compare Professors" path="/compare" description="Compare TWU professors side by side. See ratings, difficulty, and take-again percentages to pick the best class." />
             <div className={styles.page}>
                 <h1 className={styles.title}>Compare professors</h1>
                 <p className={styles.subtitle}>

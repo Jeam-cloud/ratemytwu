@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/DepartmentPage.module.css"
 
 import { supabase } from "../../supabaseClient"
@@ -100,6 +101,11 @@ export default function DepartmentPage() {
 
     return(
         <Layout>
+            <SEO
+                title={department_name}
+                path={`/department/${department_name}`}
+                description={`Browse ${department_name} professors at Trinity Western University. Read student reviews and find the best courses.`}
+            />
             <div className={styles.page}>
 
                 <button className={styles.back} onClick={() => navigate("/departments")}>
