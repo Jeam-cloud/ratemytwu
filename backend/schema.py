@@ -259,3 +259,25 @@ class CreateCardsOut(BaseModel):
     status: Optional[str]
     grade: Optional[str]
     notes: Optional[str]
+
+
+# Review flag schemas
+VALID_FLAG_REASONS = {"Inappropriate", "Fake review", "Personal attack", "Wrong info", "Other"}
+
+class ReviewFlagIn(BaseModel):
+    reason: str
+
+    @field_validator("reason")
+    @classmethod
+    def reason_valid(cls, v):
+        if v not in VALID_FLAG_REASONS:
+            raise ValueError(f"Invalid reason. Must be one of: {', '.join(sorted(VALID_FLAG_REASONS))}")
+        return v
+
+class ReviewFlagOut(BaseModel):
+    id: int
+    review_id: UUID
+    reason: str
+    reported_at: datetime
+
+    model_config = {"from_attributes": True}

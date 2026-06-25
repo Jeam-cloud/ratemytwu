@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from routes import reviews, professors, courses, departments, bookmarks, users, cards, planner
+from routes import reviews, professors, courses, departments, bookmarks, users, cards, planner, flags
 
 app = FastAPI()
 
@@ -34,6 +34,7 @@ app.include_router(bookmarks.router)
 app.include_router(users.router)
 app.include_router(cards.router)
 app.include_router(planner.router)
+app.include_router(flags.router)
 
 @app.get("/")
 async def home():

@@ -28,12 +28,19 @@ DATE_RANGE_RE = re.compile(r"^\d{1,2}/\d{1,2}/\d{4}")
 SEM_HR_RE = re.compile(r"^Sem\.\s*Hr\.\s*([\d.]+)")
 DAYS_RE = re.compile(r"^[MTWRFS]{1,5}$")
 TIME_RE = re.compile(r"^\d{1,2}:\d{2}\s*(AM|PM)$")
+# bare money/number line — a "Fee: $" amount wrapped onto its own line (e.g. "1113.00")
+MONEY_RE = re.compile(r"^\$?\s*[\d,]+\.\d{2}$")
 
 NOISE_PREFIXES = (
-    "please note:", "crosslisted:", "instruction method:",
-    "ol -", "f2f -",
+    "please note:", "crosslisted:", "instruction method:", "prereqs:",
+    # instruction-method codes (COVID-era timetables put these on their own lines)
+    "ol -", "f2f -", "flex -", "fla -", "virt -", "hyb -", "hybrid -",
+    "hyflex -", "dl -", "online -", "blended -",
     "page ", "trinity western university", "fee: $",
     "fa 2026", "su 2026", "sp 2027", "fa 2027", "su 2027",
+    "fa 2021", "su 2021", "sp 2022", "fa 2022", "su 2022",
+    "sp 2023", "fa 2023", "su 2023", "sp 2024", "fa 2024",
+    "su 2024", "sp 2025", "fa 2025", "su 2025", "sp 2026",
 )
 
 
@@ -45,6 +52,15 @@ def is_noise(line: str) -> bool:
         return True
     for prefix in NOISE_PREFIXES:
         if low.startswith(prefix):
+            return True
+    # catch instruction-method descriptions that wrap to their own line,
+    # whatever the leading code (e.g. "FLA - course meets F2F; livestream...")
+    for phrase in (
+        "course meets", "course is offered", "course offered",
+        "no specific time schedule", "livestream", "synchronous",
+        "virtual:", "virtual;", "may require",
+    ):
+        if phrase in low:
             return True
     return False
 
@@ -58,6 +74,8 @@ def is_ignorable(line: str) -> bool:
     if DAYS_RE.match(s):
         return True
     if TIME_RE.match(s):
+        return True
+    if MONEY_RE.match(s):   # wrapped "Fee: $" amount on its own line
         return True
     if s == "-":
         return True
@@ -250,6 +268,10 @@ def upsert(pdf_path: str, semester: str) -> None:
                 db.add(prof)
                 db.flush()
                 prof_count += 1
+            elif department and department != "Unknown":
+                # latest import wins — a prof's department reflects the most
+                # recently imported semester, so import the active term last
+                prof.department = department
 
             course = db.query(Courses).filter(Courses.code == course_code).first()
             if not course:
