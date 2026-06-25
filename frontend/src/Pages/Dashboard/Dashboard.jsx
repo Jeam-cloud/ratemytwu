@@ -76,6 +76,7 @@ function YearTerms({ group, startTerm, hasSummer, cards, startYear, onDelete, on
 export default function Dashboard() {
 
     const { reviews, deleteReview, updateReview } = useReview()
+    const [reviewsShown, setReviewsShown] = useState(3)
     const [editingReview, setEditingReview] = useState(null)
     const [editForm, setEditForm] = useState({})
     const [editSaveError, setEditSaveError] = useState("")
@@ -670,7 +671,7 @@ export default function Dashboard() {
                         </div>
 
                         <div className={styles.reviewsList}>
-                            {reviews.map((review) => (
+                            {reviews.slice(0, reviewsShown).map((review) => (
                                 <div
                                     key={review.id}
                                     className={styles.reviewCard}
@@ -731,6 +732,15 @@ export default function Dashboard() {
                                 </div>
                             ))}
                         </div>
+
+                        {reviewsShown < reviews.length && (
+                            <button
+                                className={styles.seeMoreBtn}
+                                onClick={() => setReviewsShown(prev => prev + 3)}
+                            >
+                                See more reviews ({reviews.length - reviewsShown} left)
+                            </button>
+                        )}
                     </section>
                 )}
 

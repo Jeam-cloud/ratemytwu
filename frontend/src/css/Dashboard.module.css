@@ -521,6 +521,26 @@
     gap: 12px;
 }
 
+.seeMoreBtn {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 0;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.seeMoreBtn:hover {
+    background: var(--blue-tint);
+    border-color: var(--blue);
+}
+
 .reviewCard {
     display: flex;
     align-items: flex-start;

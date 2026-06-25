@@ -1,17 +1,18 @@
+from typing import Optional
+
 from sqlalchemy import select, func, Numeric, cast
 from fastapi import APIRouter, HTTPException
 
 from models import Courses, ProfessorCourse, Professor, Reviews
 from database import db_dependency
 from config import ACTIVE_SEMESTERS
+from schema import CoursesBase, CourseSearchOut, CourseDetailOut
+
 
 def format_name(name: str) -> str:
     if not name:
         return ""
     return " ".join(word.capitalize() for word in name.strip().split())
-from schema import CoursesBase, CourseSearchOut, CourseDetailOut
-
-from typing import Optional
 
 router = APIRouter(prefix="/course", tags=["courses"])
 

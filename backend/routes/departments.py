@@ -3,12 +3,13 @@ from fastapi import APIRouter
 
 from models import Professor, Courses, Reviews, ProfessorCourse
 from database import db_dependency
+from schema import DepartmentsOut, ProfessorsOut, CourseSearchOut
+
 
 def format_name(name: str) -> str:
     if not name:
         return ""
     return " ".join(word.capitalize() for word in name.strip().split())
-from schema import DepartmentsOut, ProfessorsOut, CourseSearchOut
 
 
 router = APIRouter(prefix="/department", tags=["department"])
