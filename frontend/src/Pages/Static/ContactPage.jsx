@@ -11,7 +11,7 @@ const team = [
     {
         name: "Jendrick Rian Galut",
         role: "Founder",
-        instagram: "https://www.instagram.com/jrc_galut?igsh=MXN0ZTQ3aTM4M2xxbQ%3D%3D&utm_source=qr",
+        instagram: "https://www.instagram.com/jrc_galut",
         linkedin: "https://www.linkedin.com/in/jendrick-rian-galut-374310307",
         github: "https://github.com/Jeam-cloud",
         phone: "+1 (672) 272-3193",
@@ -19,10 +19,10 @@ const team = [
     {
         name: "Vatsalya Rabari",
         role: "Founder",
-        instagram: "https://instagram.com/placeholder",
-        linkedin: "https://linkedin.com/in/placeholder",
-        github: "https://github.com/placeholder",
-        phone: "+1 (604) 000-0000",
+        instagram: "https://instagram.com/vatsalyarabari",
+        linkedin: "https://www.linkedin.com/in/vatsalaya-rabari-18578828a",
+        github: "https://github.com/vatsalyarabari",
+        phone: "+1 (672) 336-7904",
     },
 ]
 
@@ -34,7 +34,7 @@ export default function ContactPage() {
                     <p className={styles.kicker}>Contact</p>
                     <h1 className={styles.title}>Say hello.</h1>
                     <p className={styles.subtitle}>
-                        We're TWU students too. Reach out directly — we actually read our messages.
+                        We're TWU students too. Reach out directly - we actually read our messages.
                     </p>
                 </div>
 
