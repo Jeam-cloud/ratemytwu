@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 
 from models import Courses, ProfessorCourse, Professor, Reviews
 from database import db_dependency
+from config import ACTIVE_SEMESTERS
 
 def format_name(name: str) -> str:
     if not name:
@@ -25,7 +26,7 @@ def get_courses(db: db_dependency, search_course: Optional[str] = None):
             Courses.department,
             func.count(ProfessorCourse.id).label("professor_count")
         )
-        .outerjoin(ProfessorCourse, ProfessorCourse.course_id == Courses.id)
+        .outerjoin(ProfessorCourse, (ProfessorCourse.course_id == Courses.id) & (ProfessorCourse.semester.in_(ACTIVE_SEMESTERS)))
         .group_by(Courses.id, Courses.code, Courses.department)
     )
 
@@ -71,7 +72,7 @@ def get_course_taught(course_id: int, db: db_dependency):
         )
         .join(ProfessorCourse, ProfessorCourse.professor_id == Professor.id)
         .outerjoin(Reviews, Reviews.professor_id == Professor.id)
-        .where(ProfessorCourse.course_id == course_id)
+        .where(ProfessorCourse.course_id == course_id, ProfessorCourse.semester.in_(ACTIVE_SEMESTERS))
         .group_by(Professor.id, Professor.name, Professor.department)
     ).all()
 

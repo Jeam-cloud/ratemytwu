@@ -7,6 +7,7 @@ from auth import get_current_user_id
 from schema import ProfessorsOut, ProfessorCoursesOut, ProfessorDetailOut
 
 from typing import Annotated, Optional
+from config import ACTIVE_SEMESTERS
 
 router = APIRouter(prefix="/professor", tags=["professor"])
 
@@ -133,7 +134,9 @@ def get_professor_courses(professor_id: int, db: db_dependency):
         raise HTTPException(status_code=404, detail="professor not found")
 
     professor_to_course = db.execute(
-        select(ProfessorCourse).where(ProfessorCourse.professor_id == professor_id)
+        select(ProfessorCourse).where(
+            ProfessorCourse.professor_id == professor_id,
+            ProfessorCourse.semester.in_(ACTIVE_SEMESTERS))
     ).scalars().all()
 
     seen_ids = set()
