@@ -1,0 +1,297 @@
+/* Shared styles for static info pages (How It Works, Report, Contact, Privacy) */
+
+.page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 100px;
+}
+
+/* ── Hero ── */
+.hero {
+    margin-bottom: 56px;
+}
+
+.kicker {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin: 0 0 12px;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(32px, 5vw, 52px);
+    color: var(--ink);
+    margin: 0 0 16px;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+
+.subtitle {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: var(--ink-2);
+    margin: 0;
+    max-width: 580px;
+    line-height: 1.6;
+}
+
+/* ── Section ── */
+.section {
+    margin-bottom: 48px;
+}
+
+.sectionTitle {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 24px;
+    color: var(--ink);
+    margin: 0 0 20px;
+}
+
+/* ── Step cards (How It Works) ── */
+.steps {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.stepCard {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 24px 28px;
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.stepCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+.stepNum {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--blue-tint);
+    color: var(--blue);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+}
+
+.stepBody {}
+
+.stepHeading {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 6px;
+}
+
+.stepText {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ── Info cards (Report categories) ── */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.infoCard {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 22px 24px;
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.infoCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+.infoIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius);
+    background: var(--blue-tint);
+    color: var(--blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+
+.infoHeading {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 6px;
+}
+
+.infoText {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-2);
+    margin: 0;
+    line-height: 1.55;
+}
+
+/* ── CTA button ── */
+.cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 14px 28px;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity var(--dur) var(--ease);
+    margin-top: 24px;
+}
+.cta:hover { opacity: 0.88; }
+
+/* ── Team cards (Contact) ── */
+.team {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.teamCard {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 24px;
+    transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.teamCard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+.teamAvatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--blue-tint);
+    color: var(--blue);
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+}
+
+.teamName {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 3px;
+}
+
+.teamRole {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+}
+
+.socials {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.socialLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    text-decoration: none;
+    transition: opacity var(--dur) var(--ease);
+}
+.socialLink:hover { opacity: 0.75; }
+
+/* ── Prose (Privacy) ── */
+.prose {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.proseSection {}
+
+.proseSectionTitle {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 12px;
+}
+
+.proseText {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--ink-2);
+    margin: 0 0 10px;
+    line-height: 1.7;
+}
+.proseText:last-child { margin-bottom: 0; }
+
+.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+}
+
+.lastUpdated {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 0 0 40px;
+}
+
+/* ── Mobile ── */
+@media (max-width: 600px) {
+    .grid { grid-template-columns: 1fr; }
+    .team { grid-template-columns: 1fr; }
+    .stepCard { flex-direction: column; gap: 12px; }
+}

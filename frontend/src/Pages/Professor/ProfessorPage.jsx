@@ -29,6 +29,11 @@ export default function ProfessorPage() {
     const [editForm, setEditForm] = useState({})
     const [editSaveError, setEditSaveError] = useState("")
 
+    const [flaggingReview, setFlaggingReview] = useState(null)
+    const [flagReason, setFlagReason] = useState("Inappropriate")
+    const [flagError, setFlagError] = useState("")
+    const [flaggedIds, setFlaggedIds] = useState(new Set())
+
     const { id } = useParams()
     const navigate = useNavigate()
 
@@ -92,6 +97,27 @@ export default function ProfessorPage() {
 
         if (res.ok) {
             setReviews(prev => prev.filter(r => r.id !== reviewId))
+        }
+    }
+
+    const handleFlag = async () => {
+        const { data } = await supabase.auth.getSession()
+        const token = data.session.access_token
+
+        const res = await fetch(`${API_URL}/review/${flaggingReview.id}/flag`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ reason: flagReason }),
+        })
+
+        if (res.ok) {
+            setFlaggedIds(prev => new Set(prev).add(flaggingReview.id))
+            setFlaggingReview(null)
+            setFlagReason("Inappropriate")
+            setFlagError("")
+        } else {
+            const err = await res.json().catch(() => ({}))
+            setFlagError(err.detail || `Error ${res.status}`)
         }
     }
 
@@ -161,6 +187,9 @@ export default function ProfessorPage() {
                     <p className={styles.profMeta}>
                         Department of {results.department} · {reviews.length} {reviews.length === 1 ? "review" : "reviews"}
                     </p>
+                    <button className={styles.profClaimBtn} onClick={() => navigate("/report")}>
+                        Are you this professor?
+                    </button>
 
                     {/* Metric cards */}
                     <div className={styles.metricCards}>
@@ -306,6 +335,26 @@ export default function ProfessorPage() {
                                     </button>
                                 </div>
                             )}
+
+                            {/* Flag button — logged-in non-owners only */}
+                            {session && currentUserId !== review.user_id && (
+                                <button
+                                    className={`${styles.flagBtn} ${flaggedIds.has(review.id) ? styles.flagged : ""}`}
+                                    onClick={() => {
+                                        setFlagError("")
+                                        setFlagReason("Inappropriate")
+                                        setFlaggingReview(review)
+                                    }}
+                                    disabled={flaggedIds.has(review.id)}
+                                    title={flaggedIds.has(review.id) ? "Flagged" : "Report this review"}
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill={flaggedIds.has(review.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                                        <line x1="4" y1="22" x2="4" y2="15" />
+                                    </svg>
+                                    {flaggedIds.has(review.id) ? "Flagged" : "Report"}
+                                </button>
+                            )}
                         </div>
                     ))}
                 </section>
@@ -316,6 +365,59 @@ export default function ProfessorPage() {
                     <button className={styles.leaveReviewBtn} onClick={redirectReview}>Leave a review</button>
                 </div>
             </div>
+
+            {/* ── Flag review modal ── */}
+            {flaggingReview && (
+                <div className={styles.overlay} onClick={() => setFlaggingReview(null)}>
+                    <div className={styles.flagModal} onClick={(e) => e.stopPropagation()}>
+
+                        <button className={styles.editModalClose} onClick={() => setFlaggingReview(null)} aria-label="Close">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                        </button>
+
+                        <div className={styles.flagIcon}>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                                <line x1="4" y1="22" x2="4" y2="15" />
+                            </svg>
+                        </div>
+
+                        <h3 className={styles.flagTitle}>Report this review</h3>
+                        <p className={styles.flagDesc}>
+                            Help us keep RateMyTWU honest. What's wrong with this review?
+                        </p>
+
+                        <div className={styles.flagChecklist}>
+                            {["Inappropriate", "Fake review", "Personal attack", "Wrong info", "Other"].map((reason) => (
+                                <label key={reason} className={`${styles.flagOption} ${flagReason === reason ? styles.flagOptionSelected : ""}`}>
+                                    <input
+                                        type="radio"
+                                        name="flagReason"
+                                        value={reason}
+                                        checked={flagReason === reason}
+                                        onChange={() => setFlagReason(reason)}
+                                        className={styles.flagRadio}
+                                    />
+                                    <span>{reason}</span>
+                                </label>
+                            ))}
+                        </div>
+
+                        <p className={styles.flagNote}>
+                            Reviews that violate our guidelines will be removed. We review every report.
+                        </p>
+
+                        {flagError && <p className={styles.editError}>{flagError}</p>}
+
+                        <div className={styles.flagModalFooter}>
+                            <button className={styles.flagCancelBtn} onClick={() => setFlaggingReview(null)}>Cancel</button>
+                            <button className={styles.flagSubmitBtn} onClick={handleFlag}>Submit report</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* ── Edit review modal ── */}
             {editingReview && (

@@ -306,9 +306,9 @@ export default function HomeProf() {
                     </div>
                     <div className={`${styles.stats} reveal`}>
                         {[
-                            { num: "40+", label: "Departments" },
-                            { num: "200+", label: "Professors" },
-                            { num: "600+", label: "Courses" },
+                            { num: "50+", label: "Departments" },
+                            { num: "550+", label: "Professors" },
+                            { num: "1350+", label: "Courses" },
                         ].map((s) => (
                             <div key={s.label} className={styles.stat}>
                                 <div className={styles.statNum}>{s.num}</div>

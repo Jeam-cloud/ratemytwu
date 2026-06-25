@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import Integer, String, Float, ForeignKey, func, DateTime
+from sqlalchemy import Integer, String, Float, ForeignKey, func, DateTime, UniqueConstraint
 from sqlalchemy.orm import Mapped, relationship, mapped_column
 
 from datetime import datetime
@@ -95,6 +95,19 @@ class UserPlannerSettings(Base):
     years: Mapped[int] = mapped_column(Integer, nullable=False, default=4)
     start_year: Mapped[int] = mapped_column(Integer, nullable=False, default=2024)
     start_term: Mapped[str] = mapped_column(String, nullable=False, default="Fall")
+
+
+class ReviewFlag(Base):
+    __tablename__ = "review_flags"
+    __table_args__ = (
+        UniqueConstraint("review_id", "reporter_user_id", name="uq_flag_per_user"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
+    review_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("reviews.id"), nullable=False, index=True)
+    reporter_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    reason: Mapped[str] = mapped_column(String, nullable=False)
+    reported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class UserCourseCard(Base):

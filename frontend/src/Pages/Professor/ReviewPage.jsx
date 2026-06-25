@@ -81,6 +81,11 @@ export default function ReviewPage() {
     }, [id])
 
 
+    const setErrorAndScroll = (msg) => {
+        setError(msg)
+        window.scrollTo({ top: 0, behavior: "smooth" })
+    }
+
     // validates the form, then opens the honesty gut-check modal
     const handleSubmit = () => {
 
@@ -90,27 +95,27 @@ export default function ReviewPage() {
         }
 
         // checks to see if user selected anything
-        if (!courseCode.trim()) { setError("Valid course code required"); return }
+        if (!courseCode.trim()) { setErrorAndScroll("Valid course code required"); return }
         if (!/^[A-Z]{2,5} \d{3}$/.test(courseCode.trim().toUpperCase())) {
-            setError("Enter a valid course code, e.g. CMPT 166"); return
+            setErrorAndScroll("Enter a valid course code, e.g. CMPT 166"); return
         }
-        if (!rating) { setError("Please select a rating"); return}
-        if (!difficulty) { setError("Please select a difficulty"); return}
-        if (takeAgain === null) { setError("Please answer if you would take again"); return }
-        if (!gradingFairness) { setError("Please select grading fairness"); return }
-        if (!niceness) { setError("Please select niceness"); return }
-        if (!experience) { setError("Please select experience"); return }
-        if (!lectureQuality) { setError("Please select lecture quality"); return }
-        if (!officeHours) { setError("Please select office hours"); return }
-        if (!extensionPolicy) { setError("Please select extension policy"); return }
-        if (!groupWork)  { setError("Please select group works"); return }
-        if (!attendance) { setError("Please select attendance"); return }
-        if (!examFormat) { setError("Please select exam format"); return }
-        if (!textBookRequired) { setError("Please select text book required"); return }
-        if (!extraCredit) { setError("Please select extra credit"); return }
-        if (!gradeReceived) { setError("Please fill out grade received"); return }
+        if (!rating) { setErrorAndScroll("Please select a rating"); return}
+        if (!difficulty) { setErrorAndScroll("Please select a difficulty"); return}
+        if (takeAgain === null) { setErrorAndScroll("Please answer if you would take again"); return }
+        if (!gradingFairness) { setErrorAndScroll("Please select grading fairness"); return }
+        if (!niceness) { setErrorAndScroll("Please select niceness"); return }
+        if (!experience) { setErrorAndScroll("Please select experience"); return }
+        if (!lectureQuality) { setErrorAndScroll("Please select lecture quality"); return }
+        if (!officeHours) { setErrorAndScroll("Please select office hours"); return }
+        if (!extensionPolicy) { setErrorAndScroll("Please select extension policy"); return }
+        if (!groupWork)  { setErrorAndScroll("Please select group works"); return }
+        if (!attendance) { setErrorAndScroll("Please select attendance"); return }
+        if (!examFormat) { setErrorAndScroll("Please select exam format"); return }
+        if (!textBookRequired) { setErrorAndScroll("Please select text book required"); return }
+        if (!extraCredit) { setErrorAndScroll("Please select extra credit"); return }
+        if (!gradeReceived) { setErrorAndScroll("Please fill out grade received"); return }
         if (!["A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"].includes(gradeReceived.trim().toUpperCase())) {
-            setError("Enter a valid grade (F to A+)"); return
+            setErrorAndScroll("Enter a valid grade (F to A+)"); return
         }
         if (review.trim().length < 10) { setError("Please leave a review that is more than 10 characters"); return }
 
