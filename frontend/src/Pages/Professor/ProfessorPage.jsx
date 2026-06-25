@@ -389,21 +389,15 @@ export default function ProfessorPage() {
                             Help us keep RateMyTWU honest. What's wrong with this review?
                         </p>
 
-                        <div className={styles.flagChecklist}>
+                        <select
+                            className={styles.flagSelect}
+                            value={flagReason}
+                            onChange={(e) => setFlagReason(e.target.value)}
+                        >
                             {["Inappropriate", "Fake review", "Personal attack", "Wrong info", "Other"].map((reason) => (
-                                <label key={reason} className={`${styles.flagOption} ${flagReason === reason ? styles.flagOptionSelected : ""}`}>
-                                    <input
-                                        type="radio"
-                                        name="flagReason"
-                                        value={reason}
-                                        checked={flagReason === reason}
-                                        onChange={() => setFlagReason(reason)}
-                                        className={styles.flagRadio}
-                                    />
-                                    <span>{reason}</span>
-                                </label>
+                                <option key={reason} value={reason}>{reason}</option>
                             ))}
-                        </div>
+                        </select>
 
                         <p className={styles.flagNote}>
                             Reviews that violate our guidelines will be removed. We review every report.

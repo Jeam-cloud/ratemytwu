@@ -9,17 +9,19 @@ function getInitials(name) {
 
 const team = [
     {
-        name: "Your Name",
-        role: "Co-founder",
-        instagram: "https://instagram.com/placeholder",
-        linkedin: "https://linkedin.com/in/placeholder",
-        phone: "+1 (604) 000-0000",
+        name: "Jendrick Rian Galut",
+        role: "Founder",
+        instagram: "https://www.instagram.com/jrc_galut?igsh=MXN0ZTQ3aTM4M2xxbQ%3D%3D&utm_source=qr",
+        linkedin: "https://www.linkedin.com/in/jendrick-rian-galut-374310307",
+        github: "https://github.com/Jeam-cloud",
+        phone: "+1 (672) 272-3193",
     },
     {
-        name: "Coworker Name",
-        role: "Co-founder",
+        name: "Vatsalya Rabari",
+        role: "Founder",
         instagram: "https://instagram.com/placeholder",
         linkedin: "https://linkedin.com/in/placeholder",
+        github: "https://github.com/placeholder",
         phone: "+1 (604) 000-0000",
     },
 ]
@@ -62,6 +64,14 @@ export default function ContactPage() {
                                                 <rect x="2" y="9" width="4" height="12" /><circle cx="4" cy="4" r="2" />
                                             </svg>
                                             LinkedIn
+                                        </a>
+                                    )}
+                                    {person.github && (
+                                        <a href={person.github} target="_blank" rel="noopener noreferrer" className={styles.socialLink}>
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                                            </svg>
+                                            GitHub
                                         </a>
                                     )}
                                     {person.phone && (
