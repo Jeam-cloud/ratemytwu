@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom"
 
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/ProfessorList.module.css"
 import { toTitleCase } from "../../utils/format"
 
@@ -49,6 +50,7 @@ export default function ProfessorList() {
 
     return (
         <Layout>
+            <SEO title="Professors" path="/professor" description="Browse and search all Trinity Western University professors. Read student reviews and ratings." />
             <div className={styles.page}>
                 <span className={styles.kicker}>{query ? "Showing results for" : "All professors"}</span>
 

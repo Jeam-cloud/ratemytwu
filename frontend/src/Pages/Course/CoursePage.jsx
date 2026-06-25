@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/CoursePage.module.css"
 
 function getInitials(name) {
@@ -35,6 +36,11 @@ export default function CoursePage() {
 
     return (
         <Layout>
+            <SEO
+                title={course?.code ?? "Course"}
+                path={`/course/${id}`}
+                description={`See all professors teaching ${course?.code ?? "this course"} at Trinity Western University. Read student reviews and ratings.`}
+            />
             <div className={styles.page}>
 
                 <button className={styles.back} onClick={() => navigate(-1)}>

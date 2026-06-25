@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/ProfessorPage.module.css"
 
 // 5-star glyph row, filled up to the rounded rating
@@ -116,8 +117,34 @@ export default function ProfessorPage() {
 
     if (!results) return <Layout><p className={styles.loading}>Loading...</p></Layout>
 
+    const profName = results?.name || ""
+    const avgRating = results?.average_rating
+    const reviewCount = reviews.length
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": profName,
+        "jobTitle": "Professor",
+        "worksFor": { "@type": "CollegeOrUniversity", "name": "Trinity Western University" },
+        ...(avgRating && reviewCount > 0 ? {
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": avgRating,
+                "bestRating": 5,
+                "ratingCount": reviewCount
+            }
+        } : {})
+    }
+
     return (
         <Layout>
+            <SEO
+                title={profName}
+                path={`/professor/${id}`}
+                description={`Read ${reviewCount} student review${reviewCount !== 1 ? "s" : ""} for ${profName} at Trinity Western University. Rating: ${avgRating ?? "N/A"}/5.`}
+                type="profile"
+                jsonLd={jsonLd}
+            />
             <div className={styles.page}>
 
                 <button className={styles.back} onClick={() => navigate(-1)}>

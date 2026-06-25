@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom"
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/CourseList.module.css"
 
 export default function CourseList() {
@@ -85,6 +86,7 @@ export default function CourseList() {
 
     return (
         <Layout>
+            <SEO title="Courses" path="/course" description="Browse all Trinity Western University courses. See which professors teach each course and read student reviews." />
             <div className={styles.page}>
                 <span className={styles.kicker}>{query ? "Showing results for" : "All courses"}</span>
 
