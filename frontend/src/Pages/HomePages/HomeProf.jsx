@@ -5,6 +5,7 @@ import SearchBarProf from "../../components/SearchBarProf"
 import SearchBarCourse from "../../components/SearchBarCourse"
 import Footer from "../../design-components/Footer"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/HomeProf.module.css"
 import "../../css/landing-mocks.css"
 
@@ -122,6 +123,22 @@ export default function HomeProf() {
 
     return (
         <>
+            <SEO
+                path="/"
+                description="Rate and review Trinity Western University professors. Find honest course reviews, difficulty ratings, and GPA tools from real TWU students."
+                jsonLd={{
+                    "@context": "https://schema.org",
+                    "@type": "WebSite",
+                    "name": "RateMyTWU",
+                    "url": "https://ratemytwu.com",
+                    "description": "Rate and review TWU professors and courses",
+                    "potentialAction": {
+                        "@type": "SearchAction",
+                        "target": "https://ratemytwu.com/search?q={search_term_string}",
+                        "query-input": "required name=search_term_string"
+                    }
+                }}
+            />
             <Layout fullBleed>
                 {/* ── Hero ── */}
                 <section className={styles.hero} ref={heroRef}>

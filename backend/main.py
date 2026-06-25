@@ -1,7 +1,8 @@
-from database import Base, engine
+from database import Base, engine, SessionLocal
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
+from fastapi.responses import Response
+from sqlalchemy import select, text
 
 from routes import reviews, professors, courses, departments, bookmarks, users, cards, planner, flags
 
@@ -35,6 +36,28 @@ app.include_router(users.router)
 app.include_router(cards.router)
 app.include_router(planner.router)
 app.include_router(flags.router)
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap():
+    base = "https://ratemytwu.com"
+    db = SessionLocal()
+    try:
+        prof_ids  = db.execute(select(Professor.id)).scalars().all()
+        course_ids = db.execute(select(Courses.id)).scalars().all()
+    finally:
+        db.close()
+
+    static = ["/", "/professor", "/course", "/departments", "/compare"]
+    urls = static + [f"/professor/{i}" for i in prof_ids] + [f"/course/{i}" for i in course_ids]
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for path in urls:
+        xml += f"  <url><loc>{base}{path}</loc></url>\n"
+    xml += "</urlset>"
+
+    return Response(content=xml, media_type="application/xml")
+
 
 @app.get("/")
 async def home():

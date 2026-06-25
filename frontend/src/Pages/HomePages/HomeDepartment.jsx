@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
+import SEO from "../../components/SEO"
 import styles from "../../css/HomeDepartment.module.css"
 
 export default function HomeDepartment(){
@@ -34,6 +35,7 @@ export default function HomeDepartment(){
 
     return(
         <Layout>
+            <SEO title="Departments" path="/departments" description="Browse Trinity Western University professors by department. Find faculty in Business, Sciences, Arts, and more." />
             <div className={styles.page}>
                 <h1 className={styles.title}>Browse by department</h1>
                 <p className={styles.subtitle}>{department.length} departments at TWU</p>
