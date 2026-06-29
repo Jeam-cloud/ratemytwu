@@ -38,9 +38,7 @@ def get_course_cards(db: db_dependency, user_id: current_user):
 
 
 # ── Bulk import from transcript ────────────────────────────────────────────
-# IMPORTANT: this must be declared BEFORE /{course_id} so FastAPI doesn't
-# try to match the literal path "import" as an integer course_id.
-@router.post("/import")
+@router.post("/bulk-import")
 def bulk_import_cards(db: db_dependency, user_id: current_user, cards: List[ImportCardIn]):
     """
     Accepts a list of cards parsed from a transcript and creates planner cards.
