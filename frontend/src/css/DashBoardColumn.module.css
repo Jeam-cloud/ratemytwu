@@ -1,6 +1,6 @@
 /* A term column in the planner. Uses tokens from src/styles/tokens.css */
 .column {
-    background: var(--white);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);

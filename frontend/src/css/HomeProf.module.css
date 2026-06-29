@@ -175,7 +175,7 @@
 }
 
 .pillar {
-    background: var(--white);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
@@ -232,7 +232,7 @@
 }
 
 .bandWhite {
-    background: var(--white);
+    background: var(--surface);
 }
 
 .bandInner {

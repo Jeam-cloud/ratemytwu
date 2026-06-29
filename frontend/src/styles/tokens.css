@@ -17,6 +17,7 @@
     --ink-2: #5C5046;
     --ink-3: #877C70;
     --white: #FFFFFF;
+    --surface: #FFFFFF;
     --border: #DEDCD5;
     --border-strong: #CFCCC3;
     --star: #C9A84C;
@@ -44,41 +45,33 @@
     --dur: 200ms;
 }
 
-/* ── Dark mode ───────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
     color-scheme: dark;
 
-    /* Page & surface backgrounds */
     --cream:        #13161f;
     --cream-deep:   #0e1018;
-    --white:        #1c2030;
+    --surface:      #1c2030;
 
-    /* Text */
     --ink:          #e4dfd9;
     --ink-2:        #b0a9a1;
     --ink-3:        #7c766f;
 
-    /* Borders */
     --border:        #2c3048;
     --border-strong: #3a3f58;
 
-    /* Blue — slightly lighter so it reads on dark backgrounds */
     --blue:       #4d82d9;
     --blue-hover: #5c90e6;
     --blue-press: #3a6cc9;
     --blue-tint:  rgba(77, 130, 217, 0.14);
 
-    /* Navy — deeper so it still contrasts with --white surfaces */
     --navy:      #0a1628;
     --navy-deep: #060e1c;
 
-    /* Semantic */
     --positive:    #4caf74;
     --negative:    #e06652;
     --focus-ring:  rgba(77, 130, 217, 0.4);
 
-    /* Shadows — darken heavily */
-    --shadow-sm:        0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.35);
-    --shadow-md:        0 4px 14px rgba(0,0,0,0.45);
-    --shadow-card-hover:0 6px 20px rgba(0,0,0,0.5);
+    --shadow-sm:         0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.35);
+    --shadow-md:         0 4px 14px rgba(0,0,0,0.45);
+    --shadow-card-hover: 0 6px 20px rgba(0,0,0,0.5);
 }
