@@ -6,11 +6,20 @@ import "../styles/layout.css"
 export default function Layout({ children, fullBleed = false, wide = false }) {
     const [session, setSession] = useState(null)
     const [searchInput, setSearchInput] = useState("")
-    // when fullBleed (landing), the bar floats over the hero until you scroll
     const [scrolled, setScrolled] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
     const [mobileOpen, setMobileOpen] = useState(false)
+    const [dark, setDark] = useState(
+        () => document.documentElement.getAttribute("data-theme") === "dark"
+    )
     const navigate = useNavigate()
+
+    const toggleTheme = () => {
+        const next = dark ? "light" : "dark"
+        setDark(!dark)
+        document.documentElement.setAttribute("data-theme", next)
+        try { localStorage.setItem("theme", next) } catch (_) {}
+    }
 
     const closeMobile = () => setMobileOpen(false)
 
@@ -86,6 +95,27 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <NavLink to="/dashboard" className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
                     </nav>
 
+                    {/* Dark mode toggle */}
+                    <button
+                        className="app-theme-toggle"
+                        onClick={toggleTheme}
+                        aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+                        title={dark ? "Light mode" : "Dark mode"}
+                    >
+                        {dark ? (
+                            /* Sun */
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="4"/>
+                                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                            </svg>
+                        ) : (
+                            /* Moon */
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                            </svg>
+                        )}
+                    </button>
+
                     {/* Avatar / auth */}
                     {session ? (
                         <div className="app-avatar-wrap">
@@ -135,6 +165,10 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <NavLink to="/departments" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Departments</NavLink>
                         <NavLink to="/compare" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Compare</NavLink>
                         <NavLink to="/dashboard" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
+                        <div className="app-mobile-divider" />
+                        <button className="app-mobile-theme" onClick={toggleTheme}>
+                            {dark ? "☀ Light mode" : "☾ Dark mode"}
+                        </button>
                         <div className="app-mobile-divider" />
                         {session ? (
                             <button className="app-mobile-signout" onClick={() => { closeMobile(); handleSignOut() }}>
