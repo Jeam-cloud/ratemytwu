@@ -71,6 +71,14 @@
     gap: 1rem;
     padding: 2.5rem 1rem;
     text-align: center;
+    border: 2px dashed transparent;
+    border-radius: var(--radius-lg);
+    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.uploadDragging {
+    border-color: var(--blue);
+    background: var(--blue-tint);
 }
 
 .uploadIcon {

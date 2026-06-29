@@ -137,9 +137,9 @@ export default function Dashboard() {
     // semester options: Spring and Fall for a generous window of years
     const thisYear = new Date().getFullYear()
     const startOptions = []
-    for (let y = thisYear - 10; y <= thisYear + 2; y++) {
-        startOptions.push({ year: y, term: "Spring", label: `Spring ${y}` })
+    for (let y = thisYear + 2; y >= thisYear - 10; y--) {
         startOptions.push({ year: y, term: "Fall",   label: `Fall ${y}` })
+        startOptions.push({ year: y, term: "Spring", label: `Spring ${y}` })
     }
 
     const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
