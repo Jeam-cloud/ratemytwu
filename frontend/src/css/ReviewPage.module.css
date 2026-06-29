@@ -393,6 +393,13 @@
     gap: 8px;
 }
 
+.courseInputHint {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 0;
+}
+
 .courseBackLink {
     background: none;
     border: none;
