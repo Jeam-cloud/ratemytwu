@@ -66,7 +66,7 @@
 
 /* ── Card ── */
 .card {
-    background: var(--white);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
@@ -181,7 +181,7 @@
     font-family: var(--font-sans);
     font-size: 15px;
     color: var(--ink);
-    background: var(--white);
+    background: var(--surface);
     outline: none;
     transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
@@ -197,7 +197,7 @@
     font-size: 15px;
     line-height: 1.55;
     color: var(--ink);
-    background: var(--white);
+    background: var(--surface);
     outline: none;
     transition: box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
@@ -300,7 +300,7 @@
 .modal {
     width: 100%;
     max-width: 440px;
-    background: var(--white);
+    background: var(--surface);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg, 0 12px 32px rgba(0, 27, 61, 0.18));
     padding: 28px;

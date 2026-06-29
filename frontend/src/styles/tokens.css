@@ -17,6 +17,7 @@
     --ink-2: #5C5046;
     --ink-3: #877C70;
     --white: #FFFFFF;
+    --surface: #FFFFFF;   /* card / panel background — use instead of --white for surfaces */
     --border: #DEDCD5;
     --border-strong: #CFCCC3;
     --star: #C9A84C;
@@ -51,7 +52,8 @@
     /* Page & surface backgrounds */
     --cream:        #13161f;
     --cream-deep:   #0e1018;
-    --white:        #1c2030;
+    /* --white stays #ffffff — used for text on dark sections */
+    --surface:      #1c2030;   /* card / panel backgrounds in dark mode */
 
     /* Text */
     --ink:          #e4dfd9;
@@ -77,8 +79,4 @@
     --negative:    #e06652;
     --focus-ring:  rgba(77, 130, 217, 0.4);
 
-    /* Shadows — darken heavily */
-    --shadow-sm:        0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.35);
-    --shadow-md:        0 4px 14px rgba(0,0,0,0.45);
-    --shadow-card-hover:0 6px 20px rgba(0,0,0,0.5);
-}
+    /* Shadows

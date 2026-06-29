@@ -81,7 +81,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: var(--white);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
