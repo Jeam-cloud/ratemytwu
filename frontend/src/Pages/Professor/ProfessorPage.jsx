@@ -123,7 +123,7 @@ export default function ProfessorPage() {
 
     const redirectReview = () => {
         if (!session) {
-            setError("Must be logged in to leave a review")
+            navigate("/login", { state: { from: { pathname: `/professor/${id}/review` } } })
             return
         }
         navigate(`/professor/${id}/review`)
@@ -361,7 +361,17 @@ export default function ProfessorPage() {
 
                 {/* ── Actions ── */}
                 <div className={styles.actions}>
-                    {error && <p className={styles.errorMsg}>{error}</p>}
+                    {!session && (
+                        <p className={styles.loginHint}>
+                            <a
+                                className={styles.loginHintLink}
+                                onClick={() => navigate("/login", { state: { from: { pathname: `/professor/${id}/review` } } })}
+                            >
+                                Log in
+                            </a>{" "}
+                            to leave a review
+                        </p>
+                    )}
                     <button className={styles.leaveReviewBtn} onClick={redirectReview}>Leave a review</button>
                 </div>
             </div>

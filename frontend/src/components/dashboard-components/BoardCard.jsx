@@ -74,7 +74,8 @@ export default function BoardCard({ card, onDelete, onUpdate, startYear, autoOpe
                         <span className={styles.statusDot} /> {card.status}
                     </span>
                 )}
-                {card.grade && <span className={styles.gradePill}>{card.grade}</span>}
+                {card.grade && <span className={`${styles.gradePill} ${card.grade === "F" ? styles.gradePillFail : ""}`}>{card.grade}</span>}
+                {card.grade === "F" && <span className={styles.retakeBadge}>Retake needed</span>}
             </div>
 
             {card.notes && (

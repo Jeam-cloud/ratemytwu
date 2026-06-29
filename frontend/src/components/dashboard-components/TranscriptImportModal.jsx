@@ -211,7 +211,7 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
                             <p className={styles.uploadHint}>
                                 {dragging
                                     ? "Drop to upload"
-                                    : <>Upload your TWU unofficial transcript PDF.<br />Courses will be matched against the database and added to your planner.</>
+                                    : <>Upload your TWU unofficial transcript PDF.<br />Courses will be matched against the database and added to your planner. </>
                                 }
                             </p>
                             <input

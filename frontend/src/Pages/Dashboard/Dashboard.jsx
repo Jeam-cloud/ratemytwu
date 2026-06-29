@@ -142,7 +142,7 @@ export default function Dashboard() {
         startOptions.push({ year: y, term: "Spring", label: `Spring ${y}` })
     }
 
-    const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
+    const totalCredits = cards.filter(c => c.grade !== "F").reduce((sum, card) => sum + (card.credits || 0), 0)
     const percent = Math.min(Math.round((totalCredits / creditGoal) * 100), 100)
 
     // per-status credit breakdown for the segmented progress bar
