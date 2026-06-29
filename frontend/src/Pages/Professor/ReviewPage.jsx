@@ -291,10 +291,11 @@ export default function ReviewPage() {
                             </>
                         ) : (
                             <div className={styles.courseInputWrap}>
+                                <p className={styles.courseInputHint}>Type the course code you took</p>
                                 <input
                                     className={styles.input}
                                     type="text"
-                                    placeholder="BIOL 113"
+                                    placeholder="e.g. CMPT 166"
                                     value={courseCode}
                                     onChange={(e) => {
                                         // strip non-alphanumeric, uppercase

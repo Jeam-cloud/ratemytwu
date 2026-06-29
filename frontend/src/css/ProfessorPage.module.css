@@ -679,6 +679,42 @@
     border-color: var(--blue);
 }
 
+.flagOtherWrap {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.flagOtherInput {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink);
+    resize: none;
+    min-height: 72px;
+    box-sizing: border-box;
+    transition: border-color var(--dur) var(--ease);
+}
+.flagOtherInput:focus {
+    outline: none;
+    border-color: var(--blue);
+}
+.flagOtherInput::placeholder {
+    color: var(--ink-3);
+}
+
+.flagOtherCount {
+    display: block;
+    text-align: right;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 4px;
+}
+
 .flagNote {
     font-family: var(--font-sans);
     font-size: 12px;

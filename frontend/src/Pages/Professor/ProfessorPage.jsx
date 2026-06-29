@@ -31,6 +31,7 @@ export default function ProfessorPage() {
 
     const [flaggingReview, setFlaggingReview] = useState(null)
     const [flagReason, setFlagReason] = useState("Inappropriate")
+    const [flagOtherText, setFlagOtherText] = useState("")
     const [flagError, setFlagError] = useState("")
     const [flaggedIds, setFlaggedIds] = useState(new Set())
 
@@ -107,13 +108,17 @@ export default function ProfessorPage() {
         const res = await fetch(`${API_URL}/review/${flaggingReview.id}/flag`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ reason: flagReason }),
+            body: JSON.stringify({
+                reason: flagReason,
+                ...(flagReason === "Other" && { other_text: flagOtherText.trim() || null }),
+            }),
         })
 
         if (res.ok) {
             setFlaggedIds(prev => new Set(prev).add(flaggingReview.id))
             setFlaggingReview(null)
             setFlagReason("Inappropriate")
+            setFlagOtherText("")
             setFlagError("")
         } else {
             const err = await res.json().catch(() => ({}))
@@ -402,12 +407,25 @@ export default function ProfessorPage() {
                         <select
                             className={styles.flagSelect}
                             value={flagReason}
-                            onChange={(e) => setFlagReason(e.target.value)}
+                            onChange={(e) => { setFlagReason(e.target.value); setFlagOtherText("") }}
                         >
                             {["Inappropriate", "Fake review", "Personal attack", "Wrong info", "Other"].map((reason) => (
                                 <option key={reason} value={reason}>{reason}</option>
                             ))}
                         </select>
+
+                        {flagReason === "Other" && (
+                            <div className={styles.flagOtherWrap}>
+                                <textarea
+                                    className={styles.flagOtherInput}
+                                    placeholder="Briefly describe the issue…"
+                                    maxLength={30}
+                                    value={flagOtherText}
+                                    onChange={(e) => setFlagOtherText(e.target.value)}
+                                />
+                                <span className={styles.flagOtherCount}>{flagOtherText.length}/30</span>
+                            </div>
+                        )}
 
                         <p className={styles.flagNote}>
                             Reviews that violate our guidelines will be removed. We review every report.
