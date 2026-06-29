@@ -4,6 +4,7 @@ psycopg2-binary
 python-dotenv
 pyjwt[crypto]
 pypdf
+python-multipart
 pytest
 httpx
 ruff
