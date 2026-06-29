@@ -393,6 +393,21 @@
     margin: 0;
 }
 
+.loginHint {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-3);
+    margin: 0;
+}
+
+.loginHintLink {
+    color: var(--blue);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.loginHintLink:hover { opacity: 0.75; }
+
 .leaveReviewBtn {
     background: var(--blue);
     color: var(--white);

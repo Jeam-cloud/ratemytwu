@@ -92,6 +92,22 @@
     padding: 3px 9px;
 }
 
+.gradePillFail {
+    color: var(--negative);
+    background: rgba(180, 40, 40, 0.1);
+}
+
+.retakeBadge {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--negative);
+    background: rgba(180, 40, 40, 0.08);
+    border: 1px solid rgba(180, 40, 40, 0.2);
+    border-radius: var(--radius-sm);
+    padding: 2px 7px;
+}
+
 .notes {
     display: flex;
     align-items: flex-start;
