@@ -84,30 +84,28 @@ export default function CoursePage() {
             />
             <div className={styles.page}>
 
-                <div className={styles.topBar}>
-                    <button className={styles.back} onClick={() => navigate(-1)}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m15 18-6-6 6-6" />
-                        </svg>
-                        Course results
-                    </button>
-                    <button
-                        className={`${styles.bookmarkBtn} ${bookmarked ? styles.bookmarkBtnActive : ""}`}
-                        onClick={toggleBookmark}
-                        disabled={bookmarkLoading}
-                        aria-label={bookmarked ? "Remove bookmark" : "Bookmark this course"}
-                    >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-                        </svg>
-                        {bookmarked ? "Bookmarked" : "Bookmark course"}
-                    </button>
-                </div>
+                <button className={styles.back} onClick={() => navigate(-1)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                    Course results
+                </button>
 
                 {/* ── Navy hero ── */}
                 <div className={styles.hero}>
                     <div className={styles.heroTop}>
                         <h1 className={styles.code}>{code}</h1>
+                        <button
+                            className={`${styles.bookmarkBtn} ${bookmarked ? styles.bookmarkBtnActive : ""}`}
+                            onClick={toggleBookmark}
+                            disabled={bookmarkLoading}
+                            aria-label={bookmarked ? "Remove bookmark" : "Bookmark this course"}
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill={bookmarked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                            </svg>
+                            {bookmarked ? "Bookmarked" : "Bookmark course"}
+                        </button>
                     </div>
                     <p className={styles.heroMeta}>
                         {professors.length} {professors.length === 1 ? "professor" : "professors"} teaching this course
@@ -128,6 +126,15 @@ export default function CoursePage() {
                 <p className={styles.kicker}>Who's teaching it</p>
 
                 <div className={styles.list}>
+                    {professors.length === 0 && (
+                        <div className={styles.emptyState}>
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                            </svg>
+                            <p className={styles.emptyStateTitle}>No professors this year</p>
+                            <p className={styles.emptyStateText}>This course isn't scheduled for {new Date().getFullYear()}–{new Date().getFullYear() + 1}. Check back next semester.</p>
+                        </div>
+                    )}
                     {professors.map((professor) => {
                         const initials = getInitials(professor.name)
                         const hasReviews = professor.review_count > 0

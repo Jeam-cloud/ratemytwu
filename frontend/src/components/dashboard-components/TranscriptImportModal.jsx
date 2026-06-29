@@ -47,18 +47,31 @@ function getPlannerYear(calendarYear, term, startYear, startTerm) {
 
 export default function TranscriptImportModal({ startYear, startTerm, onClose, onImportDone }) {
     const fileRef = useRef(null)
+    const dragCounter = useRef(0)
 
     // step: "idle" | "parsing" | "preview" | "importing" | "done"
     const [step, setStep] = useState("idle")
+    const [dragging, setDragging] = useState(false)
     const [error, setError] = useState("")
     const [parsed, setParsed] = useState([])       // raw from backend
     const [selected, setSelected] = useState(new Set())  // indices selected for import
     const [result, setResult] = useState(null)     // import summary
 
+    const handleDragEnter = (e) => { e.preventDefault(); dragCounter.current++; setDragging(true) }
+    const handleDragLeave = (e) => { e.preventDefault(); dragCounter.current--; if (dragCounter.current === 0) setDragging(false) }
+    const handleDragOver  = (e) => e.preventDefault()
+
+    const handleDrop = async (e) => {
+        e.preventDefault()
+        dragCounter.current = 0
+        setDragging(false)
+        const file = e.dataTransfer.files?.[0]
+        if (!file || file.type !== "application/pdf") return
+        await processFile(file)
+    }
+
     // ── Step 1: upload PDF and parse ──────────────────────────────────────
-    const handleFile = async (e) => {
-        const file = e.target.files?.[0]
-        if (!file) return
+    const processFile = async (file) => {
         setError("")
         setStep("parsing")
 
@@ -80,19 +93,24 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
                 throw new Error(err.detail || `Error ${res.status}`)
             }
             const courses = await res.json()
-            // Enrich with planner year and de-dupe display
             const enriched = courses.map((c, i) => ({
                 ...c,
                 plannerYear: getPlannerYear(c.calendar_year, c.term, startYear, startTerm),
                 idx: i,
             }))
             setParsed(enriched)
-            setSelected(new Set(enriched.map(c => c.idx)))  // all selected by default
+            setSelected(new Set(enriched.map(c => c.idx)))
             setStep("preview")
         } catch (err) {
             setError(err.message || "Failed to parse transcript")
             setStep("idle")
         }
+    }
+
+    const handleFile = async (e) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        await processFile(file)
     }
 
     const toggleAll = () => {
@@ -177,7 +195,13 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
 
                     {/* ── idle / parsing ─────────────────────────────── */}
                     {(step === "idle" || step === "parsing") && (
-                        <div className={styles.upload}>
+                        <div
+                            className={`${styles.upload} ${dragging ? styles.uploadDragging : ""}`}
+                            onDragEnter={handleDragEnter}
+                            onDragLeave={handleDragLeave}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                        >
                             <div className={styles.uploadIcon}>
                                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
@@ -185,8 +209,10 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
                                 </svg>
                             </div>
                             <p className={styles.uploadHint}>
-                                Upload your TWU unofficial transcript PDF.<br />
-                                Courses will be matched against the database and added to your planner.
+                                {dragging
+                                    ? "Drop to upload"
+                                    : <>Upload your TWU unofficial transcript PDF.<br />Courses will be matched against the database and added to your planner.</>
+                                }
                             </p>
                             <input
                                 ref={fileRef}
@@ -200,7 +226,7 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
                                 onClick={() => fileRef.current?.click()}
                                 disabled={step === "parsing"}
                             >
-                                {step === "parsing" ? "Parsing…" : "Choose PDF"}
+                                {step === "parsing" ? "Parsing…" : "Choose or drop PDF"}
                             </button>
                             {error && <p className={styles.err}>{error}</p>}
                         </div>
@@ -210,7 +236,10 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
                     {step === "preview" && (
                         <>
                             <p className={styles.previewHint}>
-                                {parsed.length} courses found. Select the ones you want to import.
+                                {parsed.length === 0
+                                    ? "No courses found. Make sure you uploaded your TWU unofficial transcript PDF, not a different document."
+                                    : `${parsed.length} courses found. Select the ones you want to import.`
+                                }
                                 Courses not in the database will be skipped automatically.
                             </p>
                             <div className={styles.tableWrap}>
