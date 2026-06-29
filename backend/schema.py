@@ -261,6 +261,16 @@ class CreateCardsOut(BaseModel):
     notes: Optional[str]
 
 
+# Transcript import schemas
+class ImportCardIn(BaseModel):
+    course_code: str
+    year: int
+    term: str
+    credits: Optional[int] = None
+    status: Optional[str] = None
+    grade: Optional[str] = None
+
+
 # Review flag schemas
 VALID_FLAG_REASONS = {"Inappropriate", "Fake review", "Personal attack", "Wrong info", "Other"}
 

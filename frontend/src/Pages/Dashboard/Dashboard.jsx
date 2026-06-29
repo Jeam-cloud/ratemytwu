@@ -11,6 +11,7 @@ import { useBookMark } from "../../hooks/useBookMark"
 import Layout from "../../components/Layout"
 import BookMarkCard from "../../components/dashboard-components/BookMarkCard"
 import DashBoardColumn from "../../components/dashboard-components/DashBoardColumn"
+import TranscriptImportModal from "../../components/dashboard-components/TranscriptImportModal"
 import styles from "../../css/Dashboard.module.css"
 
 function getInitials(name) {
@@ -107,6 +108,7 @@ export default function Dashboard() {
     const [autoEditCardId, setAutoEditCardId] = useState(null)
     const [expandedYears, setExpandedYears] = useState(new Set([1]))
     const [summerYears, setSummerYears] = useState(new Set())
+    const [showImport, setShowImport] = useState(false)
 
     const toggleYear = (yearNum) => {
         setExpandedYears(prev => {
@@ -395,10 +397,28 @@ export default function Dashboard() {
         setCards(prev => prev.map(card => card.id === cardId ? updated : card))
     }
 
+    // Reload cards from the backend (called after transcript import)
+    const reloadCards = async () => {
+        const { data } = await supabase.auth.getSession()
+        const token = data.session?.access_token
+        if (!token) return
+        const res = await fetch(`${API_URL}/board/cards`, {
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+        })
+        if (!res.ok) return
+        const loaded = await res.json()
+        setCards(loaded)
+        if (loaded.length > 0) {
+            setExpandedYears(prev => { const next = new Set(prev); loaded.forEach(c => next.add(c.year)); return next })
+            const ss = new Set(); loaded.forEach(c => { if (c.term === "Summer") ss.add(c.year) }); if (ss.size > 0) setSummerYears(ss)
+        }
+    }
+
     // bookmarks not yet placed on the board
     const availableBookmarks = bookmark.filter(course => !cards.some(card => card.course_id === course.id))
 
     return (
+        <>
         <Layout wide>
             <div className={styles.page}>
 
@@ -407,14 +427,25 @@ export default function Dashboard() {
                         <h1 className={styles.title}>Your degree planner</h1>
                         <p className={styles.subtitle}>Drag bookmarked courses into a term. Credits add up toward graduation.</p>
                     </div>
-                    {years !== null && (
-                        <button className={styles.editBtn} onClick={() => setEditingYears(true)}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                            </svg>
-                            Edit planner
-                        </button>
-                    )}
+                    <div className={styles.headerActions}>
+                        {!isGuest && (
+                            <button className={styles.importTranscriptBtn} onClick={() => setShowImport(true)}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                                    <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" />
+                                </svg>
+                                Import transcript
+                            </button>
+                        )}
+                        {years !== null && (
+                            <button className={styles.editBtn} onClick={() => setEditingYears(true)}>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                </svg>
+                                Edit planner
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* ── Guest banner ── */}
@@ -935,5 +966,15 @@ export default function Dashboard() {
                 )}
             </div>
         </Layout>
+
+        {showImport && (
+            <TranscriptImportModal
+                startYear={startYear}
+                startTerm={startTerm}
+                onClose={() => setShowImport(false)}
+                onImportDone={reloadCards}
+            />
+        )}
+        </>
     )
 }
