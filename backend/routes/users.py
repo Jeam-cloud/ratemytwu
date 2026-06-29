@@ -24,13 +24,34 @@ def get_user_reviews(db: db_dependency, user_id: current_user):
 
 
 # ── Transcript PDF parser ──────────────────────────────────────────────────
-# Matches: DEPT NNN [Title...] GRADE S.Hrs. E.Hrs. QualPts
-# Uses greedy .+ so it finds the LAST valid grade token before the numbers.
 _GRADES = r'IP|A\+|A-|A|B\+|B-|B|C\+|C-|C|D\+|D-|D|F|P|W'
-_COURSE_RE = re.compile(
-    rf'^([A-Z]{{2,5}}\s+\d{{3}}[A-Z]?)\s+.+\s+({_GRADES})\s+(\d+\.\d+)\s+\d+\.\d+\s+\d+\.\d+\s*$'
+
+# Term header: e.g. "2024 Spring" or "Term: 2024 Fall" — year+term anywhere in line
+_TERM_RE = re.compile(r'\b(\d{4})\s+(Spring|Summer|Fall)\b')
+
+# Course code at the START of a line (allow leading whitespace)
+_CODE_START_RE = re.compile(r'^\s*([A-Z]{2,5})\s+(\d{3}[A-Z]?)\b')
+
+# Grade immediately followed by the three credit columns at END of line.
+# Handles both "A 3.00 3.00 12.00" and tighter "A3.003.0012.00" layouts.
+_TAIL_RE = re.compile(
+    rf'\b({_GRADES})\s*(\d+\.\d{{2}})\s*\d+\.\d{{2}}\s*\d+\.\d{{2}}\s*$'
 )
-_TERM_RE = re.compile(r'(\d{4})\s+(Spring|Summer|Fall)')
+
+
+def _extract_pages(reader) -> list[str]:
+    """Return per-page text, preferring layout mode for table PDFs."""
+    lines = []
+    for page in reader.pages:
+        text = ""
+        try:
+            text = page.extract_text(extraction_mode="layout") or ""
+        except Exception:
+            pass
+        if not text.strip():
+            text = page.extract_text() or ""
+        lines.extend(text.splitlines())
+    return lines
 
 
 @router.post("/parse-transcript")
@@ -53,61 +74,91 @@ async def parse_transcript(file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read PDF")
 
+    all_lines = _extract_pages(reader)
+
     courses = []
     current_year = None
     current_term = None
+    seen = set()   # de-dupe (code, year, term)
 
-    for page in reader.pages:
-        text = page.extract_text() or ""
-        for line in text.splitlines():
-            line = line.strip()
-            if not line:
-                continue
+    for line in all_lines:
+        stripped = line.strip()
+        if not stripped:
+            continue
 
-            # Detect term header anywhere in the line (e.g. "2024 Spring")
-            tm = _TERM_RE.search(line)
-            if tm and len(line) < 30:
+        # ── Term header ──────────────────────────────────────────────────
+        # Accept it as long as the line doesn't START with a course code
+        # (so "CMPT 211 Intro to... Spring 2024..." isn't treated as a header)
+        if not _CODE_START_RE.match(stripped):
+            tm = _TERM_RE.search(stripped)
+            if tm:
                 current_year = int(tm.group(1))
                 current_term = tm.group(2)
                 continue
 
-            # Only parse course lines while inside a known term
-            if current_year is None or current_term is None:
-                continue
+        if current_year is None or current_term is None:
+            continue
 
-            cm = _COURSE_RE.match(line)
-            if not cm:
-                continue
+        # ── Course line ──────────────────────────────────────────────────
+        code_m = _CODE_START_RE.match(stripped)
+        if not code_m:
+            continue
 
-            raw_code = cm.group(1)
-            grade_raw = cm.group(2)
-            credits = float(cm.group(3))
+        tail_m = _TAIL_RE.search(stripped)
+        if not tail_m:
+            continue
 
-            # Skip 0-credit entries (tutorials, SKLS pass/fail sections)
-            if credits == 0.0:
-                continue
+        course_code = f"{code_m.group(1)} {code_m.group(2)}"
+        grade_raw   = tail_m.group(1)
+        credits     = float(tail_m.group(2))
 
-            # Normalise code spacing: "CMPT  140" → "CMPT 140"
-            course_code = re.sub(r'\s+', ' ', raw_code.strip())
+        # Skip 0-credit rows (tutorials, SKLS pass sections)
+        if credits == 0.0:
+            continue
 
-            # Map grade → status
-            if grade_raw == 'IP':
-                status = 'In Progress'
-                grade = None
-            elif grade_raw == 'P':
-                status = 'Completed'
-                grade = None
-            else:
-                status = 'Completed'
-                grade = grade_raw
+        key = (course_code, current_year, current_term)
+        if key in seen:
+            continue
+        seen.add(key)
 
-            courses.append({
-                'course_code': course_code,
-                'calendar_year': current_year,
-                'term': current_term,
-                'grade': grade,
-                'credits': int(credits),
-                'status': status,
-            })
+        if grade_raw == 'IP':
+            status = 'In Progress'
+            grade  = None
+        elif grade_raw == 'P':
+            status = 'Completed'
+            grade  = None
+        else:
+            status = 'Completed'
+            grade  = grade_raw
+
+        courses.append({
+            'course_code':   course_code,
+            'calendar_year': current_year,
+            'term':          current_term,
+            'grade':         grade,
+            'credits':       int(credits),
+            'status':        status,
+        })
 
     return courses
+
+
+@router.post("/debug-transcript")
+async def debug_transcript(file: UploadFile = File(...)):
+    """
+    Returns the raw text lines pypdf extracts from the PDF.
+    Use this to diagnose parser issues.
+    """
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        raise HTTPException(status_code=500, detail="pypdf not installed")
+
+    content = await file.read()
+    try:
+        reader = PdfReader(io.BytesIO(content))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not read PDF")
+
+    lines = _extract_pages(reader)
+    return {"lines": lines, "total": len(lines)}
