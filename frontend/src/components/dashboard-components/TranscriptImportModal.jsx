@@ -115,7 +115,12 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
             })
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}))
-                throw new Error(err.detail || `Error ${res.status}`)
+                const detail = err.detail
+                if (Array.isArray(detail)) {
+                    const msg = detail.map(e => e.msg || JSON.stringify(e)).join("; ")
+                    throw new Error(`Validation error: ${msg}`)
+                }
+                throw new Error(typeof detail === "string" ? detail : `Error ${res.status}`)
             }
             const summary = await res.json()
             setResult(summary)

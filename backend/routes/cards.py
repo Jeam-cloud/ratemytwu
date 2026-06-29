@@ -36,10 +36,63 @@ def get_course_cards(db: db_dependency, user_id: current_user):
         })
     return cards
 
+
+# ── Bulk import from transcript ────────────────────────────────────────────
+# IMPORTANT: this must be declared BEFORE /{course_id} so FastAPI doesn't
+# try to match the literal path "import" as an integer course_id.
+@router.post("/import")
+def bulk_import_cards(db: db_dependency, user_id: current_user, cards: List[ImportCardIn]):
+    """
+    Accepts a list of cards parsed from a transcript and creates planner cards.
+    Courses not in the DB are skipped. Existing cards for the same course are skipped.
+    Returns counts of imported, not_found, and duplicate codes.
+    """
+    imported = []
+    not_found = []
+    duplicates = []
+
+    for card in cards:
+        # Look up course by code (exact match)
+        course = db.execute(
+            select(Courses).where(Courses.code == card.course_code)
+        ).scalars().first()
+
+        if not course:
+            not_found.append(card.course_code)
+            continue
+
+        # Skip if user already has this course on their board
+        existing = db.execute(
+            select(UserCourseCard).where(
+                UserCourseCard.user_id == user_id,
+                UserCourseCard.course_id == course.id,
+            )
+        ).scalars().first()
+
+        if existing:
+            duplicates.append(card.course_code)
+            continue
+
+        new_card = UserCourseCard(
+            user_id=user_id,
+            course_id=course.id,
+            year=card.year,
+            term=card.term,
+            credits=card.credits,
+            status=card.status,
+            grade=card.grade,
+        )
+        db.add(new_card)
+        imported.append(card.course_code)
+
+    db.commit()
+    return {"imported": imported, "not_found": not_found, "duplicates": duplicates}
+
+
 # when user drags into kanban convert to a post
 @router.post("/{course_id}", response_model=CreateCardsOut)
 def create_course_card(db: db_dependency, user_id: current_user, course_id: int, course_info: CreateCardsIn):
-    
+
     existing_course_card = db.execute(
         select(UserCourseCard).where(
             UserCourseCard.user_id == user_id,
@@ -49,7 +102,7 @@ def create_course_card(db: db_dependency, user_id: current_user, course_id: int,
 
     if existing_course_card:
         raise HTTPException(status_code=409, detail="course already exists on the board")
-    
+
     new_course_card = UserCourseCard(
         user_id = user_id,
         course_id = course_id,
@@ -124,53 +177,3 @@ def delete_card(db: db_dependency, user_id: current_user, card_id: int):
     db.commit()
 
     return None
-
-
-# bulk import from transcript
-@router.post("/import")
-def bulk_import_cards(db: db_dependency, user_id: current_user, cards: List[ImportCardIn]):
-    """
-    Accepts a list of cards parsed from a transcript and creates planner cards.
-    Courses not in the DB are skipped. Existing cards for the same course are skipped.
-    Returns counts of imported, not_found, and duplicate codes.
-    """
-    imported = []
-    not_found = []
-    duplicates = []
-
-    for card in cards:
-        # Look up course by code (exact match)
-        course = db.execute(
-            select(Courses).where(Courses.code == card.course_code)
-        ).scalars().first()
-
-        if not course:
-            not_found.append(card.course_code)
-            continue
-
-        # Skip if user already has this course on their board
-        existing = db.execute(
-            select(UserCourseCard).where(
-                UserCourseCard.user_id == user_id,
-                UserCourseCard.course_id == course.id,
-            )
-        ).scalars().first()
-
-        if existing:
-            duplicates.append(card.course_code)
-            continue
-
-        new_card = UserCourseCard(
-            user_id=user_id,
-            course_id=course.id,
-            year=card.year,
-            term=card.term,
-            credits=card.credits,
-            status=card.status,
-            grade=card.grade,
-        )
-        db.add(new_card)
-        imported.append(card.course_code)
-
-    db.commit()
-    return {"imported": imported, "not_found": not_found, "duplicates": duplicates}
