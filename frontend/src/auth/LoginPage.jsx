@@ -128,7 +128,7 @@ export default function LoginPage() {
                 </button>
 
                 <p className={styles.footer}>
-                    Don't have an account? <Link to="/signup" className={styles.footerLink}>Register now</Link>
+                    Don't have an account? <Link to="/signup" state={location.state} className={styles.footerLink}>Register now</Link>
                 </p>
             </div>
         </div>

@@ -51,6 +51,10 @@ export default function SignupPage() {
         }
 
         if (!response.data.session) {
+            // Store where to redirect after they confirm their email and come back
+            if (from && from !== "/dashboard") {
+                localStorage.setItem("postAuthRedirect", from)
+            }
             setError("Check your email to confirm your account before logging in.")
             return
         }
@@ -153,7 +157,7 @@ export default function SignupPage() {
                 </button>
 
                 <p className={styles.footer}>
-                    Already have an account? <Link to="/login" className={styles.footerLink}>Log in</Link>
+                    Already have an account? <Link to="/login" state={location.state} className={styles.footerLink}>Log in</Link>
                 </p>
             </div>
         </div>
