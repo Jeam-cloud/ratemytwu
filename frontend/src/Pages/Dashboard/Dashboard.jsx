@@ -13,6 +13,7 @@ import BookMarkCard from "../../components/dashboard-components/BookMarkCard"
 import DashBoardColumn from "../../components/dashboard-components/DashBoardColumn"
 import TranscriptImportModal from "../../components/dashboard-components/TranscriptImportModal"
 import ExportPDFModal from "../../components/dashboard-components/ExportPDFModal"
+import TutorialOverlay from "../../components/dashboard-components/TutorialOverlay"
 import styles from "../../css/Dashboard.module.css"
 
 function getInitials(name) {
@@ -111,6 +112,24 @@ export default function Dashboard() {
     const [summerYears, setSummerYears] = useState(new Set())
     const [showImport, setShowImport] = useState(false)
     const [showExport, setShowExport] = useState(false)
+
+    // ── Tutorial ──────────────────────────────────────────────────────────────
+    // Start at step 0 on first visit, null means hidden
+    const [tutorialStep, setTutorialStep] = useState(() =>
+        localStorage.getItem("plannerTutorialDone") ? null : 0
+    )
+    const startTutorial = () => setTutorialStep(0)
+    const nextTutorialStep = () => {
+        setTutorialStep(s => {
+            if (s >= 6) { localStorage.setItem("plannerTutorialDone", "1"); return null }
+            return s + 1
+        })
+    }
+    const prevTutorialStep = () => setTutorialStep(s => Math.max(0, s - 1))
+    const skipTutorial = () => {
+        localStorage.setItem("plannerTutorialDone", "1")
+        setTutorialStep(null)
+    }
     const [exportEmail, setExportEmail] = useState("")
     const [creditGoal, setCreditGoal] = useState(() => {
         const saved = localStorage.getItem("plannerCreditGoal")
@@ -441,11 +460,14 @@ export default function Dashboard() {
                 <div className={styles.header}>
                     <div>
                         <h1 className={styles.title}>Your degree planner</h1>
-                        <p className={styles.subtitle}>Drag bookmarked courses into a term. Credits add up toward graduation.</p>
+                        <p className={styles.subtitle}>
+                            Drag bookmarked courses into a term. Credits add up toward graduation.{" "}
+                            <button className={styles.tourBtn} onClick={startTutorial}>Take a tour</button>
+                        </p>
                     </div>
                     <div className={styles.headerActions}>
                         {cards.length > 0 && (
-                            <button className={styles.exportPdfBtn} onClick={() => setShowExport(true)}>
+                            <button data-tutorial="export-btn" className={styles.exportPdfBtn} onClick={() => setShowExport(true)}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                                 </svg>
@@ -453,20 +475,12 @@ export default function Dashboard() {
                             </button>
                         )}
                         {!isGuest && (
-                            <button className={styles.importTranscriptBtn} onClick={() => setShowImport(true)}>
+                            <button data-tutorial="import-btn" className={styles.importTranscriptBtn} onClick={() => setShowImport(true)}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
                                     <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" />
                                 </svg>
                                 Import transcript
-                            </button>
-                        )}
-                        {years !== null && (
-                            <button className={styles.editBtn} onClick={() => { setEditingYears(true); setCreditGoalDraft(creditGoal) }}>
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                                </svg>
-                                Edit planner
                             </button>
                         )}
                     </div>
@@ -489,19 +503,31 @@ export default function Dashboard() {
                         <span className={styles.progressText}>
                             <strong>{totalCredits}</strong> / {creditGoal} credits planned · {percent}% to graduation
                         </span>
-                        <div className={styles.progressLegend}>
-                            <span className={styles.legendItem}>
-                                <span className={`${styles.legendDot} ${styles.legendDotCompleted}`} />
-                                Completed {completedCredits}
-                            </span>
-                            <span className={styles.legendItem}>
-                                <span className={`${styles.legendDot} ${styles.legendDotProgress}`} />
-                                In progress {inProgressCredits}
-                            </span>
-                            <span className={styles.legendItem}>
-                                <span className={`${styles.legendDot} ${styles.legendDotPlanned}`} />
-                                Planned {plannedCredits}
-                            </span>
+                        <div className={styles.progressMetaRight}>
+                            <div className={styles.progressLegend}>
+                                <span className={styles.legendItem}>
+                                    <span className={`${styles.legendDot} ${styles.legendDotCompleted}`} />
+                                    Completed {completedCredits}
+                                </span>
+                                <span className={styles.legendItem}>
+                                    <span className={`${styles.legendDot} ${styles.legendDotProgress}`} />
+                                    In progress {inProgressCredits}
+                                </span>
+                                <span className={styles.legendItem}>
+                                    <span className={`${styles.legendDot} ${styles.legendDotPlanned}`} />
+                                    Planned {plannedCredits}
+                                </span>
+                            </div>
+                            <div className={styles.progressActions}>
+                                {years !== null && (
+                                    <button data-tutorial="edit-planner-btn" className={styles.progressIconBtn} onClick={() => { setEditingYears(true); setCreditGoalDraft(creditGoal) }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                        </svg>
+                                        Edit planner
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div className={styles.progressBarWrap}>
@@ -527,7 +553,7 @@ export default function Dashboard() {
 
                         {/* Left rail — bookmarks (logged in) or course search (guest) + GPA */}
                         <aside className={styles.sideRail}>
-                            <div className={styles.bookmarkPanel}>
+                            <div data-tutorial="bookmark-panel" className={styles.bookmarkPanel}>
                                 {isGuest ? (
                                     <>
                                         <p className={styles.bookmarkKicker}>
@@ -594,7 +620,7 @@ export default function Dashboard() {
                         </aside>
 
                         {/* Lifespan prompt OR year-grouped board */}
-                        <div className={styles.main}>
+                        <div data-tutorial="board" className={styles.main}>
                             {years === null ? (
                                 <div className={styles.lifespan}>
                                     <p className={styles.lifespanTitle}>Set up your planner</p>
@@ -1026,6 +1052,16 @@ export default function Dashboard() {
                 creditGoal={creditGoal}
                 email={exportEmail}
                 onClose={() => setShowExport(false)}
+            />
+        )}
+
+        {/* ── Tutorial overlay ── */}
+        {tutorialStep !== null && (
+            <TutorialOverlay
+                step={tutorialStep}
+                onNext={nextTutorialStep}
+                onPrev={prevTutorialStep}
+                onSkip={skipTutorial}
             />
         )}
         </>

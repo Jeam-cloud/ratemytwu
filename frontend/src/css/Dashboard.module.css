@@ -21,10 +21,10 @@
     flex-shrink: 0;
 }
 
-.editBtn {
+.exportPdfBtn {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     flex: none;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -33,11 +33,11 @@
     font-family: var(--font-sans);
     font-size: 14px;
     font-weight: 600;
-    color: var(--blue);
+    color: var(--ink-2);
     cursor: pointer;
-    transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
-.editBtn:hover { border-color: var(--blue); background: var(--blue-tint); }
+.exportPdfBtn:hover { background: var(--cream); border-color: var(--blue); color: var(--blue); }
 
 .importTranscriptBtn {
     display: inline-flex;
@@ -57,23 +57,37 @@
 }
 .importTranscriptBtn:hover { background: var(--blue-hover); }
 
-.exportPdfBtn {
+.progressMetaRight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.progressActions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-left: 1px solid var(--border);
+    padding-left: 12px;
+}
+
+.progressIconBtn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    flex: none;
-    background: var(--surface);
+    background: none;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    padding: 6px 12px;
     font-family: var(--font-sans);
     font-size: 13px;
     font-weight: 600;
     color: var(--ink-2);
     cursor: pointer;
-    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+    transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
-.exportPdfBtn:hover { background: var(--cream); border-color: var(--blue); color: var(--blue); }
+.progressIconBtn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-tint); }
 
 .title {
     font-family: var(--font-display);
@@ -90,6 +104,20 @@
     color: var(--ink-3);
     margin: 0 0 24px;
 }
+
+.tourBtn {
+    background: none;
+    border: none;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.tourBtn:hover { color: var(--blue-hover); }
 
 .error {
     font-family: var(--font-sans);
