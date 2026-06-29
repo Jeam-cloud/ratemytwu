@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useSearchParams, useNavigate } from "react-router-dom"
+import { useSearchParams, useNavigate, Link } from "react-router-dom"
 
 import { API_URL } from "../../config"
 import Layout from "../../components/Layout"
@@ -71,9 +71,17 @@ export default function ProfessorList() {
                     <button className={styles.searchBtn} onClick={handleSearch}>Search</button>
                 </div>
 
-                <p className={styles.count}>
-                    {results.length} {results.length === 1 ? "professor" : "professors"}
-                </p>
+                <div className={styles.countRow}>
+                    <p className={styles.count}>
+                        {results.length} {results.length === 1 ? "professor" : "professors"}
+                    </p>
+                    <Link to="/compare" className={styles.compareLink}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 20V10M12 20V4M6 20v-6" />
+                        </svg>
+                        Compare professors
+                    </Link>
+                </div>
 
                 <div className={styles.list}>
                     {results.slice(0, shown).map((professor) => {
