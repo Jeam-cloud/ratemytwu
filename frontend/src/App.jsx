@@ -26,9 +26,26 @@ import ReportPage from "./Pages/Static/ReportPage"
 import ContactPage from "./Pages/Static/ContactPage"
 import PrivacyPage from "./Pages/Static/PrivacyPage"
 
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, useNavigate } from "react-router-dom"
+import { useEffect } from "react"
+import { supabase } from "./supabaseClient"
 
 export default function App() {
+  const navigate = useNavigate()
+
+  // After email confirmation, redirect to stored path instead of homepage
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        const redirect = localStorage.getItem("postAuthRedirect")
+        if (redirect) {
+          localStorage.removeItem("postAuthRedirect")
+          navigate(redirect, { replace: true })
+        }
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   return (
         <>

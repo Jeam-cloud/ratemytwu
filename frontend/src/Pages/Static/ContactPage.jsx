@@ -24,6 +24,14 @@ const team = [
         github: "https://github.com/vatsalyarabari",
         phone: "+1 (672) 336-7904",
     },
+    {
+        name: "Farouk Niniola",
+        role: "Chief Marketing Officer (CMO)",
+        instagram: "https://www.instagram.com/jaxxynini/",
+        linkedin: "",
+        github: "",
+        phone: "+1 (236) 858-8554",
+    },
 ]
 
 export default function ContactPage() {
