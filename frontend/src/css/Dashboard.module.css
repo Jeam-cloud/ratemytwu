@@ -44,18 +44,18 @@
     align-items: center;
     gap: 6px;
     flex: none;
-    background: var(--blue, #1a1a2e);
+    background: var(--blue);
     border: 1px solid transparent;
     border-radius: var(--radius);
     padding: 9px 16px;
     font-family: var(--font-sans);
     font-size: 14px;
     font-weight: 600;
-    color: #fff;
+    color: var(--white);
     cursor: pointer;
-    transition: background var(--dur) var(--ease), opacity var(--dur) var(--ease);
+    transition: background var(--dur) var(--ease);
 }
-.importTranscriptBtn:hover { opacity: 0.88; }
+.importTranscriptBtn:hover { background: var(--blue-hover); }
 
 .title {
     font-family: var(--font-display);
