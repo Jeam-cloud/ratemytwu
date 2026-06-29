@@ -91,7 +91,6 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <NavLink to="/professor" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Professors</NavLink>
                         <NavLink to="/course" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Courses</NavLink>
                         <NavLink to="/departments" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Departments</NavLink>
-                        <NavLink to="/compare" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Compare</NavLink>
                         <NavLink to="/dashboard" className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
                     </nav>
 
@@ -163,7 +162,6 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <NavLink to="/professor" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Professors</NavLink>
                         <NavLink to="/course" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Courses</NavLink>
                         <NavLink to="/departments" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Departments</NavLink>
-                        <NavLink to="/compare" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Compare</NavLink>
                         <NavLink to="/dashboard" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
                         <div className="app-mobile-divider" />
                         <button className="app-mobile-theme" onClick={toggleTheme}>
