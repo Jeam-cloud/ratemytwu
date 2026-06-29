@@ -74,7 +74,7 @@ function PlannerMock() {
     return (
         <div className="lp-mock lp-mock-planner">
             <div className="plm-progress">
-                <div className="plm-progress-top"><b>84</b> / 120 credits planned <span>70% to graduation</span></div>
+                <div className="plm-progress-top"><b>84</b> / 122 credits planned <span>69% to graduation</span></div>
                 <div className="plm-track"><i className="done" style={{ width: "30%" }}></i><i className="ip" style={{ width: "12%" }}></i><i className="plan" style={{ width: "28%" }}></i></div>
             </div>
             <div className="plm-terms">
