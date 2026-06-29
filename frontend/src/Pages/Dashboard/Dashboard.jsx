@@ -12,6 +12,7 @@ import Layout from "../../components/Layout"
 import BookMarkCard from "../../components/dashboard-components/BookMarkCard"
 import DashBoardColumn from "../../components/dashboard-components/DashBoardColumn"
 import TranscriptImportModal from "../../components/dashboard-components/TranscriptImportModal"
+import ExportPDFModal from "../../components/dashboard-components/ExportPDFModal"
 import styles from "../../css/Dashboard.module.css"
 
 function getInitials(name) {
@@ -109,6 +110,8 @@ export default function Dashboard() {
     const [expandedYears, setExpandedYears] = useState(new Set([1]))
     const [summerYears, setSummerYears] = useState(new Set())
     const [showImport, setShowImport] = useState(false)
+    const [showExport, setShowExport] = useState(false)
+    const [exportEmail, setExportEmail] = useState("")
     const [creditGoal, setCreditGoal] = useState(() => {
         const saved = localStorage.getItem("plannerCreditGoal")
         return saved ? Number(saved) : 122
@@ -180,6 +183,7 @@ export default function Dashboard() {
             }
 
             // ── Logged-in mode ──
+            setExportEmail(session.user?.email ?? "")
             const token = session.access_token
             const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
 
@@ -440,6 +444,14 @@ export default function Dashboard() {
                         <p className={styles.subtitle}>Drag bookmarked courses into a term. Credits add up toward graduation.</p>
                     </div>
                     <div className={styles.headerActions}>
+                        {cards.length > 0 && (
+                            <button className={styles.exportPdfBtn} onClick={() => setShowExport(true)}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                </svg>
+                                Export PDF
+                            </button>
+                        )}
                         {!isGuest && (
                             <button className={styles.importTranscriptBtn} onClick={() => setShowImport(true)}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1003,6 +1015,17 @@ export default function Dashboard() {
                 startTerm={startTerm}
                 onClose={() => setShowImport(false)}
                 onImportDone={reloadCards}
+            />
+        )}
+
+        {showExport && (
+            <ExportPDFModal
+                cards={cards}
+                startYear={startYear}
+                startTerm={startTerm}
+                creditGoal={creditGoal}
+                email={exportEmail}
+                onClose={() => setShowExport(false)}
             />
         )}
         </>

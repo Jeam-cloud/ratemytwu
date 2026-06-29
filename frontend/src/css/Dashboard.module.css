@@ -57,6 +57,24 @@
 }
 .importTranscriptBtn:hover { background: var(--blue-hover); }
 
+.exportPdfBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.exportPdfBtn:hover { background: var(--cream); border-color: var(--blue); color: var(--blue); }
+
 .title {
     font-family: var(--font-display);
     font-weight: 400;
