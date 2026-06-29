@@ -109,6 +109,11 @@ export default function Dashboard() {
     const [expandedYears, setExpandedYears] = useState(new Set([1]))
     const [summerYears, setSummerYears] = useState(new Set())
     const [showImport, setShowImport] = useState(false)
+    const [creditGoal, setCreditGoal] = useState(() => {
+        const saved = localStorage.getItem("plannerCreditGoal")
+        return saved ? Number(saved) : 122
+    })
+    const [creditGoalDraft, setCreditGoalDraft] = useState(null)
 
     const toggleYear = (yearNum) => {
         setExpandedYears(prev => {
@@ -135,15 +140,15 @@ export default function Dashboard() {
     }
 
     const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
-    const percent = Math.round((totalCredits / 122) * 100)
+    const percent = Math.min(Math.round((totalCredits / creditGoal) * 100), 100)
 
     // per-status credit breakdown for the segmented progress bar
     const completedCredits   = cards.filter(c => c.status === "Completed").reduce((s,c) => s + (c.credits||0), 0)
     const inProgressCredits  = cards.filter(c => c.status === "In Progress").reduce((s,c) => s + (c.credits||0), 0)
     const plannedCredits     = cards.filter(c => c.status === "Planned").reduce((s,c) => s + (c.credits||0), 0)
-    const completedPct       = (completedCredits  / 122) * 100
-    const inProgressPct      = (inProgressCredits / 122) * 100
-    const plannedPct         = (plannedCredits    / 122) * 100
+    const completedPct       = (completedCredits  / creditGoal) * 100
+    const inProgressPct      = (inProgressCredits / creditGoal) * 100
+    const plannedPct         = (plannedCredits    / creditGoal) * 100
 
     // highest year that still has a course — can't shrink below this without orphaning cards
     const maxUsedYear = cards.length ? Math.max(...cards.map(c => c.year)) : 0
@@ -230,6 +235,13 @@ export default function Dashboard() {
     const handleYear = (year) => {
         setYears(year)
         savePlannerSettings(year, startYear, startTerm)
+    }
+
+    const handleCreditGoal = (val) => {
+        const n = Math.max(totalCredits, Math.min(Number(val) || 122, 300))
+        setCreditGoal(n)
+        setCreditGoalDraft(n)
+        localStorage.setItem("plannerCreditGoal", String(n))
     }
 
     // persists the start semester to backend
@@ -438,7 +450,7 @@ export default function Dashboard() {
                             </button>
                         )}
                         {years !== null && (
-                            <button className={styles.editBtn} onClick={() => setEditingYears(true)}>
+                            <button className={styles.editBtn} onClick={() => { setEditingYears(true); setCreditGoalDraft(creditGoal) }}>
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
                                 </svg>
@@ -463,7 +475,7 @@ export default function Dashboard() {
                 <div className={styles.progress}>
                     <div className={styles.progressMeta}>
                         <span className={styles.progressText}>
-                            <strong>{totalCredits}</strong> / 120 credits planned · {percent}% to graduation
+                            <strong>{totalCredits}</strong> / {creditGoal} credits planned · {percent}% to graduation
                         </span>
                         <div className={styles.progressLegend}>
                             <span className={styles.legendItem}>
@@ -488,9 +500,9 @@ export default function Dashboard() {
                         </div>
                         <div className={styles.progressTickRow}>
                             {[30, 60, 90].map(n => (
-                                <span key={n} className={styles.progressTickMark} style={{ left: `${(n/120)*100}%` }}>{n}</span>
+                                <span key={n} className={styles.progressTickMark} style={{ left: `${(n/creditGoal)*100}%` }}>{n}</span>
                             ))}
-                            <span className={styles.progressTickMark} style={{ right: 0, left: "auto", transform: "none" }}>120 · grad</span>
+                            <span className={styles.progressTickMark} style={{ right: 0, left: "auto", transform: "none" }}>{creditGoal} · grad</span>
                         </div>
                     </div>
                 </div>
@@ -936,6 +948,24 @@ export default function Dashboard() {
                                     deleted automatically.
                                 </p>
                             )}
+
+                            <label className={styles.lifespanLabel}>Credit goal</label>
+                            <div className={styles.creditGoalRow}>
+                                <input
+                                    type="number"
+                                    className={styles.creditGoalInput}
+                                    value={creditGoalDraft ?? creditGoal}
+                                    min={totalCredits || 1}
+                                    max={300}
+                                    onChange={(e) => setCreditGoalDraft(e.target.value)}
+                                    onBlur={() => handleCreditGoal(creditGoalDraft)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleCreditGoal(creditGoalDraft)}
+                                />
+                                <span className={styles.creditGoalUnit}>credits to graduate</span>
+                            </div>
+                            <p className={styles.yearNote} style={{ marginTop: 4 }}>
+                                TWU typically requires 122 credits. Check your program requirements.
+                            </p>
                         </div>
                     </div>
                 )}

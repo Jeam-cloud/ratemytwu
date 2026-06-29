@@ -4,6 +4,29 @@ import { API_URL } from "../../config"
 import styles from "../../css/TranscriptImport.module.css"
 
 /**
+ * Determines the effective planner status for an imported course.
+ * Future terms are always "Planned" regardless of what the transcript says.
+ * Term windows: Spring = Jan–Apr, Summer = May–Aug, Fall = Sep–Dec.
+ */
+function getEffectiveStatus(calendarYear, term, transcriptStatus) {
+    const now   = new Date()
+    const month = now.getMonth() + 1     // 1–12
+    const year  = now.getFullYear()
+
+    const TERM_ORD = { Spring: 1, Summer: 2, Fall: 3 }
+    let currentOrd
+    if (month <= 4)       currentOrd = 1  // Spring
+    else if (month <= 8)  currentOrd = 2  // Summer
+    else                  currentOrd = 3  // Fall
+
+    const courseOrd = TERM_ORD[term] ?? 1
+    const isFuture  = calendarYear > year ||
+        (calendarYear === year && courseOrd > currentOrd)
+
+    return isFuture ? "Planned" : transcriptStatus
+}
+
+/**
  * Converts a transcript calendar year + term into the planner's year number.
  *
  * Spring start example (startYear=2024, startTerm="Spring"):
@@ -100,7 +123,7 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
                 year: c.plannerYear,
                 term: c.term,
                 credits: c.credits,
-                status: c.status,
+                status: getEffectiveStatus(c.calendar_year, c.term, c.status),
                 grade: c.grade ?? null,
             }))
 
@@ -224,7 +247,7 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
                                                 <td>Year {c.plannerYear}</td>
                                                 <td>{c.grade ?? "—"}</td>
                                                 <td>{c.credits}</td>
-                                                <td>{statusBadge(c.status)}</td>
+                                                <td>{statusBadge(getEffectiveStatus(c.calendar_year, c.term, c.status))}</td>
                                             </tr>
                                         ))}
                                     </tbody>
