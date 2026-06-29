@@ -105,7 +105,7 @@ export default function TranscriptImportModal({ startYear, startTerm, onClose, o
             }))
 
         try {
-            const res = await fetch(`${API_URL}/board/import`, {
+            const res = await fetch(`${API_URL}/board/bulk-import`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
