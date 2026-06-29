@@ -135,15 +135,15 @@ export default function Dashboard() {
     }
 
     const totalCredits = cards.reduce((sum, card) => sum + (card.credits || 0), 0)
-    const percent = Math.round((totalCredits / 120) * 100)
+    const percent = Math.round((totalCredits / 122) * 100)
 
     // per-status credit breakdown for the segmented progress bar
     const completedCredits   = cards.filter(c => c.status === "Completed").reduce((s,c) => s + (c.credits||0), 0)
     const inProgressCredits  = cards.filter(c => c.status === "In Progress").reduce((s,c) => s + (c.credits||0), 0)
     const plannedCredits     = cards.filter(c => c.status === "Planned").reduce((s,c) => s + (c.credits||0), 0)
-    const completedPct       = (completedCredits  / 120) * 100
-    const inProgressPct      = (inProgressCredits / 120) * 100
-    const plannedPct         = (plannedCredits    / 120) * 100
+    const completedPct       = (completedCredits  / 122) * 100
+    const inProgressPct      = (inProgressCredits / 122) * 100
+    const plannedPct         = (plannedCredits    / 122) * 100
 
     // highest year that still has a course — can't shrink below this without orphaning cards
     const maxUsedYear = cards.length ? Math.max(...cards.map(c => c.year)) : 0
