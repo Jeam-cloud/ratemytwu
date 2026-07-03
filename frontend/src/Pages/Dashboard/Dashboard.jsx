@@ -14,6 +14,9 @@ import DashBoardColumn from "../../components/dashboard-components/DashBoardColu
 import TranscriptImportModal from "../../components/dashboard-components/TranscriptImportModal"
 import ExportPDFModal from "../../components/dashboard-components/ExportPDFModal"
 import TutorialOverlay from "../../components/dashboard-components/TutorialOverlay"
+import ChecklistTab from "../../components/dashboard-components/ChecklistTab"
+import ChecklistImportModal from "../../components/dashboard-components/ChecklistImportModal"
+import { exportChecklistPDF } from "../../utils/checklistExport"
 import styles from "../../css/Dashboard.module.css"
 
 function getInitials(name) {
@@ -111,6 +114,9 @@ export default function Dashboard() {
     const [expandedYears, setExpandedYears] = useState(new Set([1]))
     const [summerYears, setSummerYears] = useState(new Set())
     const [showImport, setShowImport] = useState(false)
+    const [view, setView] = useState("courses")   // "courses" (planner) | "checklist"
+    const [showChecklistImport, setShowChecklistImport] = useState(false)
+    const [checklistVersion, setChecklistVersion] = useState(0)   // bump to remount ChecklistTab after import
     const [showExport, setShowExport] = useState(false)
 
     // ── Tutorial ──────────────────────────────────────────────────────────────
@@ -466,24 +472,62 @@ export default function Dashboard() {
                         </p>
                     </div>
                     <div className={styles.headerActions}>
-                        {cards.length > 0 && (
-                            <button data-tutorial="export-btn" className={styles.exportPdfBtn} onClick={() => setShowExport(true)}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                                </svg>
-                                Export PDF
-                            </button>
-                        )}
-                        {!isGuest && (
-                            <button data-tutorial="import-btn" className={styles.importTranscriptBtn} onClick={() => setShowImport(true)}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
-                                    <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" />
-                                </svg>
-                                Import transcript
-                            </button>
+                        {view === "courses" ? (
+                            <>
+                                {cards.length > 0 && (
+                                    <button data-tutorial="export-btn" className={styles.exportPdfBtn} onClick={() => setShowExport(true)}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                        </svg>
+                                        Export PDF
+                                    </button>
+                                )}
+                                {!isGuest && (
+                                    <button data-tutorial="import-btn" className={styles.importTranscriptBtn} onClick={() => setShowImport(true)}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                                            <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" />
+                                        </svg>
+                                        Import transcript
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <button className={styles.exportPdfBtn} onClick={() => exportChecklistPDF(cards)}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                                    </svg>
+                                    Export PDF
+                                </button>
+                                {!isGuest && (
+                                    <button className={styles.importTranscriptBtn} onClick={() => setShowChecklistImport(true)}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                                            <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" />
+                                        </svg>
+                                        Import checklist
+                                    </button>
+                                )}
+                            </>
                         )}
                     </div>
+                </div>
+
+                {/* ── View switch: planner vs degree checklist ── */}
+                <div className={styles.viewTabs}>
+                    <button
+                        className={view === "courses" ? `${styles.viewTab} ${styles.viewTabOn}` : styles.viewTab}
+                        onClick={() => setView("courses")}
+                    >
+                        My courses
+                    </button>
+                    <button
+                        className={view === "checklist" ? `${styles.viewTab} ${styles.viewTabOn}` : styles.viewTab}
+                        onClick={() => setView("checklist")}
+                    >
+                        My checklist
+                    </button>
                 </div>
 
                 {/* ── Guest banner ── */}
@@ -497,6 +541,13 @@ export default function Dashboard() {
                     </div>
                 )}
 
+                {/* ── Degree checklist view ── */}
+                {view === "checklist" && (
+                    <ChecklistTab key={checklistVersion} cards={cards} />
+                )}
+
+                {/* ── Planner view (default) ── */}
+                {view === "courses" && (<>
                 {/* ── Progress ── */}
                 <div className={styles.progress}>
                     <div className={styles.progressMeta}>
@@ -824,6 +875,7 @@ export default function Dashboard() {
                         )}
                     </section>
                 )}
+                </>)}
 
                 {/* ── Edit review modal ── */}
                 {editingReview && (
@@ -1041,6 +1093,14 @@ export default function Dashboard() {
                 startTerm={startTerm}
                 onClose={() => setShowImport(false)}
                 onImportDone={reloadCards}
+            />
+        )}
+
+        {showChecklistImport && (
+            <ChecklistImportModal
+                cards={cards}
+                onClose={() => setShowChecklistImport(false)}
+                onImported={() => setChecklistVersion(v => v + 1)}
             />
         )}
 

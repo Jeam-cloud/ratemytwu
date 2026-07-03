@@ -1,0 +1,390 @@
+/* Checklist tab — simple drag-and-drop course buckets in TWU checklist style.
+   Uses the global design tokens from tokens.css. */
+
+.checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 60px;
+}
+
+/* ── Section tabs (also drop targets) ── */
+.tabs {
+    display: flex;
+    gap: 8px;
+}
+
+.tab {
+    flex: 1;
+    min-width: 0;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.tabOn { background: var(--navy); border-color: var(--navy); }
+.tabOn .tabLabel, .tabOn .tabFrac { color: var(--white); }
+
+.tabBtn {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 9px 12px;
+    cursor: pointer;
+}
+.tabLabel { font-family: var(--font-sans); font-size: 13px; font-weight: 700; color: var(--ink); }
+.tabFrac  { font-family: var(--font-sans); font-size: 11px; color: var(--ink-3); }
+
+.tabBar {
+    width: 100%;
+    height: 4px;
+    margin-top: 2px;
+    border-radius: 999px;
+    background: var(--cream-deep);
+    overflow: hidden;
+}
+.tabBarFill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--gold);
+    transition: width 0.3s ease;
+}
+.tabOn .tabBar { background: rgba(255, 255, 255, 0.25); }
+
+/* Drop-target highlight */
+.over { outline: 2px dashed var(--blue); outline-offset: 2px; }
+
+/* ── Section table (checklist style) ── */
+.tableWrap {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: var(--surface);
+}
+.table { width: 100%; border-collapse: collapse; }
+
+.table thead th {
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    padding: 9px 14px;
+}
+.thCheck { width: 36px; text-align: center; }
+.thSh { width: 80px; text-align: right; }
+
+.table tbody td {
+    border-bottom: 1px solid var(--border);
+    padding: 9px 14px;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink);
+    vertical-align: middle;
+}
+.table tbody tr:last-child td { border-bottom: none; }
+
+.tdCheck { text-align: center; color: var(--positive); font-weight: 700; }
+.tdSh {
+    text-align: right;
+    color: var(--ink-2);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.remove {
+    border: none;
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    margin-left: 8px;
+}
+.remove:hover { color: var(--negative); }
+
+.emptyRow {
+    text-align: center;
+    color: var(--ink-3);
+    font-style: italic;
+    padding: 22px 14px;
+}
+
+/* ── Pool of unplaced courses ── */
+.pool {
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border-strong);
+    background: var(--cream);
+    padding: 12px 14px;
+}
+.poolHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.poolHead span:first-child { font-family: var(--font-sans); font-size: 13px; font-weight: 700; color: var(--ink); }
+.poolHint { font-family: var(--font-sans); font-size: 11px; color: var(--ink-3); }
+.poolChips { display: flex; flex-wrap: wrap; gap: 8px; min-height: 28px; }
+.poolEmpty { font-family: var(--font-sans); font-size: 13px; color: var(--ink-3); }
+
+/* Pool search filter */
+.poolSearchWrap { position: relative; display: flex; align-items: center; }
+.poolSearch {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px 24px 5px 10px;
+    width: 150px;
+}
+.poolSearch:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.poolSearchClear {
+    position: absolute;
+    right: 6px;
+    border: none;
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+}
+.poolSearchClear:hover { color: var(--negative); }
+
+/* ── Course pill ── */
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px 10px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+.pill:active { cursor: grabbing; }
+.grip { color: var(--ink-3); font-size: 12px; }
+
+.pillGhost {
+    display: inline-flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--blue);
+    border-radius: var(--radius);
+    padding: 5px 10px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue);
+    box-shadow: 0 8px 24px rgba(0, 27, 61, 0.18);
+}
+
+/* ── Core: structured requirement groups ── */
+.core { display: flex; flex-direction: column; gap: 14px; }
+
+.group {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--surface);
+}
+.groupHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--navy);
+    color: var(--white);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 14px;
+}
+.groupProg { font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.8); }
+.groupDone { color: #7CD6A0; }
+.groupNote {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--ink-3);
+    padding: 8px 14px 0;
+}
+.slotList { display: flex; flex-direction: column; }
+
+.slotRow {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+}
+.slotRow:last-child { border-bottom: none; }
+
+.slotStatus {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+.st_done    { background: rgba(46, 125, 85, 0.12); color: var(--positive); }
+.st_sat     { background: var(--blue-tint); color: var(--blue); }
+.st_partial { background: var(--blue-tint); color: var(--blue); }
+.st_empty   { background: var(--cream-deep); color: var(--ink-3); }
+
+.slotMain { flex: 1; min-width: 0; }
+.slotLabel { font-family: var(--font-sans); font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.cap { font-weight: 400; color: var(--ink-3); font-size: 12px; }
+.slotChips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.dropHint { font-family: var(--font-sans); font-size: 12px; color: var(--ink-3); font-style: italic; }
+.satTag { font-family: var(--font-sans); font-size: 12px; font-weight: 600; color: var(--blue); }
+
+.slotSh {
+    flex: none;
+    width: 28px;
+    text-align: right;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-3);
+}
+
+.satBtn {
+    flex: none;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-2);
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.satBtn:hover { border-color: var(--blue); color: var(--blue); }
+.satBtnOn { background: var(--blue-tint); border-color: var(--blue); color: var(--blue); }
+
+/* ── Core sub-sections (header above each drop area) ── */
+.subHead {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    font-style: italic;
+    color: var(--ink-2);
+    background: var(--cream);
+    padding: 7px 14px;
+    border-top: 1px solid var(--border);
+}
+.subCap { font-style: normal; font-weight: 400; color: var(--ink-3); }
+
+/* ── 3-dot row menu (replaces the satisfied button) ── */
+.menuWrap { position: relative; flex: none; }
+.menuBtn {
+    border: 1px solid transparent;
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 17px;
+    line-height: 1;
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+}
+.menuBtn:hover { background: var(--cream); color: var(--ink); }
+.menuBackdrop { position: fixed; inset: 0; z-index: 20; }
+.menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 2px);
+    z-index: 21;
+    min-width: 152px;
+    padding: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+}
+.menuItem {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink);
+    padding: 7px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+.menuItem:hover { background: var(--blue-tint); color: var(--blue); }
+
+/* ── Guided drag / click-to-place ── */
+.slotRow { transition: opacity 0.15s ease, background 0.15s ease; }
+.slotTarget { background: rgba(46, 125, 85, 0.10); box-shadow: inset 0 0 0 2px rgba(46, 125, 85, 0.55); }
+.slotMuted { opacity: 0.4; }
+
+.pillSelected { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue); }
+
+.placingBanner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--blue-tint);
+    border: 1px solid var(--blue);
+    border-radius: var(--radius-md);
+    padding: 9px 13px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--blue);
+}
+.placingCancel {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--blue);
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Course-pill remove button */
+.pillX {
+    border: none;
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    margin-left: 2px;
+}
+.pillX:hover { color: var(--negative); }
+
+@media (max-width: 600px) {
+    .tabLabel { font-size: 12px; }
+    .tabBtn { padding: 8px 9px; }
+    .slotRow { flex-wrap: wrap; }
+    .satBtn { font-size: 10px; padding: 3px 6px; }
+}
