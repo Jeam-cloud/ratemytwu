@@ -74,7 +74,7 @@ def get_department_courses(department_name: str, db:db_dependency):
             Courses.id,
             Courses.code,
             Courses.department,
-            func.count(ProfessorCourse.id).label("professor_count")
+            func.count(func.distinct(ProfessorCourse.professor_id)).label("professor_count")
         )
         .outerjoin(ProfessorCourse, ProfessorCourse.course_id == Courses.id)
         .where(Courses.department.contains(department_name))

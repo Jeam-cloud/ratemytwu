@@ -25,7 +25,7 @@ def get_courses(db: db_dependency, search_course: Optional[str] = None):
             Courses.id,
             Courses.code,
             Courses.department,
-            func.count(ProfessorCourse.id).label("professor_count")
+            func.count(func.distinct(ProfessorCourse.professor_id)).label("professor_count")
         )
         .outerjoin(ProfessorCourse, (ProfessorCourse.course_id == Courses.id) & (ProfessorCourse.semester.in_(ACTIVE_SEMESTERS)))
         .group_by(Courses.id, Courses.code, Courses.department)
@@ -35,7 +35,7 @@ def get_courses(db: db_dependency, search_course: Optional[str] = None):
         base_query = base_query.where(Courses.code.ilike(f"%{search_course.strip()}%"))
 
     courses = db.execute(
-        base_query.order_by(func.count(ProfessorCourse.id).desc())
+        base_query.order_by(func.count(func.distinct(ProfessorCourse.professor_id)).desc())
     ).all()
 
     course_list = []

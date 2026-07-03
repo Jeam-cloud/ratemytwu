@@ -1100,6 +1100,36 @@
 }
 .confirmBtn:hover { background: var(--blue-hover); }
 
+/* ── View switch tabs (planner vs checklist) ── */
+.viewTabs {
+    display: inline-flex;
+    gap: 4px;
+    background: var(--cream-deep);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    margin-bottom: 4px;
+}
+
+.viewTab {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-2);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.viewTab:hover { color: var(--ink); }
+
+.viewTabOn {
+    background: var(--surface);
+    color: var(--navy);
+    box-shadow: var(--shadow-sm);
+}
+
 /* ── Responsive ── */
 @media (max-width: 1000px) {
     .termsThree { grid-template-columns: repeat(2, 1fr); }
