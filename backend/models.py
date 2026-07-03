@@ -107,6 +107,7 @@ class ReviewFlag(Base):
     review_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("reviews.id"), nullable=False, index=True)
     reporter_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     reason: Mapped[str] = mapped_column(String, nullable=False)
+    other_text: Mapped[str | None] = mapped_column(String(30), nullable=True)
     reported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

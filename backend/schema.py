@@ -276,6 +276,7 @@ VALID_FLAG_REASONS = {"Inappropriate", "Fake review", "Personal attack", "Wrong 
 
 class ReviewFlagIn(BaseModel):
     reason: str
+    other_text: str | None = None
 
     @field_validator("reason")
     @classmethod
@@ -284,10 +285,18 @@ class ReviewFlagIn(BaseModel):
             raise ValueError(f"Invalid reason. Must be one of: {', '.join(sorted(VALID_FLAG_REASONS))}")
         return v
 
+    @field_validator("other_text")
+    @classmethod
+    def other_text_valid(cls, v):
+        if v is not None and len(v) > 30:
+            raise ValueError("other_text must be 30 characters or fewer")
+        return v or None
+
 class ReviewFlagOut(BaseModel):
     id: int
     review_id: UUID
     reason: str
+    other_text: str | None = None
     reported_at: datetime
 
     model_config = {"from_attributes": True}

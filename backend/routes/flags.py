@@ -43,6 +43,7 @@ def flag_review(review_id: UUID, body: ReviewFlagIn, db: db_dependency, user_id:
         review_id=review_id,
         reporter_user_id=user_id,
         reason=body.reason,
+        other_text=body.other_text if body.reason == "Other" else None,
     )
 
     db.add(flag)
