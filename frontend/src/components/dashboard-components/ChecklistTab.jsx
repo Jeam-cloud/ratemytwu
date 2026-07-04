@@ -17,8 +17,9 @@ const SECTIONS = [
     { id: "electives", label: "Electives", target: 28 },
 ]
 
-const STORE_KEY = "rmtwu_checklist_v2"
-const MAJOR_KEY = "rmtwu_major"
+const STORE_KEY    = "rmtwu_checklist_v2"
+const MAJOR_KEY    = "rmtwu_major"
+const PROG_KEY     = "rmtwu_major_program"  // explicit fallback for the selected program name
 
 // Flat list of every core slot (groups → subgroups → slots), tagged with its group.
 const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
@@ -52,7 +53,8 @@ async function searchCommunity(query) {
         if (query && query.trim()) q = q.ilike("program", `%${query.trim()}%`)
         const { data, error } = await q
         if (error) return []
-        return data || []
+        // Filter out bad rows where program is just a year/number (no letters)
+        return (data || []).filter(r => /[a-zA-Z]/.test(r.program || ""))
     } catch (_) { return [] }
 }
 
@@ -315,6 +317,10 @@ export default function ChecklistTab({ cards = [] }) {
     const [selectedCode, setSelected]       = useState(null) // click-to-place
     const [query, setQuery]                 = useState("")
     const [majorSearchOpen, setMajorSearchOpen] = useState(false)
+    // Explicit fallback: stores the program name so the bar survives edge-case load paths
+    const [savedMajorName, setSavedMajorName] = useState(() => {
+        try { return localStorage.getItem(PROG_KEY) || "" } catch (_) { return "" }
+    })
 
     // Major selection — drives template-based auto-classification
     const [major, setMajor] = useState(() => {
@@ -335,7 +341,8 @@ export default function ChecklistTab({ cards = [] }) {
     }, [major])
 
     // Human-readable name for the currently active template
-    const currentProgram = template?.program || null
+    // Falls back to savedMajorName so the bar stays closed even if template can't be re-derived
+    const currentProgram = template?.program || savedMajorName || null
 
     // Status map: code → "Completed" | "In Progress" | "Planned"
     // When a course appears multiple times, pick the highest-priority status.
@@ -375,11 +382,15 @@ export default function ChecklistTab({ cards = [] }) {
     const applyMajorItem = useCallback((item) => {
         applyChecklistImport(item, cards)
         try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
+        // Save program name explicitly so the bar stays closed on next page load
+        const progName = item.program || ""
+        try { localStorage.setItem(PROG_KEY, progName) } catch (_) {}
         try {
             const raw = localStorage.getItem(STORE_KEY)
             if (raw) { const o = JSON.parse(raw); setPlacements(o.placements || {}) }
         } catch (_) {}
         setMajor("")
+        setSavedMajorName(progName)
         setMajorSearchOpen(false)
     }, [cards])
 

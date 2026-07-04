@@ -15,6 +15,9 @@ function normProgram(s) {
 
 async function publishToDb(template) {
     try {
+        const prog = normProgram(template.program)
+        // Skip if program name looks like just a year or has no letters
+        if (!prog || !/[a-zA-Z]/.test(prog)) return
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
         await supabase.from("program_checklists").upsert({
