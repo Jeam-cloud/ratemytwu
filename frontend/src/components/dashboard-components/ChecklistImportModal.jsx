@@ -219,7 +219,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                             {/* ── PDF upload ── */}
                             {library.length === 0 && (
                                 <p className={styles.hint} style={{ marginBottom: 12 }}>
-                                    Upload your major checklist PDF from <strong>twu.ca/advising</strong> to auto-sort your courses.
+                                    Upload your major checklist PDF to auto-sort your courses.
                                 </p>
                             )}
                             <div
@@ -242,7 +242,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                             >
                                 {step === "parsing"
                                     ? "Reading your checklist…"
-                                    : <><strong>Upload checklist PDF</strong><br />from twu.ca/advising</>}
+                                    : <><strong>Upload checklist PDF</strong></>}
                                 <input
                                     ref={fileRef}
                                     type="file"
