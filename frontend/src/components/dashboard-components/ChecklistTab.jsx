@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import {
     DndContext, DragOverlay, PointerSensor, TouchSensor,
     useSensor, useSensors, useDraggable, useDroppable,
 } from "@dnd-kit/core"
 import { CORE_GROUPS } from "../../data/coreChecklist"
-import { MAJOR_TEMPLATES } from "../../data/majorTemplates"
-import { classifyCourse } from "../../utils/checklistImport"
+import { MAJOR_TEMPLATES, MAJOR_OPTIONS } from "../../data/majorTemplates"
+import { classifyCourse, applyChecklistImport } from "../../utils/checklistImport"
 import styles from "../../css/ChecklistTab.module.css"
+import { supabase } from "../../supabaseClient"
 
 // Four buckets every checklist has. Targets are just the bar denominators.
 const SECTIONS = [
@@ -24,6 +25,178 @@ const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
     g.subgroups.flatMap(sg => sg.slots.map(s => ({ ...s, groupId: g.id })))
 )
 const isCoreSlot = id => CORE_SLOTS.some(s => s.id === id)
+
+const LIBRARY_KEY = "rmtwu_checklist_library"
+
+// ── Community DB helpers ─────────────────────────────────────────────────────
+function readLocalLibrary() {
+    try {
+        const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
+        for (const opt of MAJOR_OPTIONS) {
+            const tpl = MAJOR_TEMPLATES[opt.key]
+            if (!tpl) continue
+            if (!lib.some(t => (t.program || "").toLowerCase() === (tpl.program || "").toLowerCase()))
+                lib.push(tpl)
+        }
+        return lib
+    } catch (_) { return [] }
+}
+
+async function searchCommunity(query) {
+    try {
+        let q = supabase
+            .from("program_checklists")
+            .select("program, calendar_year, total_credits, sections, uploaded_at")
+            .order("uploaded_at", { ascending: false })
+            .limit(50)
+        if (query && query.trim()) q = q.ilike("program", `%${query.trim()}%`)
+        const { data, error } = await q
+        if (error) return []
+        return data || []
+    } catch (_) { return [] }
+}
+
+function dbRowToTemplate(row) {
+    return {
+        program: row.program,
+        calendarYear: row.calendar_year || undefined,
+        totalCredits: row.total_credits || undefined,
+        sections: row.sections,
+    }
+}
+
+// ── Inline major search dropdown ──────────────────────────────────────────────
+function MajorSearch({ onSelect, onClose }) {
+    const [query, setQuery]       = useState("")
+    const [results, setResults]   = useState([])
+    const [loading, setLoading]   = useState(true)
+    const inputRef  = useRef(null)
+    const wrapRef   = useRef(null)
+    const timerRef  = useRef(null)
+    const localLib  = useMemo(() => readLocalLibrary(), [])
+
+    const fetch = useCallback(async (q) => {
+        setLoading(true)
+        const rows = await searchCommunity(q)
+        setResults(rows)
+        setLoading(false)
+    }, [])
+
+    useEffect(() => {
+        fetch("")
+        setTimeout(() => inputRef.current?.focus(), 30)
+    }, [fetch])
+
+    useEffect(() => {
+        const handler = (e) => {
+            if (wrapRef.current && !wrapRef.current.contains(e.target)) onClose()
+        }
+        document.addEventListener("mousedown", handler)
+        return () => document.removeEventListener("mousedown", handler)
+    }, [onClose])
+
+    const handleChange = (e) => {
+        const val = e.target.value
+        setQuery(val)
+        clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => fetch(val), 280)
+    }
+
+    // Merge DB results + local-only built-ins not yet in DB
+    const dbItems = results.map(r => ({ ...dbRowToTemplate(r), _community: true }))
+    const localOnly = localLib.filter(
+        l => !results.some(r => r.program.toLowerCase() === (l.program || "").toLowerCase())
+    )
+    const filteredLocal = query.trim()
+        ? localOnly.filter(l => (l.program || "").toLowerCase().includes(query.trim().toLowerCase()))
+        : localOnly
+    const merged = [...dbItems, ...filteredLocal]
+
+    return (
+        <div ref={wrapRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
+            <div style={{ position: "relative" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--ink-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={handleChange}
+                    placeholder="Search your major…"
+                    onKeyDown={e => e.key === "Escape" && onClose()}
+                    style={{
+                        width: "100%", boxSizing: "border-box",
+                        paddingLeft: 30, paddingRight: 10, paddingTop: 6, paddingBottom: 6,
+                        border: "1px solid var(--blue)",
+                        borderRadius: 8,
+                        background: "var(--surface)",
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 13,
+                        color: "var(--ink)",
+                        outline: "none",
+                        boxShadow: "0 0 0 3px var(--focus-ring)",
+                    }}
+                />
+            </div>
+
+            {/* Dropdown */}
+            <div style={{
+                position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.13)",
+                zIndex: 200,
+                maxHeight: 220,
+                overflowY: "auto",
+            }}>
+                {loading && results.length === 0 && (
+                    <div style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--ink-3)", padding: "12px 14px" }}>
+                        Loading…
+                    </div>
+                )}
+                {!loading && merged.length === 0 && (
+                    <div style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--ink-3)", padding: "12px 14px" }}>
+                        No results — upload a checklist PDF via "Import checklist"
+                    </div>
+                )}
+                {merged.map((item, i) => (
+                    <button
+                        key={`${item.program}-${item.calendarYear || i}`}
+                        onMouseDown={e => { e.preventDefault(); onSelect(item) }}
+                        style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            width: "100%", padding: "10px 14px",
+                            border: "none", borderBottom: "1px solid var(--border)",
+                            background: "none", cursor: "pointer",
+                            fontFamily: "var(--font-sans)", textAlign: "left",
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = "var(--cream)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "none"}
+                    >
+                        <div>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: "var(--ink)" }}>{item.program}</div>
+                            {(item.calendarYear || item.totalCredits) && (
+                                <div style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 1 }}>
+                                    {item.calendarYear}{item.totalCredits ? ` · ${item.totalCredits} s.h.` : ""}
+                                </div>
+                            )}
+                        </div>
+                        {item._community && (
+                            <span style={{
+                                fontSize: 10, color: "var(--blue)", background: "var(--blue-tint)",
+                                borderRadius: 4, padding: "2px 6px", fontWeight: 600, whiteSpace: "nowrap",
+                            }}>community</span>
+                        )}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+}
 
 // ── Draggable course pill ─────────────────────────────────────────────────────
 function CoursePill({ code, where, onRemove, onSelect, selected, status }) {
@@ -135,12 +308,13 @@ function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onR
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function ChecklistTab({ cards = [] }) {
-    const [tab, setTab]               = useState("core")
-    const [placements, setPlacements] = useState({}) // code -> slotId | sectionId | "pool"
-    const [satisfied, setSatisfied]   = useState({}) // slotId -> true
-    const [dragCode, setDragCode]     = useState(null)
-    const [selectedCode, setSelected] = useState(null) // click-to-place
-    const [query, setQuery]           = useState("")
+    const [tab, setTab]                     = useState("core")
+    const [placements, setPlacements]       = useState({}) // code -> slotId | sectionId | "pool"
+    const [satisfied, setSatisfied]         = useState({}) // slotId -> true
+    const [dragCode, setDragCode]           = useState(null)
+    const [selectedCode, setSelected]       = useState(null) // click-to-place
+    const [query, setQuery]                 = useState("")
+    const [majorSearchOpen, setMajorSearchOpen] = useState(false)
 
     // Major selection — drives template-based auto-classification
     const [major, setMajor] = useState(() => {
@@ -196,6 +370,18 @@ export default function ChecklistTab({ cards = [] }) {
             localStorage.setItem(STORE_KEY, JSON.stringify({ ...prev, placements, satisfied }))
         } catch (_) {}
     }, [placements, satisfied])
+
+    // Apply a major template selected from the inline search
+    const applyMajorItem = useCallback((item) => {
+        applyChecklistImport(item, cards)
+        try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
+        try {
+            const raw = localStorage.getItem(STORE_KEY)
+            if (raw) { const o = JSON.parse(raw); setPlacements(o.placements || {}) }
+        } catch (_) {}
+        setMajor("")
+        setMajorSearchOpen(false)
+    }, [cards])
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -330,17 +516,38 @@ export default function ChecklistTab({ cards = [] }) {
                 {/* ── Major status bar ── */}
                 <div className={styles.majorBar}>
                     <span className={styles.majorLabel}>Major</span>
-                    {currentProgram ? (
+                    {majorSearchOpen ? (
+                        <MajorSearch
+                            onSelect={applyMajorItem}
+                            onClose={() => setMajorSearchOpen(false)}
+                        />
+                    ) : currentProgram ? (
                         <>
                             <span className={styles.majorName}>{currentProgram}</span>
                             {template?.calendarYear && (
                                 <span className={styles.majorBadge}>{template.calendarYear}</span>
                             )}
+                            <button
+                                onClick={() => setMajorSearchOpen(true)}
+                                style={{
+                                    marginLeft: "auto", fontFamily: "var(--font-sans)",
+                                    fontSize: 12, color: "var(--blue)", background: "none",
+                                    border: "none", cursor: "pointer", padding: 0,
+                                }}
+                            >Change</button>
                         </>
                     ) : (
-                        <span className={styles.majorHint}>
-                            Not set — click <strong>Import checklist</strong> above to auto-sort your courses
-                        </span>
+                        <button
+                            onClick={() => setMajorSearchOpen(true)}
+                            style={{
+                                fontFamily: "var(--font-sans)", fontSize: 13,
+                                color: "var(--blue)", background: "none",
+                                border: "none", cursor: "pointer", padding: 0,
+                                textDecoration: "underline", textDecorationStyle: "dotted",
+                            }}
+                        >
+                            Search your major to auto-sort courses →
+                        </button>
                     )}
                 </div>
 
