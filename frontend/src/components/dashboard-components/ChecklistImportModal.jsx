@@ -2,11 +2,16 @@ import { useState, useRef } from "react"
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
 import { applyChecklistImport, previewCounts } from "../../utils/checklistImport"
+import { MAJOR_OPTIONS, MAJOR_TEMPLATES } from "../../data/majorTemplates"
 import styles from "../../css/ExportPDF.module.css"
 
+const STORE_KEY = "rmtwu_checklist_v2"
+const MAJOR_KEY = "rmtwu_major"
+
 /**
- * Upload a TWU program checklist PDF → parse it on the backend → preview how the
- * planner courses will sort → apply (writes the sorted layout the checklist reads).
+ * "Set up checklist" modal — two paths:
+ *   1. Pick a built-in template (instant, no backend needed)
+ *   2. Upload a PDF for majors not yet in the built-in list
  */
 export default function ChecklistImportModal({ cards = [], onClose, onImported }) {
     const fileRef = useRef(null)
@@ -15,6 +20,19 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
     const [error, setError] = useState("")
     const [parsed, setParsed] = useState(null)
 
+    // ── Path 1: built-in template ──────────────────────────────────────────
+    const applyBuiltin = (key) => {
+        try {
+            localStorage.setItem(MAJOR_KEY, key)
+            const raw = localStorage.getItem(STORE_KEY)
+            const o = raw ? JSON.parse(raw) : {}
+            localStorage.setItem(STORE_KEY, JSON.stringify({ ...o, placements: {} }))
+        } catch (_) {}
+        onImported?.()
+        onClose()
+    }
+
+    // ── Path 2: PDF upload ─────────────────────────────────────────────────
     const processFile = async (file) => {
         if (!file || file.type !== "application/pdf") { setError("Please choose a PDF file."); return }
         setError(""); setStep("parsing")
@@ -47,8 +65,10 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
         processFile(e.dataTransfer.files?.[0])
     }
 
-    const apply = () => {
+    const applyParsed = () => {
         applyChecklistImport(parsed, cards)
+        // Also clear the major key so the built-in template doesn't override
+        try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
         onImported?.()
         onClose()
     }
@@ -61,7 +81,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
         <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
             <div className={styles.modal}>
                 <div className={styles.head}>
-                    <h2 className={styles.title}>Import checklist</h2>
+                    <h2 className={styles.title}>Set up checklist</h2>
                     <button className={styles.close} onClick={onClose} aria-label="Close">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M18 6 6 18M6 6l12 12" />
@@ -72,10 +92,59 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 <div className={styles.body}>
                     {step !== "preview" ? (
                         <>
-                            <p className={styles.hint}>
-                                Drop your program checklist PDF (from twu.ca/advising). We&apos;ll read its
-                                requirements and sort your planner courses into Core, Major, Ancillary and Electives.
+                            {/* ── Built-in templates ── */}
+                            <p className={styles.hint} style={{ marginBottom: 10 }}>
+                                Pick your major to instantly sort your courses:
                             </p>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                                {MAJOR_OPTIONS.map(o => {
+                                    const tpl = MAJOR_TEMPLATES[o.key]
+                                    return (
+                                        <button
+                                            key={o.key}
+                                            onClick={() => applyBuiltin(o.key)}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                border: "1px solid var(--border)",
+                                                borderRadius: 10,
+                                                padding: "13px 16px",
+                                                background: "var(--surface)",
+                                                cursor: "pointer",
+                                                fontFamily: "var(--font-sans)",
+                                                textAlign: "left",
+                                                transition: "border-color 0.15s, box-shadow 0.15s",
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--blue)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--focus-ring)" }}
+                                            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none" }}
+                                        >
+                                            <div>
+                                                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{o.label}</div>
+                                                {tpl?.calendarYear && (
+                                                    <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+                                                        {tpl.calendarYear} · {tpl.totalCredits} s.h.
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="m9 18 6-6-6-6" />
+                                            </svg>
+                                        </button>
+                                    )
+                                })}
+                            </div>
+
+                            {/* ── Divider ── */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                                <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>
+                                    my major isn't listed
+                                </span>
+                                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                            </div>
+
+                            {/* ── PDF upload fallback ── */}
                             <div
                                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
                                 onDragLeave={() => setDragging(false)}
@@ -84,18 +153,19 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                                 style={{
                                     border: `2px dashed ${dragging ? "var(--blue)" : "var(--border-strong)"}`,
                                     borderRadius: 12,
-                                    padding: "36px 20px",
+                                    padding: "24px 20px",
                                     textAlign: "center",
                                     cursor: "pointer",
                                     background: dragging ? "var(--blue-tint)" : "var(--cream)",
                                     color: "var(--ink-2)",
                                     fontFamily: "var(--font-sans)",
-                                    fontSize: 14,
+                                    fontSize: 13,
+                                    transition: "border-color 0.15s, background 0.15s",
                                 }}
                             >
                                 {step === "parsing"
                                     ? "Reading your checklist…"
-                                    : <><strong>Choose or drop a PDF</strong><br />checklist for your major</>}
+                                    : <><strong>Upload checklist PDF</strong><br />from twu.ca/advising</>}
                                 <input
                                     ref={fileRef}
                                     type="file"
@@ -104,7 +174,11 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                                     onChange={e => processFile(e.target.files?.[0])}
                                 />
                             </div>
-                            {error && <p style={{ color: "var(--negative)", fontSize: 13, marginTop: 12, fontFamily: "var(--font-sans)" }}>{error}</p>}
+                            {error && (
+                                <p style={{ color: "var(--negative)", fontSize: 13, marginTop: 10, fontFamily: "var(--font-sans)" }}>
+                                    {error}
+                                </p>
+                            )}
                         </>
                     ) : (
                         <>
@@ -136,7 +210,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 <div className={styles.footer}>
                     <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
                     {step === "preview" && (
-                        <button className={styles.exportBtn} onClick={apply}>
+                        <button className={styles.exportBtn} onClick={applyParsed}>
                             Sort my courses
                         </button>
                     )}
