@@ -2,6 +2,7 @@ import { useState, useRef } from "react"
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
 import { applyChecklistImport, previewCounts } from "../../utils/checklistImport"
+import { MAJOR_TEMPLATES, MAJOR_OPTIONS } from "../../data/majorTemplates"
 import styles from "../../css/ExportPDF.module.css"
 
 const STORE_KEY   = "rmtwu_checklist_v2"
