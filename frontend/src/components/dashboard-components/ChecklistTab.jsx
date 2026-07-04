@@ -189,7 +189,12 @@ export default function ChecklistTab({ cards = [] }) {
         } catch (_) {}
     }, [])
     useEffect(() => {
-        try { localStorage.setItem(STORE_KEY, JSON.stringify({ placements, satisfied })) } catch (_) {}
+        try {
+            // Preserve any other keys (e.g. template) already in the store
+            const existing = localStorage.getItem(STORE_KEY)
+            const prev = existing ? JSON.parse(existing) : {}
+            localStorage.setItem(STORE_KEY, JSON.stringify({ ...prev, placements, satisfied }))
+        } catch (_) {}
     }, [placements, satisfied])
 
     const sensors = useSensors(
