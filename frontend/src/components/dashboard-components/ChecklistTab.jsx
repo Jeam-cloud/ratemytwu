@@ -516,12 +516,12 @@ export default function ChecklistTab({ cards = [] }) {
                 {/* ── Major status bar ── */}
                 <div className={styles.majorBar}>
                     <span className={styles.majorLabel}>Major</span>
-                    {majorSearchOpen ? (
+                    {(majorSearchOpen || !currentProgram) ? (
                         <MajorSearch
                             onSelect={applyMajorItem}
                             onClose={() => setMajorSearchOpen(false)}
                         />
-                    ) : currentProgram ? (
+                    ) : (
                         <>
                             <span className={styles.majorName}>{currentProgram}</span>
                             {template?.calendarYear && (
@@ -536,18 +536,6 @@ export default function ChecklistTab({ cards = [] }) {
                                 }}
                             >Change</button>
                         </>
-                    ) : (
-                        <button
-                            onClick={() => setMajorSearchOpen(true)}
-                            style={{
-                                fontFamily: "var(--font-sans)", fontSize: 13,
-                                color: "var(--blue)", background: "none",
-                                border: "none", cursor: "pointer", padding: 0,
-                                textDecoration: "underline", textDecorationStyle: "dotted",
-                            }}
-                        >
-                            Search your major to auto-sort courses →
-                        </button>
                     )}
                 </div>
 
