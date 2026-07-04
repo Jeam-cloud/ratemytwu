@@ -40,7 +40,7 @@ _TAIL_RE = re.compile(
 
 
 def _extract_pages(reader) -> list[str]:
-    """Return per-page text, preferring layout mode for table PDFs."""
+    """Return per-page text, preferring layout mode for table PDFs (transcripts)."""
     lines = []
     for page in reader.pages:
         text = ""
@@ -52,6 +52,47 @@ def _extract_pages(reader) -> list[str]:
             text = page.extract_text() or ""
         lines.extend(text.splitlines())
     return lines
+
+
+def _extract_checklist_pages(reader) -> list[str]:
+    """
+    For checklist PDFs, default extraction is more reliable than layout mode.
+    Layout mode can garble multi-column checklist tables, splitting course codes
+    across lines or adding extra spaces that break regex matching.
+    We try default first; if it yields no course codes we fall back to layout mode.
+    """
+    from collections import Counter
+
+    def pages_text(mode=None):
+        lines = []
+        for page in reader.pages:
+            try:
+                text = (page.extract_text(extraction_mode=mode) if mode
+                        else page.extract_text()) or ""
+            except Exception:
+                text = ""
+            if not text.strip():
+                try:
+                    text = page.extract_text() or ""
+                except Exception:
+                    text = ""
+            lines.extend(text.splitlines())
+        return lines
+
+    default_lines = pages_text()
+    default_text  = "\n".join(default_lines)
+    code_count    = len(_CK_CODE.findall(default_text))
+
+    # If default mode finds reasonable course codes, use it
+    if code_count >= 3:
+        return default_lines
+
+    # Otherwise fall back to layout mode
+    layout_lines = pages_text("layout")
+    layout_text  = "\n".join(layout_lines)
+    if len(_CK_CODE.findall(layout_text)) > code_count:
+        return layout_lines
+    return default_lines
 
 
 @router.post("/parse-transcript")
@@ -180,7 +221,7 @@ _SH_HDR = re.compile(
     r'\s*\((\d+)\s*s\.h\.',            # (N s.h.
     re.MULTILINE,
 )
-_CK_CODE = re.compile(r'\b([A-Z]{2,4})\s+(\d{3})[A-Z]?\b')
+_CK_CODE = re.compile(r'\b([A-Z]{2,5})\s+(\d{3})[A-Z]?\b')
 
 # Core prefixes TWU always puts in section 1 — never treat as major courses
 _CORE_PREFIXES = {"ENGL", "FNDN", "RELS", "PHIL", "BIOL", "CHEM",
@@ -243,13 +284,27 @@ def _infer_sections_from_codes(text: str, program: str) -> list[dict]:
         if guessed_prefix:
             break
 
+    # Fallback: when name-guessing fails (e.g. "Computing Science" → "CMPT" can't
+    # be guessed from "COMP"), use the most common non-core prefix in the document.
+    if guessed_prefix is None:
+        from collections import Counter
+        non_core_prefixes = [c.split()[0] for c in all_codes
+                             if c.split()[0] not in _CORE_PREFIXES]
+        if non_core_prefixes:
+            freq = Counter(non_core_prefixes)
+            top_prefix, top_count = freq.most_common(1)[0]
+            # Only treat it as "major" if it accounts for ≥40% of non-core codes
+            # (avoids false positives when codes are evenly spread across prefixes)
+            if top_count / len(non_core_prefixes) >= 0.40:
+                guessed_prefix = top_prefix
+
     major_codes = []
     ancillary_codes = []
     for code in all_codes:
         prefix = code.split()[0]
         if prefix in _CORE_PREFIXES:
             continue
-        if guessed_prefix and prefix.startswith(guessed_prefix):
+        if guessed_prefix and prefix == guessed_prefix:
             major_codes.append(code)
         else:
             ancillary_codes.append(code)
@@ -365,6 +420,26 @@ def _parse_checklist(text: str) -> dict:
     return out
 
 
+@router.post("/debug-checklist")
+async def debug_checklist(file: UploadFile = File(...)):
+    """Returns raw extracted text + found codes — use to diagnose parser failures."""
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        raise HTTPException(status_code=500, detail="pypdf not installed")
+    content = await file.read()
+    try:
+        reader = PdfReader(io.BytesIO(content))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not read PDF")
+
+    lines   = _extract_checklist_pages(reader)
+    text    = "\n".join(lines)
+    codes   = _codes_in(text)
+    hdrs    = [m.group(0)[:80] for m in _SH_HDR.finditer(_preprocess(text))]
+    return {"lines": lines[:200], "codes_found": codes, "section_headers": hdrs}
+
+
 @router.post("/parse-checklist")
 async def parse_checklist(file: UploadFile = File(...)):
     """
@@ -386,7 +461,7 @@ async def parse_checklist(file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read PDF")
 
-    parsed = _parse_checklist("\n".join(_extract_pages(reader)))
+    parsed = _parse_checklist("\n".join(_extract_checklist_pages(reader)))
 
     if not any(s["key"] in ("major", "ancillary") for s in parsed["sections"]):
         raise HTTPException(status_code=422, detail="Couldn't find requirement sections in this PDF")
