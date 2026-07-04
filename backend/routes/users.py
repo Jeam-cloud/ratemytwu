@@ -168,18 +168,50 @@ async def debug_transcript(file: UploadFile = File(...)):
 # Turns a TWU program checklist into structured requirements. Context-aware so
 # codes inside a "Choose from: …" clause land in `choose`, not `required`.
 #
-# The TWU PDF uses complex 2-column table layouts that pypdf can extract
-# inconsistently, so the regex is intentionally loose:
-#   - No line-start anchor (section numbers may be mid-extracted-line)
-#   - Allows colons, hyphens, dots in title
-#   - 1-4 spaces after the dot
+# TWU checklist PDFs use a 2-column table layout. pypdf's layout-mode
+# extraction sometimes:
+#   (a) wraps a section header across two lines, splitting the title from "(N s.h.*)"
+#   (b) adds inconsistent whitespace after the section number dot
+# _preprocess() fixes (a) before the regex runs.
+
 _SH_HDR = re.compile(
-    r'(?:^|\n)\s{0,6}(\d)\s*[.]\s{1,4}'   # digit + dot + small gap
-    r'([A-Za-z][^(\n]{4,70}?)'             # title: any chars except ( and newline
-    r'\s*\((\d+)\s*s\.h\.',                # (N s.h.
+    r'(?:^|\n)\s{0,8}(\d)\s*[.]\s+'   # digit + dot + any whitespace
+    r'([A-Za-z][^(\n]{3,80}?)'         # title: non-greedy, up to 81 chars
+    r'\s*\((\d+)\s*s\.h\.',            # (N s.h.
     re.MULTILINE,
 )
 _CK_CODE = re.compile(r'\b([A-Z]{2,4})\s+(\d{3})[A-Z]?\b')
+
+# Core prefixes TWU always puts in section 1 — never treat as major courses
+_CORE_PREFIXES = {"ENGL", "FNDN", "RELS", "PHIL", "BIOL", "CHEM",
+                  "GENV", "GEOL", "PHYS", "ART", "MUSI", "THTR",
+                  "ANTH", "HIST", "SOCI", "POLS", "MCOM", "PSYC",
+                  "LING", "ECON", "NURS", "HKIN", "SAMC", "IDIS", "GREE", "HEBR"}
+
+
+def _preprocess(text: str) -> str:
+    """
+    pypdf layout mode sometimes wraps TWU section headers like:
+        "2.  Required English Courses\n(42 s.h.*)"
+    Join any line that looks like a section-number start but has no '(' yet
+    with the next line when that next line contains 's.h'.
+    """
+    lines = text.splitlines()
+    out = []
+    i = 0
+    while i < len(lines):
+        cur = lines[i]
+        if (re.match(r'^\s{0,8}\d\s*[.]\s', cur)
+                and 's.h' not in cur
+                and '(' not in cur
+                and i + 1 < len(lines)
+                and 's.h' in lines[i + 1]):
+            out.append(cur.rstrip() + ' ' + lines[i + 1].strip())
+            i += 2
+        else:
+            out.append(cur)
+            i += 1
+    return '\n'.join(out)
 
 
 def _codes_in(s: str) -> list[str]:
@@ -187,10 +219,70 @@ def _codes_in(s: str) -> list[str]:
     return list(dict.fromkeys(f"{m.group(1)} {m.group(2)}" for m in _CK_CODE.finditer(s)))
 
 
+def _infer_sections_from_codes(text: str, program: str) -> list[dict]:
+    """
+    Last-resort fallback: if the section-header regex finds nothing, scan the
+    full PDF text for course codes and infer sections from their prefixes.
+    Courses whose prefix matches the likely major prefix go to 'major';
+    everything else (that isn't a known core course) goes to 'electives'.
+    """
+    all_codes = _codes_in(text)
+    if not all_codes:
+        return []
+
+    # Guess major prefix from program name (e.g. "English" → "ENGL")
+    # Try 4-letter abbreviation first, then 3-letter, then 2-letter
+    prog_words = (program or "").upper().split()
+    guessed_prefix = None
+    for word in prog_words:
+        for length in (4, 3, 2):
+            candidate = word[:length]
+            if any(c.startswith(candidate) for c in all_codes) and candidate not in _CORE_PREFIXES:
+                guessed_prefix = candidate
+                break
+        if guessed_prefix:
+            break
+
+    major_codes = []
+    ancillary_codes = []
+    for code in all_codes:
+        prefix = code.split()[0]
+        if prefix in _CORE_PREFIXES:
+            continue
+        if guessed_prefix and prefix.startswith(guessed_prefix):
+            major_codes.append(code)
+        else:
+            ancillary_codes.append(code)
+
+    sections = []
+    if major_codes:
+        sections.append({
+            "key": "major",
+            "title": f"Required {program or 'Major'} Courses",
+            "credits": len(major_codes) * 3,
+            "required": major_codes,
+            "choose": [],
+            "electivePrefix": guessed_prefix,
+            "electiveMinLevel": 130,
+            "blankSlots": 0,
+            "_inferred": True,
+        })
+    if ancillary_codes:
+        sections.append({
+            "key": "ancillary",
+            "title": "Ancillary Requirements",
+            "credits": len(ancillary_codes) * 3,
+            "required": ancillary_codes,
+        })
+    return sections
+
+
 def _parse_checklist(text: str) -> dict:
+    text = _preprocess(text)   # fix wrapped section headers before any regex
+
     out = {"program": None, "calendarYear": None, "totalCredits": None, "sections": []}
 
-    pm = re.search(r'([A-Z][A-Za-z ]+?)\s+MAJOR CHECKLIST\s*\((\d+)\s*s\.h', text)
+    pm = re.search(r'([A-Z][A-Za-z &]+?)\s+MAJOR CHECKLIST\s*\((\d+)\s*s\.h', text)
     if pm:
         out["program"] = pm.group(1).title().strip()
         out["totalCredits"] = int(pm.group(2))
@@ -241,10 +333,7 @@ def _parse_checklist(text: str) -> dict:
 
         out["sections"].append(sec)
 
-    # ── Fallback: known program → hardcoded template ──────────────────────
-    # pypdf can't always parse the multi-column table layout cleanly.
-    # If we detected the program name but found no major/ancillary sections,
-    # return the known template rather than failing.
+    # ── Fallback 1: well-known programs → exact hardcoded template ───────
     if out["program"] and not any(s["key"] in ("major", "ancillary") for s in out["sections"]):
         prog = out["program"].lower()
         if "computing science" in prog or "computer science" in prog:
@@ -266,6 +355,12 @@ def _parse_checklist(text: str) -> dict:
                     "required": ["MATH 123", "MATH 124", "NATS 483"],
                 },
             ]
+
+    # ── Fallback 2: any other program → infer from course codes in the PDF ─
+    if not any(s["key"] in ("major", "ancillary") for s in out["sections"]):
+        inferred = _infer_sections_from_codes(text, out.get("program") or "")
+        if inferred:
+            out["sections"] = inferred
 
     return out
 
