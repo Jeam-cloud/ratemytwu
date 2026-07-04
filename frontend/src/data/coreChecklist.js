@@ -24,9 +24,9 @@ export const CORE_GROUPS = [
       {
         title: "Foundations",
         slots: [
-          { id: "fndn-101", label: "FNDN 101", capacity: 1, credits: 1, eligible: ["FNDN 101"] },
-          { id: "fndn-102", label: "FNDN 102", capacity: 1, credits: 3, eligible: ["FNDN 102"] },
-          { id: "fndn-201", label: "FNDN 201", capacity: 1, credits: 3, eligible: ["FNDN 201"] },
+          { id: "fndn", capacity: 3, credits: 7, caption: "all required",
+            hint: "FNDN 101, 102, and 201",
+            eligible: ["FNDN 101", "FNDN 102", "FNDN 201"] },
         ],
       },
       {
@@ -38,9 +38,9 @@ export const CORE_GROUPS = [
       {
         title: "Religious & Spiritual Thought",
         slots: [
-          { id: "rels-intro", label: "RELS 110 or 160", capacity: 1, credits: 3, eligible: ["RELS 110", "RELS 160"] },
-          { id: "rels-111", label: "RELS 111", capacity: 1, credits: 3, eligible: ["RELS 111"] },
-          { id: "rels-112", label: "RELS 112", capacity: 1, credits: 3, eligible: ["RELS 112"] },
+          { id: "rels", capacity: 3, credits: 9, caption: "all required",
+            hint: "RELS 110/160, 111, and 112",
+            eligible: ["RELS 110", "RELS 160", "RELS 111", "RELS 112"] },
         ],
       },
       {

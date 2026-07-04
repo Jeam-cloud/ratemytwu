@@ -2,37 +2,73 @@ import { useState, useRef } from "react"
 import { supabase } from "../../supabaseClient"
 import { API_URL } from "../../config"
 import { applyChecklistImport, previewCounts } from "../../utils/checklistImport"
-import { MAJOR_OPTIONS, MAJOR_TEMPLATES } from "../../data/majorTemplates"
 import styles from "../../css/ExportPDF.module.css"
 
-const STORE_KEY = "rmtwu_checklist_v2"
-const MAJOR_KEY = "rmtwu_major"
+const STORE_KEY   = "rmtwu_checklist_v2"
+const MAJOR_KEY   = "rmtwu_major"
+const LIBRARY_KEY = "rmtwu_checklist_library"
+
+// ── Tiny library helpers ──────────────────────────────────────────────────────
+function readLibrary() {
+    try {
+        const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
+        // One-time migration: if an existing imported template isn't in the library yet, add it
+        try {
+            const stored = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")
+            if (stored.template?.program) {
+                const prog = stored.template.program.toLowerCase()
+                if (!lib.some(t => (t.program || "").toLowerCase() === prog)) {
+                    const migrated = [stored.template, ...lib]
+                    localStorage.setItem(LIBRARY_KEY, JSON.stringify(migrated))
+                    return migrated
+                }
+            }
+        } catch (_) {}
+        return lib
+    } catch (_) { return [] }
+}
+function saveToLibrary(template) {
+    try {
+        const lib = readLibrary()
+        // Deduplicate by program name (case-insensitive); newest import wins
+        const filtered = lib.filter(
+            t => (t.program || "").toLowerCase() !== (template.program || "").toLowerCase()
+        )
+        localStorage.setItem(LIBRARY_KEY, JSON.stringify([template, ...filtered]))
+    } catch (_) {}
+}
 
 /**
  * "Set up checklist" modal — two paths:
- *   1. Pick a built-in template (instant, no backend needed)
- *   2. Upload a PDF for majors not yet in the built-in list
+ *   1. Pick from your saved library (built up from prior PDF uploads)
+ *   2. Upload a new PDF to parse & add to the library
  */
 export default function ChecklistImportModal({ cards = [], onClose, onImported }) {
     const fileRef = useRef(null)
-    const [step, setStep] = useState("idle")   // idle | parsing | preview
+    const [step, setStep]       = useState("idle")   // idle | parsing | preview
     const [dragging, setDragging] = useState(false)
-    const [error, setError] = useState("")
-    const [parsed, setParsed] = useState(null)
+    const [error, setError]     = useState("")
+    const [parsed, setParsed]   = useState(null)
+    const [library, setLibrary] = useState(() => readLibrary())
 
-    // ── Path 1: built-in template ──────────────────────────────────────────
-    const applyBuiltin = (key) => {
-        try {
-            localStorage.setItem(MAJOR_KEY, key)
-            const raw = localStorage.getItem(STORE_KEY)
-            const o = raw ? JSON.parse(raw) : {}
-            localStorage.setItem(STORE_KEY, JSON.stringify({ ...o, placements: {} }))
-        } catch (_) {}
+    // ── Path 1: pick a saved library item ─────────────────────────────────────
+    const applyLibraryItem = (item) => {
+        applyChecklistImport(item, cards)
+        try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
         onImported?.()
         onClose()
     }
 
-    // ── Path 2: PDF upload ─────────────────────────────────────────────────
+    const removeLibraryItem = (program, e) => {
+        e.stopPropagation()
+        const updated = library.filter(
+            t => (t.program || "").toLowerCase() !== (program || "").toLowerCase()
+        )
+        try { localStorage.setItem(LIBRARY_KEY, JSON.stringify(updated)) } catch (_) {}
+        setLibrary(updated)
+    }
+
+    // ── Path 2: PDF upload ─────────────────────────────────────────────────────
     const processFile = async (file) => {
         if (!file || file.type !== "application/pdf") { setError("Please choose a PDF file."); return }
         setError(""); setStep("parsing")
@@ -52,7 +88,11 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 const e = await res.json().catch(() => ({}))
                 throw new Error(e.detail || `Error ${res.status}`)
             }
-            setParsed(await res.json())
+            const result = await res.json()
+            // Save to library immediately so it persists even if user cancels preview
+            saveToLibrary(result)
+            setLibrary(readLibrary())
+            setParsed(result)
             setStep("preview")
         } catch (e) {
             setError(e.message || "Failed to parse checklist")
@@ -67,15 +107,14 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
 
     const applyParsed = () => {
         applyChecklistImport(parsed, cards)
-        // Also clear the major key so the built-in template doesn't override
         try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
         onImported?.()
         onClose()
     }
 
-    const counts = parsed ? previewCounts(parsed, cards) : null
-    const majorSec = parsed?.sections.find(s => s.key === "major")
-    const ancSec   = parsed?.sections.find(s => s.key === "ancillary")
+    const counts    = parsed ? previewCounts(parsed, cards) : null
+    const majorSec  = parsed?.sections.find(s => s.key === "major")
+    const ancSec    = parsed?.sections.find(s => s.key === "ancillary")
 
     return (
         <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
@@ -92,59 +131,79 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 <div className={styles.body}>
                     {step !== "preview" ? (
                         <>
-                            {/* ── Built-in templates ── */}
-                            <p className={styles.hint} style={{ marginBottom: 10 }}>
-                                Pick your major to instantly sort your courses:
-                            </p>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-                                {MAJOR_OPTIONS.map(o => {
-                                    const tpl = MAJOR_TEMPLATES[o.key]
-                                    return (
-                                        <button
-                                            key={o.key}
-                                            onClick={() => applyBuiltin(o.key)}
-                                            style={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "space-between",
-                                                border: "1px solid var(--border)",
-                                                borderRadius: 10,
-                                                padding: "13px 16px",
-                                                background: "var(--surface)",
-                                                cursor: "pointer",
-                                                fontFamily: "var(--font-sans)",
-                                                textAlign: "left",
-                                                transition: "border-color 0.15s, box-shadow 0.15s",
-                                            }}
-                                            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--blue)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--focus-ring)" }}
-                                            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none" }}
-                                        >
-                                            <div>
-                                                <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{o.label}</div>
-                                                {tpl?.calendarYear && (
-                                                    <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
-                                                        {tpl.calendarYear} · {tpl.totalCredits} s.h.
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="m9 18 6-6-6-6" />
-                                            </svg>
-                                        </button>
-                                    )
-                                })}
-                            </div>
+                            {/* ── Saved library ── */}
+                            {library.length > 0 && (
+                                <>
+                                    <p className={styles.hint} style={{ marginBottom: 10 }}>
+                                        Pick your major to instantly sort your courses:
+                                    </p>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+                                        {library.map(item => (
+                                            <button
+                                                key={item.program}
+                                                onClick={() => applyLibraryItem(item)}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "space-between",
+                                                    border: "1px solid var(--border)",
+                                                    borderRadius: 10,
+                                                    padding: "13px 16px",
+                                                    background: "var(--surface)",
+                                                    cursor: "pointer",
+                                                    fontFamily: "var(--font-sans)",
+                                                    textAlign: "left",
+                                                    transition: "border-color 0.15s, box-shadow 0.15s",
+                                                }}
+                                                onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--blue)"; e.currentTarget.style.boxShadow = "0 0 0 3px var(--focus-ring)" }}
+                                                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.boxShadow = "none" }}
+                                            >
+                                                <div>
+                                                    <div style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{item.program}</div>
+                                                    {item.calendarYear && (
+                                                        <div style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 2 }}>
+                                                            {item.calendarYear}{item.totalCredits ? ` · ${item.totalCredits} s.h.` : ""}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                    <button
+                                                        onClick={e => removeLibraryItem(item.program, e)}
+                                                        title="Remove from library"
+                                                        style={{
+                                                            border: "none", background: "none",
+                                                            color: "var(--ink-3)", cursor: "pointer",
+                                                            fontSize: 16, lineHeight: 1, padding: "2px 4px",
+                                                            borderRadius: 4,
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.color = "var(--negative)"}
+                                                        onMouseLeave={e => e.currentTarget.style.color = "var(--ink-3)"}
+                                                    >×</button>
+                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="m9 18 6-6-6-6" />
+                                                    </svg>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
 
-                            {/* ── Divider ── */}
-                            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-                                <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>
-                                    my major isn't listed
-                                </span>
-                                <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-                            </div>
+                                    {/* Divider */}
+                                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                                        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                                        <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-3)", whiteSpace: "nowrap" }}>
+                                            add another major
+                                        </span>
+                                        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+                                    </div>
+                                </>
+                            )}
 
-                            {/* ── PDF upload fallback ── */}
+                            {/* ── PDF upload ── */}
+                            {library.length === 0 && (
+                                <p className={styles.hint} style={{ marginBottom: 12 }}>
+                                    Upload your major checklist PDF from <strong>twu.ca/advising</strong> to auto-sort your courses.
+                                </p>
+                            )}
                             <div
                                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
                                 onDragLeave={() => setDragging(false)}

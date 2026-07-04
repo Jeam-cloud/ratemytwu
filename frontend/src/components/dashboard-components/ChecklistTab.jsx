@@ -388,7 +388,7 @@ export default function ChecklistTab({ cards = [] }) {
                                             <div key={sg.title} className={styles.subgroup}>
                                                 <div className={styles.subHead}>
                                                     {sg.title}
-                                                    {multi && <span className={styles.subCap}> · choose {multi.capacity}</span>}
+                                                    {multi && <span className={styles.subCap}> · {multi.caption || `choose ${multi.capacity}`}</span>}
                                                 </div>
                                                 {sg.slots.map(slot => (
                                                     <CoreSlotRow
