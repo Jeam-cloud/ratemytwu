@@ -12,19 +12,36 @@ const LIBRARY_KEY = "rmtwu_checklist_library"
 // ── Tiny library helpers ──────────────────────────────────────────────────────
 function readLibrary() {
     try {
-        const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
-        // One-time migration: if an existing imported template isn't in the library yet, add it
+        let lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
+        let dirty = false
+
+        // One-time migration: include any existing imported template
         try {
             const stored = JSON.parse(localStorage.getItem(STORE_KEY) || "{}")
             if (stored.template?.program) {
                 const prog = stored.template.program.toLowerCase()
                 if (!lib.some(t => (t.program || "").toLowerCase() === prog)) {
-                    const migrated = [stored.template, ...lib]
-                    localStorage.setItem(LIBRARY_KEY, JSON.stringify(migrated))
-                    return migrated
+                    lib = [stored.template, ...lib]
+                    dirty = true
                 }
             }
         } catch (_) {}
+
+        // Seed built-in templates so they always appear even when their PDF
+        // can't be parsed (e.g. vector-only PDFs with no text layer).
+        for (const opt of MAJOR_OPTIONS) {
+            const tpl = MAJOR_TEMPLATES[opt.key]
+            if (!tpl) continue
+            const prog = (tpl.program || "").toLowerCase()
+            if (!lib.some(t => (t.program || "").toLowerCase() === prog)) {
+                lib = [...lib, tpl]
+                dirty = true
+            }
+        }
+
+        if (dirty) {
+            try { localStorage.setItem(LIBRARY_KEY, JSON.stringify(lib)) } catch (_) {}
+        }
         return lib
     } catch (_) { return [] }
 }

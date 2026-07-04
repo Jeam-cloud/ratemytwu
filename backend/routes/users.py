@@ -54,15 +54,13 @@ def _extract_pages(reader) -> list[str]:
     return lines
 
 
-def _extract_checklist_pages(reader) -> list[str]:
+def _extract_checklist_pages(reader, raw_bytes: bytes = b"") -> list[str]:
     """
     For checklist PDFs, default extraction is more reliable than layout mode.
-    Layout mode can garble multi-column checklist tables, splitting course codes
-    across lines or adding extra spaces that break regex matching.
-    We try default first; if it yields no course codes we fall back to layout mode.
+    If pypdf finds no text (vector-only PDFs like many TWU 2023-24 checklists
+    that render all text as Bezier paths), falls back to OCR via pytesseract.
+    Pass raw_bytes so the OCR path can render pages without re-opening the file.
     """
-    from collections import Counter
-
     def pages_text(mode=None):
         lines = []
         for page in reader.pages:
@@ -71,27 +69,40 @@ def _extract_checklist_pages(reader) -> list[str]:
                         else page.extract_text()) or ""
             except Exception:
                 text = ""
-            if not text.strip():
-                try:
-                    text = page.extract_text() or ""
-                except Exception:
-                    text = ""
             lines.extend(text.splitlines())
         return lines
 
+    # Try default mode first
     default_lines = pages_text()
-    default_text  = "\n".join(default_lines)
-    code_count    = len(_CK_CODE.findall(default_text))
-
-    # If default mode finds reasonable course codes, use it
-    if code_count >= 3:
+    if len(_CK_CODE.findall("\n".join(default_lines))) >= 3:
         return default_lines
 
-    # Otherwise fall back to layout mode
+    # Try layout mode
     layout_lines = pages_text("layout")
-    layout_text  = "\n".join(layout_lines)
-    if len(_CK_CODE.findall(layout_text)) > code_count:
+    if len(_CK_CODE.findall("\n".join(layout_lines))) >= 3:
         return layout_lines
+
+    # ── OCR fallback for vector-only PDFs ────────────────────────────────
+    # Uses pymupdf (pure Python wheel, no system poppler needed) to render
+    # pages as images, then pytesseract to read the text.
+    if raw_bytes:
+        try:
+            import fitz           # pymupdf
+            from PIL import Image
+            import pytesseract
+
+            doc = fitz.open(stream=raw_bytes, filetype="pdf")
+            ocr_lines = []
+            for page in doc:
+                mat = fitz.Matrix(2.0, 2.0)   # 2× = ~144 DPI, good for OCR
+                pix = page.get_pixmap(matrix=mat)
+                img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                ocr_lines.extend(pytesseract.image_to_string(img).splitlines())
+            if len(_CK_CODE.findall("\n".join(ocr_lines))) >= 1:
+                return ocr_lines
+        except Exception:
+            pass  # OCR unavailable — fall through
+
     return default_lines
 
 
@@ -302,9 +313,11 @@ def _infer_sections_from_codes(text: str, program: str) -> list[dict]:
     ancillary_codes = []
     for code in all_codes:
         prefix = code.split()[0]
-        if prefix in _CORE_PREFIXES:
+        # Skip core-only prefixes — BUT if this prefix IS the guessed major prefix
+        # (e.g. ENGL for an English major), include it rather than discarding it.
+        if prefix in _CORE_PREFIXES and not (guessed_prefix and prefix.startswith(guessed_prefix)):
             continue
-        if guessed_prefix and prefix == guessed_prefix:
+        if guessed_prefix and prefix.startswith(guessed_prefix):
             major_codes.append(code)
         else:
             ancillary_codes.append(code)
@@ -433,7 +446,7 @@ async def debug_checklist(file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read PDF")
 
-    lines   = _extract_checklist_pages(reader)
+    lines   = _extract_checklist_pages(reader, content)
     text    = "\n".join(lines)
     codes   = _codes_in(text)
     hdrs    = [m.group(0)[:80] for m in _SH_HDR.finditer(_preprocess(text))]
@@ -461,7 +474,7 @@ async def parse_checklist(file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read PDF")
 
-    parsed = _parse_checklist("\n".join(_extract_checklist_pages(reader)))
+    parsed = _parse_checklist("\n".join(_extract_checklist_pages(reader, content)))
 
     if not any(s["key"] in ("major", "ancillary") for s in parsed["sections"]):
         raise HTTPException(status_code=422, detail="Couldn't find requirement sections in this PDF")

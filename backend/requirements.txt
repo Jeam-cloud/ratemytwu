@@ -4,6 +4,8 @@ psycopg2-binary
 python-dotenv
 pyjwt[crypto]
 pypdf
+pymupdf
+pytesseract
 python-multipart
 pytest
 httpx
