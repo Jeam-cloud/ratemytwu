@@ -4,7 +4,7 @@ import {
     useSensor, useSensors, useDraggable, useDroppable,
 } from "@dnd-kit/core"
 import { CORE_GROUPS } from "../../data/coreChecklist"
-import { MAJOR_TEMPLATES, MAJOR_OPTIONS } from "../../data/majorTemplates"
+import { MAJOR_TEMPLATES } from "../../data/majorTemplates"
 import { classifyCourse } from "../../utils/checklistImport"
 import styles from "../../css/ChecklistTab.module.css"
 
@@ -147,7 +147,7 @@ export default function ChecklistTab({ cards = [] }) {
         try { return localStorage.getItem(MAJOR_KEY) || "" } catch (_) { return "" }
     })
 
-    // Resolve which template to use: built-in first, then any PDF-imported one
+    // Resolve which template to use: built-in key first, then any PDF-imported one
     const template = useMemo(() => {
         if (major && MAJOR_TEMPLATES[major]) return MAJOR_TEMPLATES[major]
         try {
@@ -159,6 +159,9 @@ export default function ChecklistTab({ cards = [] }) {
         } catch (_) {}
         return null
     }, [major])
+
+    // Human-readable name for the currently active template
+    const currentProgram = template?.program || null
 
     // Status map: code → "Completed" | "In Progress" | "Planned"
     // When a course appears multiple times, pick the highest-priority status.
@@ -311,18 +314,6 @@ export default function ChecklistTab({ cards = [] }) {
         }
     }
 
-    // Major change: clear explicit placements so auto-sort takes full effect
-    const handleMajorChange = (val) => {
-        setMajor(val)
-        setPlacements({})
-        try {
-            localStorage.setItem(MAJOR_KEY, val)
-            const raw = localStorage.getItem(STORE_KEY)
-            const o = raw ? JSON.parse(raw) : {}
-            localStorage.setItem(STORE_KEY, JSON.stringify({ ...o, placements: {} }))
-        } catch (_) {}
-    }
-
     return (
         <DndContext
             sensors={sensors}
@@ -331,25 +322,20 @@ export default function ChecklistTab({ cards = [] }) {
         >
             <div className={styles.checklist}>
 
-                {/* ── Major selector ── */}
+                {/* ── Major status bar ── */}
                 <div className={styles.majorBar}>
-                    <label className={styles.majorLabel} htmlFor="major-select">Major</label>
-                    <select
-                        id="major-select"
-                        className={styles.majorSelect}
-                        value={major}
-                        onChange={e => handleMajorChange(e.target.value)}
-                    >
-                        <option value="">— Select your major —</option>
-                        {MAJOR_OPTIONS.map(o => (
-                            <option key={o.key} value={o.key}>{o.label}</option>
-                        ))}
-                    </select>
-                    {major && template?.calendarYear && (
-                        <span className={styles.majorBadge}>{template.calendarYear}</span>
-                    )}
-                    {!major && (
-                        <span className={styles.majorHint}>Select to auto-sort your courses</span>
+                    <span className={styles.majorLabel}>Major</span>
+                    {currentProgram ? (
+                        <>
+                            <span className={styles.majorName}>{currentProgram}</span>
+                            {template?.calendarYear && (
+                                <span className={styles.majorBadge}>{template.calendarYear}</span>
+                            )}
+                        </>
+                    ) : (
+                        <span className={styles.majorHint}>
+                            Not set — click <strong>Import checklist</strong> above to auto-sort your courses
+                        </span>
                     )}
                 </div>
 

@@ -389,23 +389,11 @@
     color: var(--ink-3);
     white-space: nowrap;
 }
-.majorSelect {
+.majorName {
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 700;
     color: var(--ink);
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 7px 10px;
-    flex: 1;
-    min-width: 160px;
-    max-width: 280px;
-    cursor: pointer;
-}
-.majorSelect:focus {
-    outline: none;
-    border-color: var(--blue);
-    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 .majorBadge {
     font-family: var(--font-sans);
