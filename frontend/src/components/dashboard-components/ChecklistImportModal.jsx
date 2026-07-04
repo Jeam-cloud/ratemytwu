@@ -4,16 +4,50 @@ import { API_URL } from "../../config"
 import { applyChecklistImport, previewCounts } from "../../utils/checklistImport"
 import styles from "../../css/ExportPDF.module.css"
 
+const LIBRARY_KEY = "rmtwu_checklist_library"
+const MAJOR_KEY   = "rmtwu_major"
+
+function normProgram(s) {
+    return (s || "")
+        .toLowerCase()
+        .replace(/\b\w/g, c => c.toUpperCase())
+}
+
+async function publishToDb(template) {
+    try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        await supabase.from("program_checklists").upsert({
+            program: normProgram(template.program),
+            calendar_year: template.calendarYear || "",
+            total_credits: template.totalCredits || null,
+            sections: template.sections,
+            uploaded_by: session.user.id,
+            uploaded_at: new Date().toISOString(),
+        }, { onConflict: "program,calendar_year" })
+    } catch (_) {}
+}
+
+function saveToLibrary(template) {
+    try {
+        const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
+        const filtered = lib.filter(
+            t => (t.program || "").toLowerCase() !== (template.program || "").toLowerCase()
+        )
+        localStorage.setItem(LIBRARY_KEY, JSON.stringify([template, ...filtered]))
+    } catch (_) {}
+}
+
 /**
- * Upload a TWU program checklist PDF → parse it on the backend → preview how the
- * planner courses will sort → apply (writes the sorted layout the checklist reads).
+ * "Import checklist" modal — PDF upload only.
+ * Community search lives on the dashboard (ChecklistTab major bar).
  */
 export default function ChecklistImportModal({ cards = [], onClose, onImported }) {
     const fileRef = useRef(null)
-    const [step, setStep] = useState("idle")   // idle | parsing | preview
+    const [step, setStep]         = useState("idle")   // idle | parsing | preview
     const [dragging, setDragging] = useState(false)
-    const [error, setError] = useState("")
-    const [parsed, setParsed] = useState(null)
+    const [error, setError]       = useState("")
+    const [parsed, setParsed]     = useState(null)
 
     const processFile = async (file) => {
         if (!file || file.type !== "application/pdf") { setError("Please choose a PDF file."); return }
@@ -34,7 +68,10 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 const e = await res.json().catch(() => ({}))
                 throw new Error(e.detail || `Error ${res.status}`)
             }
-            setParsed(await res.json())
+            const result = await res.json()
+            saveToLibrary(result)
+            publishToDb(result) // non-blocking — add to community pool
+            setParsed(result)
             setStep("preview")
         } catch (e) {
             setError(e.message || "Failed to parse checklist")
@@ -47,13 +84,14 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
         processFile(e.dataTransfer.files?.[0])
     }
 
-    const apply = () => {
+    const applyParsed = () => {
         applyChecklistImport(parsed, cards)
+        try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
         onImported?.()
         onClose()
     }
 
-    const counts = parsed ? previewCounts(parsed, cards) : null
+    const counts   = parsed ? previewCounts(parsed, cards) : null
     const majorSec = parsed?.sections.find(s => s.key === "major")
     const ancSec   = parsed?.sections.find(s => s.key === "ancillary")
 
@@ -61,7 +99,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
         <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
             <div className={styles.modal}>
                 <div className={styles.head}>
-                    <h2 className={styles.title}>Import checklist</h2>
+                    <h2 className={styles.title}>Import checklist PDF</h2>
                     <button className={styles.close} onClick={onClose} aria-label="Close">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M18 6 6 18M6 6l12 12" />
@@ -72,10 +110,14 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 <div className={styles.body}>
                     {step !== "preview" ? (
                         <>
-                            <p className={styles.hint}>
-                                Drop your program checklist PDF (from twu.ca/advising). We&apos;ll read its
-                                requirements and sort your planner courses into Core, Major, Ancillary and Electives.
+                            <p className={styles.hint} style={{ marginBottom: 14 }}>
+                                Upload your major checklist PDF from{" "}
+                                <a href="https://twu.ca/academics/academic-advising/degree-planning/" target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>
+                                    twu.ca/advising
+                                </a>
+                                . It&apos;ll be saved to the community pool so other students can find it too.
                             </p>
+
                             <div
                                 onDragOver={e => { e.preventDefault(); setDragging(true) }}
                                 onDragLeave={() => setDragging(false)}
@@ -84,18 +126,22 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                                 style={{
                                     border: `2px dashed ${dragging ? "var(--blue)" : "var(--border-strong)"}`,
                                     borderRadius: 12,
-                                    padding: "36px 20px",
+                                    padding: "32px 20px",
                                     textAlign: "center",
                                     cursor: "pointer",
                                     background: dragging ? "var(--blue-tint)" : "var(--cream)",
                                     color: "var(--ink-2)",
                                     fontFamily: "var(--font-sans)",
                                     fontSize: 14,
+                                    transition: "border-color 0.15s, background 0.15s",
                                 }}
                             >
                                 {step === "parsing"
                                     ? "Reading your checklist…"
-                                    : <><strong>Choose or drop a PDF</strong><br />checklist for your major</>}
+                                    : <>
+                                        <strong>Click to upload or drag & drop</strong>
+                                        <div style={{ color: "var(--ink-3)", fontSize: 12, marginTop: 4 }}>PDF files only</div>
+                                    </>}
                                 <input
                                     ref={fileRef}
                                     type="file"
@@ -104,7 +150,11 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                                     onChange={e => processFile(e.target.files?.[0])}
                                 />
                             </div>
-                            {error && <p style={{ color: "var(--negative)", fontSize: 13, marginTop: 12, fontFamily: "var(--font-sans)" }}>{error}</p>}
+                            {error && (
+                                <p style={{ color: "var(--negative)", fontSize: 13, marginTop: 10, fontFamily: "var(--font-sans)" }}>
+                                    {error}
+                                </p>
+                            )}
                         </>
                     ) : (
                         <>
@@ -129,6 +179,9 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                                     </div>
                                 ))}
                             </div>
+                            <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-3)", marginTop: 10 }}>
+                                ✓ Added to the community pool so other TWU students can find it.
+                            </p>
                         </>
                     )}
                 </div>
@@ -136,7 +189,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 <div className={styles.footer}>
                     <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
                     {step === "preview" && (
-                        <button className={styles.exportBtn} onClick={apply}>
+                        <button className={styles.exportBtn} onClick={applyParsed}>
                             Sort my courses
                         </button>
                     )}
