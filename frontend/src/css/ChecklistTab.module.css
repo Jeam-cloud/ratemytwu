@@ -369,6 +369,80 @@
     cursor: pointer;
 }
 
+/* ── Major selector bar ── */
+.majorBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+}
+.majorLabel {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    white-space: nowrap;
+}
+.majorSelect {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    flex: 1;
+    min-width: 160px;
+    max-width: 280px;
+    cursor: pointer;
+}
+.majorSelect:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+.majorBadge {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink-3);
+    background: var(--cream-deep);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    white-space: nowrap;
+}
+.majorHint {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--ink-3);
+    font-style: italic;
+}
+
+/* ── Status dot on course pills ── */
+.statusDot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex: none;
+}
+.statusCompleted { background: var(--positive); }
+.statusProgress  { background: #f0a015; }
+
+/* ── Verified core slot (all courses completed) ── */
+.st_verified { background: rgba(46, 125, 85, 0.2); color: var(--positive); }
+
+/* ── Table check column per-status ── */
+.checkDone    { color: var(--positive); font-weight: 700; }
+.checkProgress{ color: #f0a015; font-weight: 700; }
+.checkEmpty   { color: var(--ink-3); }
+
 /* Course-pill remove button */
 .pillX {
     border: none;

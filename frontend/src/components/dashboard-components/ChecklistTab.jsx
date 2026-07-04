@@ -4,6 +4,8 @@ import {
     useSensor, useSensors, useDraggable, useDroppable,
 } from "@dnd-kit/core"
 import { CORE_GROUPS } from "../../data/coreChecklist"
+import { MAJOR_TEMPLATES, MAJOR_OPTIONS } from "../../data/majorTemplates"
+import { classifyCourse } from "../../utils/checklistImport"
 import styles from "../../css/ChecklistTab.module.css"
 
 // Four buckets every checklist has. Targets are just the bar denominators.
@@ -15,6 +17,7 @@ const SECTIONS = [
 ]
 
 const STORE_KEY = "rmtwu_checklist_v2"
+const MAJOR_KEY = "rmtwu_major"
 
 // Flat list of every core slot (groups → subgroups → slots), tagged with its group.
 const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
@@ -23,12 +26,17 @@ const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
 const isCoreSlot = id => CORE_SLOTS.some(s => s.id === id)
 
 // ── Draggable course pill ─────────────────────────────────────────────────────
-// `where` keeps the dnd id unique between the pool copy and a placed copy.
-function CoursePill({ code, where, onRemove, onSelect, selected }) {
+function CoursePill({ code, where, onRemove, onSelect, selected, status }) {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
         id: `${where}:${code}`,
         data: { code },
     })
+
+    // Pick dot style based on completion status
+    const dotCls = status === "Completed"   ? styles.statusCompleted
+                 : status === "In Progress" ? styles.statusProgress
+                 : null
+
     return (
         <span
             ref={setNodeRef}
@@ -38,6 +46,7 @@ function CoursePill({ code, where, onRemove, onSelect, selected }) {
             style={{ opacity: isDragging ? 0.35 : 1 }}
             onClick={onSelect ? (e) => { e.stopPropagation(); onSelect() } : undefined}
         >
+            {dotCls && <span className={`${styles.statusDot} ${dotCls}`} />}
             <span className={styles.grip}>⠿</span>
             {code}
             {onRemove && (
@@ -63,13 +72,16 @@ function Drop({ id, className, children, onClick }) {
 }
 
 // ── One core requirement row ──────────────────────────────────────────────────
-function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onRemove, onPlace }) {
+function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onRemove, onPlace, statusMap }) {
     const [menu, setMenu] = useState(false)
     const filled = courses.length
+    const allCompleted = filled > 0 && filled >= slot.capacity &&
+        courses.every(c => statusMap[c.code] === "Completed")
     const status = satisfied ? "sat"
+        : allCompleted ? "verified"
         : filled >= slot.capacity ? "done"
         : filled > 0 ? "partial" : "empty"
-    const icon = { sat: "✓", done: "✓", partial: "•", empty: "○" }[status]
+    const icon = { sat: "✓", verified: "✓", done: "✓", partial: "•", empty: "○" }[status]
     const cls = `${styles.slotRow} ${target ? styles.slotTarget : ""} ${muted ? styles.slotMuted : ""}`
 
     return (
@@ -83,7 +95,13 @@ function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onR
                         ? <span className={styles.satTag}>Satisfied — no course needed</span>
                         : filled
                             ? courses.map(c => (
-                                <CoursePill key={c.code} code={c.code} where="row" onRemove={() => onRemove(c.code)} />
+                                <CoursePill
+                                    key={c.code}
+                                    code={c.code}
+                                    where="row"
+                                    onRemove={() => onRemove(c.code)}
+                                    status={statusMap[c.code]}
+                                />
                               ))
                             : <span className={styles.dropHint}>
                                 {slot.hint || (slot.capacity > 1 ? `drag ${slot.capacity} courses here` : "drag a course here")}
@@ -124,6 +142,38 @@ export default function ChecklistTab({ cards = [] }) {
     const [selectedCode, setSelected] = useState(null) // click-to-place
     const [query, setQuery]           = useState("")
 
+    // Major selection — drives template-based auto-classification
+    const [major, setMajor] = useState(() => {
+        try { return localStorage.getItem(MAJOR_KEY) || "" } catch (_) { return "" }
+    })
+
+    // Resolve which template to use: built-in first, then any PDF-imported one
+    const template = useMemo(() => {
+        if (major && MAJOR_TEMPLATES[major]) return MAJOR_TEMPLATES[major]
+        try {
+            const raw = localStorage.getItem(STORE_KEY)
+            if (raw) {
+                const o = JSON.parse(raw)
+                return o.template || null
+            }
+        } catch (_) {}
+        return null
+    }, [major])
+
+    // Status map: code → "Completed" | "In Progress" | "Planned"
+    // When a course appears multiple times, pick the highest-priority status.
+    const statusMap = useMemo(() => {
+        const priority = { Completed: 3, "In Progress": 2, Planned: 1 }
+        const m = {}
+        for (const c of cards) {
+            if (!c.code) continue
+            if (!m[c.code] || (priority[c.status] || 0) > (priority[m[c.code]] || 0)) {
+                m[c.code] = c.status
+            }
+        }
+        return m
+    }, [cards])
+
     // Persist both maps so the layout survives a refresh (browser-local for now).
     useEffect(() => {
         try {
@@ -151,24 +201,44 @@ export default function ChecklistTab({ cards = [] }) {
         return [...m.values()]
     }, [cards])
 
-    // Resolve every course to a target: explicit placement wins; otherwise auto-fill
-    // into the first eligible core slot that still has room; otherwise the pool.
+    // Resolve every course to a target:
+    //   1. Explicit user placement wins
+    //   2. Core auto-fill (eligible list in coreChecklist.js)
+    //   3. Template-based classification (major / ancillary / electives)
+    //   4. Pool (unclassified)
     const assignment = useMemo(() => {
         const res = {}
         const used = {}
         const bump = id => { used[id] = (used[id] || 0) + 1 }
+
+        // Pass 1: explicit placements
         for (const c of courses) {
             const p = placements[c.code]
             if (p !== undefined) { res[c.code] = p; if (isCoreSlot(p)) bump(p) }
         }
+
+        // Pass 2: Core slot auto-fill
         for (const c of courses) {
             if (res[c.code] !== undefined) continue
             const slot = CORE_SLOTS.find(s => s.eligible.includes(c.code) && (used[s.id] || 0) < s.capacity)
             if (slot) { res[c.code] = slot.id; bump(slot.id) }
-            else res[c.code] = "pool"
         }
+
+        // Pass 3: template-based classification for anything not yet placed
+        for (const c of courses) {
+            if (res[c.code] !== undefined) continue
+            if (template) {
+                const t = classifyCourse(c.code, template)
+                // classifyCourse returns null for core-eligible courses — those
+                // not caught by pass 2 (full slots) fall to pool
+                res[c.code] = t || "pool"
+            } else {
+                res[c.code] = "pool"
+            }
+        }
+
         return res
-    }, [courses, placements])
+    }, [courses, placements, template])
 
     const coursesIn = target => courses.filter(c => assignment[c.code] === target)
     const pool = coursesIn("pool")
@@ -177,8 +247,7 @@ export default function ChecklistTab({ cards = [] }) {
     const norm = s => s.toLowerCase().replace(/\s+/g, "")
     const visiblePool = query ? pool.filter(c => norm(c.code).includes(norm(query))) : pool
 
-    // The course currently being moved — by drag OR by click-select. Drives the
-    // "valid slot" highlighting so the move is guided rather than blind.
+    // The course currently being moved — by drag OR by click-select.
     const activeCode = dragCode || selectedCode
     const slotHasRoom = (slot, exclude) =>
         coursesIn(slot.id).filter(c => c.code !== exclude).length < slot.capacity
@@ -242,6 +311,18 @@ export default function ChecklistTab({ cards = [] }) {
         }
     }
 
+    // Major change: clear explicit placements so auto-sort takes full effect
+    const handleMajorChange = (val) => {
+        setMajor(val)
+        setPlacements({})
+        try {
+            localStorage.setItem(MAJOR_KEY, val)
+            const raw = localStorage.getItem(STORE_KEY)
+            const o = raw ? JSON.parse(raw) : {}
+            localStorage.setItem(STORE_KEY, JSON.stringify({ ...o, placements: {} }))
+        } catch (_) {}
+    }
+
     return (
         <DndContext
             sensors={sensors}
@@ -249,6 +330,28 @@ export default function ChecklistTab({ cards = [] }) {
             onDragEnd={onDragEnd}
         >
             <div className={styles.checklist}>
+
+                {/* ── Major selector ── */}
+                <div className={styles.majorBar}>
+                    <label className={styles.majorLabel} htmlFor="major-select">Major</label>
+                    <select
+                        id="major-select"
+                        className={styles.majorSelect}
+                        value={major}
+                        onChange={e => handleMajorChange(e.target.value)}
+                    >
+                        <option value="">— Select your major —</option>
+                        {MAJOR_OPTIONS.map(o => (
+                            <option key={o.key} value={o.key}>{o.label}</option>
+                        ))}
+                    </select>
+                    {major && template?.calendarYear && (
+                        <span className={styles.majorBadge}>{template.calendarYear}</span>
+                    )}
+                    {!major && (
+                        <span className={styles.majorHint}>Select to auto-sort your courses</span>
+                    )}
+                </div>
 
                 {/* Click-to-place banner */}
                 {selectedCode && (
@@ -312,6 +415,7 @@ export default function ChecklistTab({ cards = [] }) {
                                                         onToggleSat={toggleSat}
                                                         onRemove={unplace}
                                                         onPlace={() => placeSelectedInSlot(slot)}
+                                                        statusMap={statusMap}
                                                     />
                                                 ))}
                                             </div>
@@ -332,15 +436,35 @@ export default function ChecklistTab({ cards = [] }) {
                                 </tr>
                             </thead>
                             <tbody>
-                                {coursesIn(tab).map(c => (
-                                    <tr key={c.code}>
-                                        <td className={styles.tdCheck}>✓</td>
-                                        <td><CoursePill code={c.code} where="row" onRemove={() => unplace(c.code)} /></td>
-                                        <td className={styles.tdSh}>{c.credits ?? "–"}</td>
-                                    </tr>
-                                ))}
+                                {coursesIn(tab).map(c => {
+                                    const st = statusMap[c.code]
+                                    return (
+                                        <tr key={c.code}>
+                                            <td className={styles.tdCheck}>
+                                                {st === "Completed"
+                                                    ? <span className={styles.checkDone}>✓</span>
+                                                    : st === "In Progress"
+                                                        ? <span className={styles.checkProgress}>◑</span>
+                                                        : <span className={styles.checkEmpty}>○</span>}
+                                            </td>
+                                            <td>
+                                                <CoursePill
+                                                    code={c.code}
+                                                    where="row"
+                                                    onRemove={() => unplace(c.code)}
+                                                    status={st}
+                                                />
+                                            </td>
+                                            <td className={styles.tdSh}>{c.credits ?? "–"}</td>
+                                        </tr>
+                                    )
+                                })}
                                 {coursesIn(tab).length === 0 && (
-                                    <tr><td colSpan={3} className={styles.emptyRow}>Drag or tap-to-place courses here</td></tr>
+                                    <tr><td colSpan={3} className={styles.emptyRow}>
+                                        {!major && tab !== "electives"
+                                            ? "Select your major above to auto-fill this section"
+                                            : "Drag or tap-to-place courses here"}
+                                    </td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -369,11 +493,11 @@ export default function ChecklistTab({ cards = [] }) {
                     </div>
                     <div className={styles.poolChips}>
                         {courses.length === 0
-                            ? <span className={styles.poolEmpty}>No courses yet — add them in “My courses”.</span>
+                            ? <span className={styles.poolEmpty}>No courses yet — add them in "My courses".</span>
                             : pool.length === 0
-                                ? <span className={styles.poolEmpty}>Everything’s placed.</span>
+                                ? <span className={styles.poolEmpty}>Everything's placed.</span>
                                 : visiblePool.length === 0
-                                    ? <span className={styles.poolEmpty}>No courses match “{query}”.</span>
+                                    ? <span className={styles.poolEmpty}>No courses match "{query}".</span>
                                     : visiblePool.map(c => (
                                         <CoursePill
                                             key={c.code}
@@ -381,6 +505,7 @@ export default function ChecklistTab({ cards = [] }) {
                                             where="pool"
                                             onSelect={() => pickSelect(c.code)}
                                             selected={selectedCode === c.code}
+                                            status={statusMap[c.code]}
                                         />
                                       ))}
                     </div>
