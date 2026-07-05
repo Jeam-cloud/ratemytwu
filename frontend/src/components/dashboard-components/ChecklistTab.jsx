@@ -340,7 +340,10 @@ export default function ChecklistTab({ cards = [] }) {
     const [dragCode, setDragCode]           = useState(null)
     const [selectedCode, setSelected]       = useState(null) // click-to-place
     const [query, setQuery]                 = useState("")
-    const [majorSearchOpen, setMajorSearchOpen] = useState(false)
+    const [majorSearchOpen, setMajorSearchOpen] = useState(() => {
+        // Auto-open on first load when no major has been set yet
+        try { return !localStorage.getItem(PROG_KEY) && !localStorage.getItem(MAJOR_KEY) } catch (_) { return true }
+    })
     const [minorSearchOpen, setMinorSearchOpen] = useState(false)
     const [minorImportOpen, setMinorImportOpen] = useState(false)
     // Explicit state for major — set directly in applyMajorItem so the bar updates in the same render
@@ -666,13 +669,13 @@ export default function ChecklistTab({ cards = [] }) {
                     {/* Major half */}
                     <div className={styles.majorHalf}>
                         <span className={styles.majorLabel}>Major</span>
-                        {(majorSearchOpen || !currentProgram) ? (
+                        {majorSearchOpen ? (
                             <MajorSearch
                                 type="major"
                                 onSelect={applyMajorItem}
                                 onClose={() => setMajorSearchOpen(false)}
                             />
-                        ) : (
+                        ) : currentProgram ? (
                             <>
                                 <span className={styles.majorName}>{currentProgram}</span>
                                 {currentCalendarYear && (
@@ -681,6 +684,10 @@ export default function ChecklistTab({ cards = [] }) {
                                 <button className={styles.barChangeBtn} onClick={() => setMajorSearchOpen(true)}>Change</button>
                                 <button className={styles.barClearBtn} onClick={clearMajor} aria-label="Remove major">×</button>
                             </>
+                        ) : (
+                            <button className={styles.addMinorBtn} onClick={() => setMajorSearchOpen(true)}>
+                                + Select major
+                            </button>
                         )}
                     </div>
 
