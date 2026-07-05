@@ -19,7 +19,8 @@ const SECTIONS = [
 
 const STORE_KEY    = "rmtwu_checklist_v2"
 const MAJOR_KEY    = "rmtwu_major"
-const PROG_KEY     = "rmtwu_major_program"  // explicit fallback for the selected program name
+const PROG_KEY     = "rmtwu_major_program"       // explicit fallback for the selected program name
+const YEAR_KEY     = "rmtwu_major_calendar_year" // explicit fallback for the calendar year badge
 
 // Flat list of every core slot (groups → subgroups → slots), tagged with its group.
 const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
@@ -317,9 +318,13 @@ export default function ChecklistTab({ cards = [] }) {
     const [selectedCode, setSelected]       = useState(null) // click-to-place
     const [query, setQuery]                 = useState("")
     const [majorSearchOpen, setMajorSearchOpen] = useState(false)
-    // Explicit fallback: stores the program name so the bar survives edge-case load paths
+    // Explicit state: set directly in applyMajorItem so the bar updates in the same render,
+    // no dependency on the template memo which may still reflect the previous selection.
     const [savedMajorName, setSavedMajorName] = useState(() => {
         try { return localStorage.getItem(PROG_KEY) || "" } catch (_) { return "" }
+    })
+    const [savedCalendarYear, setSavedCalendarYear] = useState(() => {
+        try { return localStorage.getItem(YEAR_KEY) || "" } catch (_) { return "" }
     })
     // Bumped on every applyMajorItem so the template memo re-reads localStorage even when major stays ""
     const [templateKey, setTemplateKey] = useState(0)
@@ -342,9 +347,11 @@ export default function ChecklistTab({ cards = [] }) {
         return null
     }, [major, templateKey])
 
-    // Human-readable name for the currently active template
-    // Falls back to savedMajorName so the bar stays closed even if template can't be re-derived
-    const currentProgram = template?.program || savedMajorName || null
+    // Human-readable name for the currently active template.
+    // savedMajorName is set directly in applyMajorItem so it's always current —
+    // prefer it over template?.program which may still be the previous selection's value.
+    const currentProgram    = savedMajorName || template?.program || null
+    const currentCalendarYear = savedCalendarYear || template?.calendarYear || null
 
     // Status map: code → "Completed" | "In Progress" | "Planned"
     // When a course appears multiple times, pick the highest-priority status.
@@ -384,9 +391,10 @@ export default function ChecklistTab({ cards = [] }) {
     const applyMajorItem = useCallback((item) => {
         applyChecklistImport(item, cards)
         try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
-        // Save program name explicitly so the bar stays closed on next page load
         const progName = item.program || ""
+        const calYear  = item.calendarYear || ""
         try { localStorage.setItem(PROG_KEY, progName) } catch (_) {}
+        try { localStorage.setItem(YEAR_KEY, calYear) } catch (_) {}
         try {
             const raw = localStorage.getItem(STORE_KEY)
             if (raw) { const o = JSON.parse(raw); setPlacements(o.placements || {}) }
@@ -394,6 +402,7 @@ export default function ChecklistTab({ cards = [] }) {
         setMajor("")
         setTemplateKey(k => k + 1)   // force template memo to re-read STORE_KEY
         setSavedMajorName(progName)
+        setSavedCalendarYear(calYear)
         setMajorSearchOpen(false)
     }, [cards])
 
@@ -538,8 +547,8 @@ export default function ChecklistTab({ cards = [] }) {
                     ) : (
                         <>
                             <span className={styles.majorName}>{currentProgram}</span>
-                            {template?.calendarYear && (
-                                <span className={styles.majorBadge}>{template.calendarYear}</span>
+                            {currentCalendarYear && (
+                                <span className={styles.majorBadge}>{currentCalendarYear}</span>
                             )}
                             <button
                                 onClick={() => setMajorSearchOpen(true)}
