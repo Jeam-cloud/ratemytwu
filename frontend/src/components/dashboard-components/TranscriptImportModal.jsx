@@ -30,7 +30,9 @@ function getEffectiveStatus(calendarYear, term, transcriptStatus) {
  * Converts a transcript calendar year + term into the planner's year number.
  *
  * Spring start example (startYear=2024, startTerm="Spring"):
- *   - All terms in 2024 → year 1,  2025 → year 2, etc.
+ *   - Spring/Summer 2024 → year 1, Spring/Summer 2025 → year 2, etc.
+ *   - Fall 2024 → year 2, Fall 2025 → year 3, Fall 2026 → year 4
+ *     (Fall starts the NEXT academic year for Spring-start students)
  *
  * Fall start example (startYear=2024, startTerm="Fall"):
  *   - Fall 2024 → year 1, Spring/Summer 2025 → year 1,
@@ -41,7 +43,8 @@ function getPlannerYear(calendarYear, term, startYear, startTerm) {
         if (term === "Fall") return calendarYear - startYear + 1
         return calendarYear - startYear     // Spring / Summer belong to previous Fall's academic year
     }
-    // Spring (or Summer) start — all terms in the same calendar year → same planner year
+    // Spring-start: Fall belongs to the NEXT academic year (year N+1 starts in Fall)
+    if (term === "Fall") return calendarYear - startYear + 2
     return calendarYear - startYear + 1
 }
 

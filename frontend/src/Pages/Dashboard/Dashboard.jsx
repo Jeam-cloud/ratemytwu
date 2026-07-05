@@ -253,7 +253,7 @@ export default function Dashboard() {
             if (!cardsRes.ok) { setError("Failed to load cards"); return }
             let loaded = await cardsRes.json()
 
-            // Spring-start migration: year=1 Fall cards belong to academic Year 2 (e.g. Fall 2024 → Year 2)
+            // Spring-start migration v1: year=1 Fall cards belong to academic Year 2 (e.g. Fall 2024 → Year 2)
             if (resolvedStartTerm === "Spring") {
                 const toMigrate = loaded.filter(c => c.year === 1 && c.term === "Fall")
                 if (toMigrate.length > 0) {
@@ -265,6 +265,32 @@ export default function Dashboard() {
                         })
                     ))
                     // reload after migration
+                    const reloadRes = await fetch(`${API_URL}/board/cards`, { headers })
+                    if (reloadRes.ok) loaded = await reloadRes.json()
+                }
+            }
+
+            // Spring-start migration v2 (one-time): fix Fall cards that were placed one year too early
+            // by the old getPlannerYear bug (calYear - startYear + 1 instead of + 2 for Fall terms).
+            // Specifically:
+            //   year=2 Fall cards with codes known to be 2025 Fall → move to year=3 Fall
+            //   year=3 Fall cards (all from 2026 Fall bad import)   → move to year=4 Fall
+            if (resolvedStartTerm === "Spring" && !localStorage.getItem("spring_fall_v2_done")) {
+                localStorage.setItem("spring_fall_v2_done", "1")
+                const misplacedAt2 = ["CMPT 334", "CMPT 345", "ENGL 103", "HIST 107"]
+                const v2ToMigrate = loaded.filter(c =>
+                    (c.year === 2 && c.term === "Fall" && misplacedAt2.includes(c.code)) ||
+                    (c.year === 3 && c.term === "Fall")
+                )
+                if (v2ToMigrate.length > 0) {
+                    await Promise.all(v2ToMigrate.map(card => {
+                        const newYear = (card.year === 2 && misplacedAt2.includes(card.code)) ? 3 : 4
+                        return fetch(`${API_URL}/board/${card.id}`, {
+                            method: "PATCH",
+                            headers,
+                            body: JSON.stringify({ year: newYear, term: "Fall", credits: card.credits ?? null, status: card.status ?? "Planned", grade: card.grade ?? null, notes: card.notes ?? null }),
+                        })
+                    }))
                     const reloadRes = await fetch(`${API_URL}/board/cards`, { headers })
                     if (reloadRes.ok) loaded = await reloadRes.json()
                 }
