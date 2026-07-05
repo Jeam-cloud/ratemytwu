@@ -284,25 +284,15 @@ export default function Dashboard() {
         savePlannerSettings(years ?? 4, year, term)
     }
 
-    // generates the labels of the columns and how many columns based on years
+    // Academic-year columns: Fall (year N) → Spring (year N+1) → Summer (year N+1)
+    // e.g. startYear=2024: Year 1 = Fall 2024, Spring 2025, Summer 2025
     const generateColumns = (years) => {
         const columns = []
-
-        if (startTerm === "Spring") {
-            for (let i = 0; i < years; i++) {
-                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i}`})
-                columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i}`})
-                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
-            }
-        } else {
-            // Fall-start order: Fall | Summer (optional, in slot 2) | Spring
-            for (let i = 0; i < years; i++) {
-                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
-                columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i + 1}`})
-                columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
-            }
+        for (let i = 0; i < years; i++) {
+            columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
+            columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
+            columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i + 1}`})
         }
-
         return columns
     }
 
