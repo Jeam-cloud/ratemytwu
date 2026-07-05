@@ -321,6 +321,8 @@ export default function ChecklistTab({ cards = [] }) {
     const [savedMajorName, setSavedMajorName] = useState(() => {
         try { return localStorage.getItem(PROG_KEY) || "" } catch (_) { return "" }
     })
+    // Bumped on every applyMajorItem so the template memo re-reads localStorage even when major stays ""
+    const [templateKey, setTemplateKey] = useState(0)
 
     // Major selection — drives template-based auto-classification
     const [major, setMajor] = useState(() => {
@@ -338,7 +340,7 @@ export default function ChecklistTab({ cards = [] }) {
             }
         } catch (_) {}
         return null
-    }, [major])
+    }, [major, templateKey])
 
     // Human-readable name for the currently active template
     // Falls back to savedMajorName so the bar stays closed even if template can't be re-derived
@@ -390,6 +392,7 @@ export default function ChecklistTab({ cards = [] }) {
             if (raw) { const o = JSON.parse(raw); setPlacements(o.placements || {}) }
         } catch (_) {}
         setMajor("")
+        setTemplateKey(k => k + 1)   // force template memo to re-read STORE_KEY
         setSavedMajorName(progName)
         setMajorSearchOpen(false)
     }, [cards])
