@@ -56,8 +56,10 @@ function YearTerms({ group, hasSummer, cards, startYear, onDelete, onUpdate, aut
         onAutoEditDone,
     })
 
+    const numCols = (fallCol ? 1 : 0) + (springCol ? 1 : 0) + (hasSummer && summerCol ? 1 : 0)
+
     return (
-        <div className={hasSummer ? styles.termsThree : styles.termsTwo}>
+        <div className={numCols >= 3 ? styles.termsThree : styles.termsTwo}>
             {fallCol   && <DashBoardColumn {...colProps(fallCol)} />}
             {springCol && <DashBoardColumn {...colProps(springCol)} />}
             {hasSummer && summerCol && <DashBoardColumn {...colProps(summerCol)} />}
@@ -195,13 +197,22 @@ export default function Dashboard() {
                 const ly = localStorage.getItem("plannerYears")
                 const lsy = localStorage.getItem("plannerStartYear")
                 const lst = localStorage.getItem("plannerStartTerm")
+                const guestStartTerm = lst ?? "Fall"
                 if (ly) {
-                    const y = Number(ly), sy = lsy ? Number(lsy) : new Date().getFullYear(), st = lst ?? "Fall"
-                    setYears(y); setStartYear(sy); setStartTerm(st); setStartDraft(sy); setStartDraftTerm(st)
+                    const y = Number(ly), sy = lsy ? Number(lsy) : new Date().getFullYear()
+                    setYears(y); setStartYear(sy); setStartTerm(guestStartTerm); setStartDraft(sy); setStartDraftTerm(guestStartTerm)
                 }
                 const saved = localStorage.getItem("guestPlannerCards")
                 if (saved) {
-                    const loaded = JSON.parse(saved)
+                    let loaded = JSON.parse(saved)
+                    // Spring-start migration: year=1 Fall → year=2 Fall
+                    if (guestStartTerm === "Spring") {
+                        const needsMigration = loaded.some(c => c.year === 1 && c.term === "Fall")
+                        if (needsMigration) {
+                            loaded = loaded.map(c => (c.year === 1 && c.term === "Fall") ? { ...c, year: 2 } : c)
+                            localStorage.setItem("guestPlannerCards", JSON.stringify(loaded))
+                        }
+                    }
                     setCards(loaded)
                     setExpandedYears(prev => { const n = new Set(prev); loaded.forEach(c => n.add(c.year)); return n })
                     const ss = new Set(); loaded.forEach(c => { if (c.term === "Summer") ss.add(c.year) }); if (ss.size > 0) setSummerYears(ss)
@@ -214,6 +225,7 @@ export default function Dashboard() {
             const token = session.access_token
             const headers = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
 
+            let resolvedStartTerm = "Fall"
             let settingsLoaded = false
             try {
                 const settingsRes = await fetch(`${API_URL}/planner/settings`, { headers })
@@ -221,20 +233,43 @@ export default function Dashboard() {
                     const settings = await settingsRes.json()
                     if (settings) {
                         setYears(settings.years); setStartYear(settings.start_year)
-                        setStartTerm(settings.start_term ?? "Fall"); setStartDraft(settings.start_year)
-                        setStartDraftTerm(settings.start_term ?? "Fall"); settingsLoaded = true
+                        resolvedStartTerm = settings.start_term ?? "Fall"
+                        setStartTerm(resolvedStartTerm); setStartDraft(settings.start_year)
+                        setStartDraftTerm(resolvedStartTerm); settingsLoaded = true
                     }
                 }
             } catch (_) {}
 
             if (!settingsLoaded) {
                 const ly = localStorage.getItem("plannerYears"), lsy = localStorage.getItem("plannerStartYear"), lst = localStorage.getItem("plannerStartTerm")
-                if (ly) { const y = Number(ly), sy = lsy ? Number(lsy) : new Date().getFullYear(), st = lst ?? "Fall"; setYears(y); setStartYear(sy); setStartTerm(st); setStartDraft(sy); setStartDraftTerm(st) }
+                if (ly) {
+                    resolvedStartTerm = lst ?? "Fall"
+                    const y = Number(ly), sy = lsy ? Number(lsy) : new Date().getFullYear()
+                    setYears(y); setStartYear(sy); setStartTerm(resolvedStartTerm); setStartDraft(sy); setStartDraftTerm(resolvedStartTerm)
+                }
             }
 
             const cardsRes = await fetch(`${API_URL}/board/cards`, { headers })
             if (!cardsRes.ok) { setError("Failed to load cards"); return }
-            const loaded = await cardsRes.json()
+            let loaded = await cardsRes.json()
+
+            // Spring-start migration: year=1 Fall cards belong to academic Year 2 (e.g. Fall 2024 → Year 2)
+            if (resolvedStartTerm === "Spring") {
+                const toMigrate = loaded.filter(c => c.year === 1 && c.term === "Fall")
+                if (toMigrate.length > 0) {
+                    await Promise.all(toMigrate.map(card =>
+                        fetch(`${API_URL}/board/${card.id}`, {
+                            method: "PATCH",
+                            headers,
+                            body: JSON.stringify({ year: 2, term: "Fall", credits: card.credits ?? null, status: card.status ?? "Planned", grade: card.grade ?? null, notes: card.notes ?? null }),
+                        })
+                    ))
+                    // reload after migration
+                    const reloadRes = await fetch(`${API_URL}/board/cards`, { headers })
+                    if (reloadRes.ok) loaded = await reloadRes.json()
+                }
+            }
+
             setCards(loaded)
             if (loaded.length > 0) {
                 setExpandedYears(prev => { const next = new Set(prev); loaded.forEach(c => next.add(c.year)); return next })
@@ -284,19 +319,26 @@ export default function Dashboard() {
         savePlannerSettings(years ?? 4, year, term)
     }
 
-    // Column labels match the actual calendar year for each term based on when the student started.
-    // Spring-start (e.g. startYear=2024): Year 1 = Spring 2024, Summer 2024, Fall 2024
-    // Fall-start   (e.g. startYear=2024): Year 1 = Fall 2024, Spring 2025, Summer 2025
-    const generateColumns = (years) => {
+    // Spring-start (e.g. startYear=2024):
+    //   Year 1 (2023-24): Spring 2024, Summer 2024  ← partial year, no Fall
+    //   Year 2 (2024-25): Fall 2024, Spring 2025, Summer 2025
+    //   Year 3 (2025-26): Fall 2025, Spring 2026, Summer 2026  ...
+    // Fall-start (e.g. startYear=2024):
+    //   Year 1 (2024-25): Fall 2024, Spring 2025, Summer 2025  ...
+    const generateColumns = (numYears) => {
         const columns = []
         if (startTerm === "Spring") {
-            for (let i = 0; i < years; i++) {
+            // Year 1: Spring + Summer only (student started mid-academic-year)
+            columns.push({term: "Spring", year: 1, label: `Spring ${startYear}`})
+            columns.push({term: "Summer", year: 1, label: `Summer ${startYear}`})
+            // Year 2+: full Fall → Spring → Summer
+            for (let i = 1; i < numYears; i++) {
+                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i - 1}`})
                 columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i}`})
                 columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i}`})
-                columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
             }
         } else {
-            for (let i = 0; i < years; i++) {
+            for (let i = 0; i < numYears; i++) {
                 columns.push({term: "Fall",   year: i+1, label: `Fall ${startYear + i}`})
                 columns.push({term: "Spring", year: i+1, label: `Spring ${startYear + i + 1}`})
                 columns.push({term: "Summer", year: i+1, label: `Summer ${startYear + i + 1}`})
@@ -305,13 +347,16 @@ export default function Dashboard() {
         return columns
     }
 
-    // group flat columns array into { year, calSpan, columns[] }
+    // group flat columns array into { year, span, columns[] }
     const getYearGroups = () => {
         const cols = generateColumns(years ?? 4)
         const map = {}
         cols.forEach(col => {
             if (!map[col.year]) {
-                const calYear = startYear + col.year - 1
+                // Spring-start: Year 1 is academic year (startYear-1)–startYear, Year 2+ shifts by 1
+                const calYear = startTerm === "Spring"
+                    ? startYear - 1 + (col.year - 1)
+                    : startYear + col.year - 1
                 const span = `${calYear}–${String(calYear + 1).slice(-2)}`
                 map[col.year] = { year: col.year, span, columns: [] }
             }
