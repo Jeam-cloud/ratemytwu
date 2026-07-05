@@ -373,14 +373,18 @@ export default function Dashboard() {
     }
 
     // sidebar course search (logged-in)
+    // normalise "engl101" → "engl 101", "CMPT166" → "CMPT 166", etc.
+    const normaliseCourseQuery = (raw) =>
+        raw.replace(/([a-zA-Z]+)\s*(\d+)/, (_, letters, digits) => `${letters} ${digits}`)
+
     const handleSidebarSearch = async (e) => {
-        const q = e.target.value
-        setSidebarQuery(q)
-        setSemPickerFor(null)
-        if (q.trim().length < 2) { setSidebarResults([]); return }
-        const res = await fetch(`${API_URL}/course/?search_course=${q.trim()}`)
+        const raw = e.target.value
+        setSidebarQuery(raw)
+        const q = normaliseCourseQuery(raw).trim()
+        if (q.length < 2) { setSidebarResults([]); return }
+        const res = await fetch(`${API_URL}/course/?search_course=${encodeURIComponent(q)}`)
         const data = await res.json()
-        setSidebarResults(data.slice(0, 6))
+        setSidebarResults(data.slice(0, 8))
     }
 
     // on drag logic of firing making a new card dragging from bookmarks/search to actual column
