@@ -179,8 +179,8 @@
 }
 
 .legendDotCompleted { background: var(--positive); }
-.legendDotProgress  { background: var(--blue); }
-.legendDotPlanned   { background: var(--ink-3); }
+.legendDotProgress  { background: var(--gold); }
+.legendDotPlanned   { background: var(--blue); }
 
 .progressBarWrap {
     position: relative;
@@ -203,14 +203,14 @@
 
 .progressSegProgress {
     height: 100%;
-    background: var(--blue);
+    background: var(--gold);
     transition: width var(--dur) var(--ease);
     flex: none;
 }
 
 .progressSegPlanned {
     height: 100%;
-    background: var(--ink-3);
+    background: var(--blue);
     transition: width var(--dur) var(--ease);
     flex: none;
 }
