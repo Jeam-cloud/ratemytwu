@@ -338,8 +338,33 @@ export default function Dashboard() {
         setGuestResults(data.slice(0, 8))
     }
 
+    // infer Completed / In Progress / Planned from the column's calendar label vs today
+    // col.label is always "[Term] [CalYear]", e.g. "Fall 2024", "Spring 2025"
+    const inferStatus = (col) => {
+        const parts = (col.label || "").split(" ")
+        if (parts.length < 2) return "Planned"
+        const term    = parts[0]
+        const calYear = parseInt(parts[1], 10)
+        if (!calYear) return "Planned"
+
+        // semester date ranges (month is 1-based)
+        const ranges = { Fall: [9, 12], Spring: [1, 4], Summer: [5, 8] }
+        const range = ranges[term]
+        if (!range) return "Planned"
+
+        const now      = new Date()
+        const semStart = new Date(calYear, range[0] - 1, 1)          // e.g. Sep 1 2024
+        const semEnd   = new Date(calYear, range[1], 0, 23, 59, 59)  // e.g. Dec 31 2024
+
+        if (now > semEnd)   return "Completed"
+        if (now >= semStart) return "In Progress"
+        return "Planned"
+    }
+
     // shared helper — add a course to a planner column (used by drag-end and sidebar picker)
     const addCourseToCol = async (course, col) => {
+        const status = inferStatus(col)
+
         if (isGuest) {
             if (cards.some(c => c.course_id === course.id)) return
             const newCard = {
@@ -348,7 +373,7 @@ export default function Dashboard() {
                 year: col.year, term: col.term,
                 code: course.code,
                 credits: course.credits ?? null,
-                status: "Planned", grade: null, notes: null,
+                status, grade: null, notes: null,
             }
             const updated = [...cards, newCard]
             setCards(updated)
@@ -363,7 +388,7 @@ export default function Dashboard() {
         const response = await fetch(`${API_URL}/board/${course.id}`, {
             method: "POST",
             headers: {"Content-Type": "application/json", "Authorization": `Bearer ${token}`},
-            body: JSON.stringify({ year: col.year, term: col.term, credits: course.credits ?? null, status: "Planned", grade: null, notes: null })
+            body: JSON.stringify({ year: col.year, term: col.term, credits: course.credits ?? null, status, grade: null, notes: null })
         })
 
         if (!response.ok) { setError("Card not created"); return }

@@ -25,10 +25,11 @@ def get_courses(db: db_dependency, search_course: Optional[str] = None):
             Courses.id,
             Courses.code,
             Courses.department,
+            Courses.credits,
             func.count(func.distinct(ProfessorCourse.professor_id)).label("professor_count")
         )
         .outerjoin(ProfessorCourse, (ProfessorCourse.course_id == Courses.id) & (ProfessorCourse.semester.in_(ACTIVE_SEMESTERS)))
-        .group_by(Courses.id, Courses.code, Courses.department)
+        .group_by(Courses.id, Courses.code, Courses.department, Courses.credits)
     )
 
     if search_course and len(search_course.strip()) >= 2:
@@ -45,6 +46,7 @@ def get_courses(db: db_dependency, search_course: Optional[str] = None):
             "id": c.id,
             "code": c.code,
             "department": c.department,
+            "credits": c.credits,
             "professor_count": c.professor_count
         })
 

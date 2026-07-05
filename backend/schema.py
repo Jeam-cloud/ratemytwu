@@ -148,6 +148,7 @@ class CourseSearchOut(BaseModel):
     code: str
     department: str
     professor_count: int
+    credits: Optional[int] = None
     model_config = {"from_attributes": True}
 
 class CourseProfessorOut(BaseModel):
