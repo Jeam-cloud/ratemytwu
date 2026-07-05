@@ -522,14 +522,15 @@ export default function ChecklistTab({ cards = [] }) {
         for (const c of courses) {
             if (res[c.code] !== undefined) continue
 
-            // 3a. Major template
+            // 3a. Major template — "major"/"ancillary" are final; "electives" is tentative
+            //     (null = core-eligible but slot full, falls through too)
+            let majorResult = null
             if (template) {
-                const t = classifyCourse(c.code, template)
-                if (t) { res[c.code] = t; continue }
-                // t === null → core-eligible but slot full; fall through to minor/pool
+                majorResult = classifyCourse(c.code, template)
+                if (majorResult && majorResult !== "electives") { res[c.code] = majorResult; continue }
             }
 
-            // 3b. Minor template — any section's required/choose list
+            // 3b. Minor template beats the elective fallback
             if (minorTemplate) {
                 const inMinor = (minorTemplate.sections || []).some(s =>
                     (s.required || []).includes(c.code) || (s.choose || []).includes(c.code)
@@ -537,7 +538,8 @@ export default function ChecklistTab({ cards = [] }) {
                 if (inMinor) { res[c.code] = "minor"; continue }
             }
 
-            res[c.code] = "pool"
+            // 3c. Commit elective or pool
+            res[c.code] = majorResult || "pool"
         }
 
         return res
