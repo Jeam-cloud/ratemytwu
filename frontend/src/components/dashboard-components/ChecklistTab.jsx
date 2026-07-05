@@ -498,6 +498,20 @@ export default function ChecklistTab({ cards = [] }) {
         setMinorTemplateKey(k => k + 1)
     }, [])
 
+    const clearMajor = useCallback(() => {
+        try { localStorage.removeItem(PROG_KEY) } catch (_) {}
+        try { localStorage.removeItem(YEAR_KEY) } catch (_) {}
+        try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
+        try { localStorage.removeItem(STORE_KEY) } catch (_) {}
+        setPlacements({})
+        setSatisfied({})
+        setMajor("")
+        setSavedMajorName("")
+        setSavedCalendarYear("")
+        setTemplateKey(k => k + 1)
+        setMajorSearchOpen(false)
+    }, [setPlacements])
+
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
@@ -665,6 +679,7 @@ export default function ChecklistTab({ cards = [] }) {
                                     <span className={styles.majorBadge}>{currentCalendarYear}</span>
                                 )}
                                 <button className={styles.barChangeBtn} onClick={() => setMajorSearchOpen(true)}>Change</button>
+                                <button className={styles.barClearBtn} onClick={clearMajor} aria-label="Remove major">×</button>
                             </>
                         )}
                     </div>
