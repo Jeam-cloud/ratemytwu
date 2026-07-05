@@ -13,18 +13,18 @@ function normProgram(s) {
         .replace(/\b\w/g, c => c.toUpperCase())
 }
 
-async function publishToDb(template) {
+async function publishToDb(template, type = "major") {
     try {
         const prog = normProgram(template.program)
-        // Skip if program name looks like just a year or has no letters
         if (!prog || !/[a-zA-Z]/.test(prog)) return
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
         await supabase.from("program_checklists").upsert({
-            program: normProgram(template.program),
+            program: prog,
             calendar_year: template.calendarYear || "",
             total_credits: template.totalCredits || null,
             sections: template.sections,
+            type,
             uploaded_by: session.user.id,
             uploaded_at: new Date().toISOString(),
         }, { onConflict: "program,calendar_year" })
@@ -81,7 +81,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
             }
             const result = await res.json()
             saveToLibrary(result)
-            publishToDb(result) // non-blocking — add to community pool
+            publishToDb(result, isMinorMode ? "minor" : "major") // non-blocking
             setParsed(result)
             setStep("preview")
         } catch (e) {

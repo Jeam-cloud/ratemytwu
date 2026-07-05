@@ -10,20 +10,16 @@ import { classifyCourse, applyChecklistImport } from "../../utils/checklistImpor
 import styles from "../../css/ChecklistTab.module.css"
 import { supabase } from "../../supabaseClient"
 
-// Four buckets every checklist has. Targets are just the bar denominators.
-const SECTIONS = [
-    { id: "core",      label: "Core",      target: 43 },
-    { id: "major",     label: "Major",     target: 42 },
-    { id: "ancillary", label: "Ancillary", target: 9  },
-    { id: "electives", label: "Electives", target: 28 },
-]
+// SECTIONS is built dynamically inside the component so the Minor tab
+// appears only when a minor is selected (see useMemo below).
 
-const STORE_KEY      = "rmtwu_checklist_v2"
-const MAJOR_KEY      = "rmtwu_major"
-const PROG_KEY       = "rmtwu_major_program"
-const YEAR_KEY       = "rmtwu_major_calendar_year"
-const MINOR_PROG_KEY = "rmtwu_minor_program"
-const MINOR_YEAR_KEY = "rmtwu_minor_calendar_year"
+const STORE_KEY       = "rmtwu_checklist_v2"
+const MAJOR_KEY       = "rmtwu_major"
+const PROG_KEY        = "rmtwu_major_program"
+const YEAR_KEY        = "rmtwu_major_calendar_year"
+const MINOR_PROG_KEY  = "rmtwu_minor_program"
+const MINOR_YEAR_KEY  = "rmtwu_minor_calendar_year"
+const MINOR_STORE_KEY = "rmtwu_minor_checklist"   // stores full minor template (sections)
 
 // Flat list of every core slot (groups → subgroups → slots), tagged with its group.
 const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
@@ -34,32 +30,37 @@ const isCoreSlot = id => CORE_SLOTS.some(s => s.id === id)
 const LIBRARY_KEY = "rmtwu_checklist_library"
 
 // ── Community DB helpers ─────────────────────────────────────────────────────
-function readLocalLibrary() {
+function readLocalLibrary(type = "major") {
     try {
         const raw = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
-        // Drop any entries where the program name has no letters (e.g. stale "2023-24" entries)
         const lib = raw.filter(t => /[a-zA-Z]/.test(t.program || ""))
+        if (type === "minor") {
+            // Only cached items whose name contains "minor"
+            return lib.filter(t => /minor/i.test(t.program || ""))
+        }
+        // major: exclude items that look like minors, seed built-in templates
+        const majorLib = lib.filter(t => !/minor/i.test(t.program || ""))
         for (const opt of MAJOR_OPTIONS) {
             const tpl = MAJOR_TEMPLATES[opt.key]
             if (!tpl) continue
-            if (!lib.some(t => (t.program || "").toLowerCase() === (tpl.program || "").toLowerCase()))
-                lib.push(tpl)
+            if (!majorLib.some(t => (t.program || "").toLowerCase() === (tpl.program || "").toLowerCase()))
+                majorLib.push(tpl)
         }
-        return lib
+        return majorLib
     } catch (_) { return [] }
 }
 
-async function searchCommunity(query) {
+async function searchCommunity(query, type = "major") {
     try {
         let q = supabase
             .from("program_checklists")
             .select("program, calendar_year, total_credits, sections, uploaded_at")
+            .eq("type", type)
             .order("uploaded_at", { ascending: false })
             .limit(50)
         if (query && query.trim()) q = q.ilike("program", `%${query.trim()}%`)
         const { data, error } = await q
         if (error) return []
-        // Filter out bad rows where program is just a year/number (no letters)
         return (data || []).filter(r => /[a-zA-Z]/.test(r.program || ""))
     } catch (_) { return [] }
 }
@@ -74,21 +75,21 @@ function dbRowToTemplate(row) {
 }
 
 // ── Inline major search dropdown ──────────────────────────────────────────────
-function MajorSearch({ onSelect, onClose, onUpload }) {
+function MajorSearch({ onSelect, onClose, onUpload, type = "major" }) {
     const [query, setQuery]       = useState("")
     const [results, setResults]   = useState([])
     const [loading, setLoading]   = useState(true)
     const inputRef  = useRef(null)
     const wrapRef   = useRef(null)
     const timerRef  = useRef(null)
-    const localLib  = useMemo(() => readLocalLibrary(), [])
+    const localLib  = useMemo(() => readLocalLibrary(type), [type])
 
     const fetch = useCallback(async (q) => {
         setLoading(true)
-        const rows = await searchCommunity(q)
+        const rows = await searchCommunity(q, type)
         setResults(rows)
         setLoading(false)
-    }, [])
+    }, [type])
 
     useEffect(() => {
         fetch("")
@@ -358,6 +359,7 @@ export default function ChecklistTab({ cards = [] }) {
     })
     // Bumped on every applyMajorItem so the template memo re-reads localStorage even when major stays ""
     const [templateKey, setTemplateKey] = useState(0)
+    const [minorTemplateKey, setMinorTemplateKey] = useState(0)
 
     // Major selection — drives template-based auto-classification
     const [major, setMajor] = useState(() => {
@@ -377,10 +379,33 @@ export default function ChecklistTab({ cards = [] }) {
         return null
     }, [major, templateKey])
 
+    // Minor template — stored separately so course classification can use it
+    const minorTemplate = useMemo(() => {
+        try {
+            const raw = localStorage.getItem(MINOR_STORE_KEY)
+            if (raw) return JSON.parse(raw)
+        } catch (_) {}
+        return null
+    }, [minorTemplateKey])
+
+    // Section tabs — Minor tab only appears when a minor is selected
+    const SECTIONS = useMemo(() => {
+        const base = [
+            { id: "core",      label: "Core",      target: 43 },
+            { id: "major",     label: "Major",     target: 42 },
+            { id: "ancillary", label: "Ancillary", target: 9  },
+        ]
+        if (savedMinorName || minorTemplate) {
+            base.push({ id: "minor", label: "Minor", target: minorTemplate?.totalCredits || 24 })
+        }
+        base.push({ id: "electives", label: "Electives", target: 28 })
+        return base
+    }, [savedMinorName, minorTemplate])
+
     // Human-readable name for the currently active template.
     // savedMajorName is set directly in applyMajorItem so it's always current —
     // prefer it over template?.program which may still be the previous selection's value.
-    const currentProgram    = savedMajorName || template?.program || null
+    const currentProgram      = savedMajorName || template?.program || null
     const currentCalendarYear = savedCalendarYear || template?.calendarYear || null
 
     // Status map: code → "Completed" | "In Progress" | "Planned"
@@ -436,22 +461,26 @@ export default function ChecklistTab({ cards = [] }) {
         setMajorSearchOpen(false)
     }, [cards])
 
-    // Apply a minor selected from the search (label-only — no course sorting)
+    // Apply a minor selected from the community search
     const applyMinorItem = useCallback((item) => {
         const name = item.program || ""
         const year = item.calendarYear || ""
         try { localStorage.setItem(MINOR_PROG_KEY, name) } catch (_) {}
         try { localStorage.setItem(MINOR_YEAR_KEY, year) } catch (_) {}
+        try { localStorage.setItem(MINOR_STORE_KEY, JSON.stringify(item)) } catch (_) {}
         setSavedMinorName(name)
         setSavedMinorCalendarYear(year)
+        setMinorTemplateKey(k => k + 1)
         setMinorSearchOpen(false)
     }, [])
 
     const clearMinor = useCallback(() => {
         try { localStorage.removeItem(MINOR_PROG_KEY) } catch (_) {}
         try { localStorage.removeItem(MINOR_YEAR_KEY) } catch (_) {}
+        try { localStorage.removeItem(MINOR_STORE_KEY) } catch (_) {}
         setSavedMinorName("")
         setSavedMinorCalendarYear("")
+        setMinorTemplateKey(k => k + 1)
     }, [])
 
     const sensors = useSensors(
@@ -489,21 +518,30 @@ export default function ChecklistTab({ cards = [] }) {
             if (slot) { res[c.code] = slot.id; bump(slot.id) }
         }
 
-        // Pass 3: template-based classification for anything not yet placed
+        // Pass 3: major template classification, then minor, then pool
         for (const c of courses) {
             if (res[c.code] !== undefined) continue
+
+            // 3a. Major template
             if (template) {
                 const t = classifyCourse(c.code, template)
-                // classifyCourse returns null for core-eligible courses — those
-                // not caught by pass 2 (full slots) fall to pool
-                res[c.code] = t || "pool"
-            } else {
-                res[c.code] = "pool"
+                if (t) { res[c.code] = t; continue }
+                // t === null → core-eligible but slot full; fall through to minor/pool
             }
+
+            // 3b. Minor template — any section's required/choose list
+            if (minorTemplate) {
+                const inMinor = (minorTemplate.sections || []).some(s =>
+                    (s.required || []).includes(c.code) || (s.choose || []).includes(c.code)
+                )
+                if (inMinor) { res[c.code] = "minor"; continue }
+            }
+
+            res[c.code] = "pool"
         }
 
         return res
-    }, [courses, placements, template])
+    }, [courses, placements, template, minorTemplate])
 
     const coursesIn = target => courses.filter(c => assignment[c.code] === target)
     const pool = coursesIn("pool")
@@ -591,6 +629,7 @@ export default function ChecklistTab({ cards = [] }) {
                         <span className={styles.majorLabel}>Major</span>
                         {(majorSearchOpen || !currentProgram) ? (
                             <MajorSearch
+                                type="major"
                                 onSelect={applyMajorItem}
                                 onClose={() => setMajorSearchOpen(false)}
                             />
@@ -613,6 +652,7 @@ export default function ChecklistTab({ cards = [] }) {
                         <span className={styles.majorLabel}>Minor</span>
                         {minorSearchOpen ? (
                             <MajorSearch
+                                type="minor"
                                 onSelect={applyMinorItem}
                                 onClose={() => setMinorSearchOpen(false)}
                                 onUpload={() => { setMinorSearchOpen(false); setMinorImportOpen(true) }}
@@ -806,8 +846,10 @@ export default function ChecklistTab({ cards = [] }) {
                         const year = parsed.calendarYear || ""
                         try { localStorage.setItem(MINOR_PROG_KEY, name) } catch (_) {}
                         try { localStorage.setItem(MINOR_YEAR_KEY, year) } catch (_) {}
+                        try { localStorage.setItem(MINOR_STORE_KEY, JSON.stringify(parsed)) } catch (_) {}
                         setSavedMinorName(name)
                         setSavedMinorCalendarYear(year)
+                        setMinorTemplateKey(k => k + 1)
                         setMinorImportOpen(false)
                         setMinorSearchOpen(false)
                     }}
