@@ -463,6 +463,21 @@ export default function ChecklistTab({ cards = [] }) {
 
     // Apply a minor selected from the community search
     const applyMinorItem = useCallback((item) => {
+        // Clear any "electives"/"pool" placements for courses in the minor so
+        // they fall through to auto-classification instead of staying in Electives
+        const minorCodes = new Set(
+            (item.sections || []).flatMap(s => [
+                ...(s.required || []),
+                ...(s.choose  || []),
+            ])
+        )
+        setPlacements(prev => {
+            const next = { ...prev }
+            for (const code of minorCodes) {
+                if (next[code] === "electives" || next[code] === "pool") delete next[code]
+            }
+            return next
+        })
         const name = item.program || ""
         const year = item.calendarYear || ""
         try { localStorage.setItem(MINOR_PROG_KEY, name) } catch (_) {}
@@ -472,7 +487,7 @@ export default function ChecklistTab({ cards = [] }) {
         setSavedMinorCalendarYear(year)
         setMinorTemplateKey(k => k + 1)
         setMinorSearchOpen(false)
-    }, [])
+    }, [setPlacements])
 
     const clearMinor = useCallback(() => {
         try { localStorage.removeItem(MINOR_PROG_KEY) } catch (_) {}
@@ -844,6 +859,20 @@ export default function ChecklistTab({ cards = [] }) {
                     cards={cards}
                     onClose={() => setMinorImportOpen(false)}
                     onMinorImported={(parsed) => {
+                        // Clear elective/pool placements for minor courses
+                        const minorCodes = new Set(
+                            (parsed.sections || []).flatMap(s => [
+                                ...(s.required || []),
+                                ...(s.choose  || []),
+                            ])
+                        )
+                        setPlacements(prev => {
+                            const next = { ...prev }
+                            for (const code of minorCodes) {
+                                if (next[code] === "electives" || next[code] === "pool") delete next[code]
+                            }
+                            return next
+                        })
                         const name = parsed.program || ""
                         const year = parsed.calendarYear || ""
                         try { localStorage.setItem(MINOR_PROG_KEY, name) } catch (_) {}
