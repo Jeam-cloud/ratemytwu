@@ -45,7 +45,15 @@ function saveToLibrary(template) {
  * "Import checklist" modal — PDF upload only.
  * Community search lives on the dashboard (ChecklistTab major bar).
  */
-export default function ChecklistImportModal({ cards = [], onClose, onImported }) {
+/**
+ * Props:
+ *   cards         – planner cards (used for major-mode sort preview)
+ *   onClose       – close the modal
+ *   onImported    – (major mode) called after "Sort my courses"
+ *   onMinorImported(parsed) – (minor mode) called instead of sorting; sets the minor label
+ */
+export default function ChecklistImportModal({ cards = [], onClose, onImported, onMinorImported }) {
+    const isMinorMode = !!onMinorImported
     const fileRef = useRef(null)
     const [step, setStep]         = useState("idle")   // idle | parsing | preview
     const [dragging, setDragging] = useState(false)
@@ -102,7 +110,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
         <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
             <div className={styles.modal}>
                 <div className={styles.head}>
-                    <h2 className={styles.title}>Import checklist PDF</h2>
+                    <h2 className={styles.title}>{isMinorMode ? "Import minor checklist PDF" : "Import checklist PDF"}</h2>
                     <button className={styles.close} onClick={onClose} aria-label="Close">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M18 6 6 18M6 6l12 12" />
@@ -114,7 +122,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                     {step !== "preview" ? (
                         <>
                             <p className={styles.hint} style={{ marginBottom: 14 }}>
-                                Upload your major checklist PDF from{" "}
+                                Upload your {isMinorMode ? "minor" : "major"} checklist PDF from{" "}
                                 <a href="https://twu.ca/academics/academic-advising/degree-planning/" target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>
                                     twu.ca/advising
                                 </a>
@@ -159,7 +167,20 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                                 </p>
                             )}
                         </>
+                    ) : isMinorMode ? (
+                        /* ── Minor preview: just confirm the name, no course-sort table ── */
+                        <>
+                            <p className={styles.hint}>
+                                Parsed <strong>{parsed.program || "this program"}</strong>
+                                {parsed.calendarYear ? ` (${parsed.calendarYear})` : ""}.
+                                Click <em>Set as my minor</em> to add it to your planner bar.
+                            </p>
+                            <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-3)", marginTop: 10 }}>
+                                ✓ Added to the community pool so other TWU students can find it.
+                            </p>
+                        </>
                     ) : (
+                        /* ── Major preview: full course-sort breakdown ── */
                         <>
                             <p className={styles.hint}>
                                 Parsed <strong>{parsed.program || "this program"}</strong>
@@ -192,9 +213,15 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported }
                 <div className={styles.footer}>
                     <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
                     {step === "preview" && (
-                        <button className={styles.exportBtn} onClick={applyParsed}>
-                            Sort my courses
-                        </button>
+                        isMinorMode ? (
+                            <button className={styles.exportBtn} onClick={() => { onMinorImported(parsed); onClose() }}>
+                                Set as my minor
+                            </button>
+                        ) : (
+                            <button className={styles.exportBtn} onClick={applyParsed}>
+                                Sort my courses
+                            </button>
+                        )
                     )}
                 </div>
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import ChecklistImportModal from "./ChecklistImportModal"
 import {
     DndContext, DragOverlay, PointerSensor, TouchSensor,
     useSensor, useSensors, useDraggable, useDroppable,
@@ -73,7 +74,7 @@ function dbRowToTemplate(row) {
 }
 
 // ── Inline major search dropdown ──────────────────────────────────────────────
-function MajorSearch({ onSelect, onClose }) {
+function MajorSearch({ onSelect, onClose, onUpload }) {
     const [query, setQuery]       = useState("")
     const [results, setResults]   = useState([])
     const [loading, setLoading]   = useState(true)
@@ -167,7 +168,7 @@ function MajorSearch({ onSelect, onClose }) {
                 )}
                 {!loading && merged.length === 0 && (
                     <div style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--ink-3)", padding: "12px 14px" }}>
-                        No results — upload a checklist PDF via "Import checklist"
+                        No results yet — upload a checklist PDF below.
                     </div>
                 )}
                 {merged.map((item, i) => (
@@ -200,6 +201,23 @@ function MajorSearch({ onSelect, onClose }) {
                         )}
                     </button>
                 ))}
+                {onUpload && (
+                    <button
+                        onMouseDown={e => { e.preventDefault(); onUpload() }}
+                        style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            width: "100%", padding: "10px 14px",
+                            border: "none", borderTop: merged.length ? "1px solid var(--border)" : "none",
+                            background: "var(--cream)", cursor: "pointer",
+                            fontFamily: "var(--font-sans)", fontSize: 12,
+                            color: "var(--blue)", fontWeight: 600, textAlign: "left",
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = "var(--blue-tint)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "var(--cream)"}
+                    >
+                        ↑ Upload checklist PDF
+                    </button>
+                )}
             </div>
         </div>
     )
@@ -323,6 +341,7 @@ export default function ChecklistTab({ cards = [] }) {
     const [query, setQuery]                 = useState("")
     const [majorSearchOpen, setMajorSearchOpen] = useState(false)
     const [minorSearchOpen, setMinorSearchOpen] = useState(false)
+    const [minorImportOpen, setMinorImportOpen] = useState(false)
     // Explicit state for major — set directly in applyMajorItem so the bar updates in the same render
     const [savedMajorName, setSavedMajorName] = useState(() => {
         try { return localStorage.getItem(PROG_KEY) || "" } catch (_) { return "" }
@@ -596,6 +615,7 @@ export default function ChecklistTab({ cards = [] }) {
                             <MajorSearch
                                 onSelect={applyMinorItem}
                                 onClose={() => setMinorSearchOpen(false)}
+                                onUpload={() => { setMinorSearchOpen(false); setMinorImportOpen(true) }}
                             />
                         ) : savedMinorName ? (
                             <>
@@ -776,6 +796,23 @@ export default function ChecklistTab({ cards = [] }) {
             <DragOverlay>
                 {dragCode ? <span className={styles.pillGhost}>{dragCode}</span> : null}
             </DragOverlay>
+
+            {minorImportOpen && (
+                <ChecklistImportModal
+                    cards={cards}
+                    onClose={() => setMinorImportOpen(false)}
+                    onMinorImported={(parsed) => {
+                        const name = parsed.program || ""
+                        const year = parsed.calendarYear || ""
+                        try { localStorage.setItem(MINOR_PROG_KEY, name) } catch (_) {}
+                        try { localStorage.setItem(MINOR_YEAR_KEY, year) } catch (_) {}
+                        setSavedMinorName(name)
+                        setSavedMinorCalendarYear(year)
+                        setMinorImportOpen(false)
+                        setMinorSearchOpen(false)
+                    }}
+                />
+            )}
         </DndContext>
     )
 }
