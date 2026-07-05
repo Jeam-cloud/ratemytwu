@@ -546,10 +546,18 @@ export default function ChecklistTab({ cards = [] }) {
             }
 
             // 3b. Minor template beats the elective fallback
+            //     Checks: explicit required/choose lists AND electivePrefix for
+            //     open-slot minors (e.g. Psychology Minor where most slots are
+            //     "choose any PSYC 300+ course")
             if (minorTemplate) {
-                const inMinor = (minorTemplate.sections || []).some(s =>
-                    (s.required || []).includes(c.code) || (s.choose || []).includes(c.code)
-                )
+                const lvl = code => { const m = String(code || "").match(/(\d{3})/); return m ? Number(m[1]) : 0 }
+                const inMinor = (minorTemplate.sections || []).some(s => {
+                    if ((s.required || []).includes(c.code) || (s.choose || []).includes(c.code)) return true
+                    if (s.electivePrefix &&
+                        c.code.toUpperCase().startsWith(s.electivePrefix.toUpperCase()) &&
+                        lvl(c.code) >= (s.electiveMinLevel || 130)) return true
+                    return false
+                })
                 if (inMinor) { res[c.code] = "minor"; continue }
             }
 

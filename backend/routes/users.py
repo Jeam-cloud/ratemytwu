@@ -324,6 +324,18 @@ def _infer_sections_from_codes(text: str, program: str) -> list[dict]:
             if top_count / len(non_core_prefixes) >= 0.40:
                 guessed_prefix = top_prefix
 
+    # Second fallback: for subject minors (e.g. Psychology Minor) where the
+    # dominant prefix is normally treated as "core" (e.g. PSYC), use the most
+    # common prefix across ALL codes — including core ones — when it dominates.
+    if guessed_prefix is None:
+        from collections import Counter
+        all_prefixes = [c.split()[0] for c in all_codes]
+        if all_prefixes:
+            freq = Counter(all_prefixes)
+            top_prefix, top_count = freq.most_common(1)[0]
+            if top_count / len(all_prefixes) >= 0.60:
+                guessed_prefix = top_prefix
+
     major_codes = []
     ancillary_codes = []
     for code in all_codes:
@@ -366,7 +378,7 @@ def _parse_checklist(text: str) -> dict:
     out = {"program": None, "calendarYear": None, "totalCredits": None, "sections": []}
 
     pm = re.search(
-        r'(?:B\.[A-Za-z.]+\s+)?([A-Z][A-Za-z &]+?)\s+(?:MAJOR\s+)?CHECKLIST\s*[-\u2013\u2014]?\s*\((\d+)\s*s\.h',
+        r'(?:B\.[A-Za-z.]+\s+)?([A-Z][A-Za-z &]+?)\s*(?:\/[A-Za-z ]+)?\s+(?:MAJOR\s+)?CHECKLIST\s*[-\u2013\u2014]?\s*\((\d+)(?:\/\d+)?\s*s\.h',
         text,
     )
     if pm:
