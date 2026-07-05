@@ -241,13 +241,28 @@ _CORE_PREFIXES = {"ENGL", "FNDN", "RELS", "PHIL", "BIOL", "CHEM",
                   "LING", "ECON", "NURS", "HKIN", "SAMC", "IDIS", "GREE", "HEBR"}
 
 
+_YEAR_PLAN_CUT = re.compile(
+    r'\n[^\n]*(?:\d[- ]?Year Plan|Sample Plan|Degree Plan|FOR OFFICE USE)[^\n]*\n'
+    r'|\n\s*✓\s+s\.h\.[ \t]+(?:Fall|Spring|Summer)\b'
+    r'|\n[ \t]{2,}YEAR[ \t]{2,}\d\b',
+    re.IGNORECASE,
+)
+
+
 def _preprocess(text: str) -> str:
     """
-    pypdf layout mode sometimes wraps TWU section headers like:
-        "2.  Required English Courses\n(42 s.h.*)"
-    Join any line that looks like a section-number start but has no '(' yet
-    with the next line when that next line contains 's.h'.
+    1. Strip appended year-plan / degree-plan pages that repeat every course
+       code and would contaminate the last section's block.
+    2. pypdf layout mode sometimes wraps TWU section headers like:
+           "2.  Required English Courses\n(42 s.h.*)"
+       Join any line that looks like a section-number start but has no '(' yet
+       with the next line when that next line contains 's.h'.
     """
+    # Truncate at year-plan content so it does not contaminate the last section
+    cut = _YEAR_PLAN_CUT.search(text)
+    if cut:
+        text = text[:cut.start()]
+
     lines = text.splitlines()
     out = []
     i = 0
@@ -350,7 +365,10 @@ def _parse_checklist(text: str) -> dict:
 
     out = {"program": None, "calendarYear": None, "totalCredits": None, "sections": []}
 
-    pm = re.search(r'([A-Z][A-Za-z &]+?)\s+MAJOR CHECKLIST\s*\((\d+)\s*s\.h', text)
+    pm = re.search(
+        r'(?:B\.[A-Za-z.]+\s+)?([A-Z][A-Za-z &]+?)\s+(?:MAJOR\s+)?CHECKLIST\s*[-\u2013\u2014]?\s*\((\d+)\s*s\.h',
+        text,
+    )
     if pm:
         out["program"] = pm.group(1).title().strip()
         out["totalCredits"] = int(pm.group(2))
