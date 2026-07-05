@@ -21,7 +21,7 @@
 .heroPhoto {
     position: absolute;
     inset: 0;
-    background: url("/campus-hero.jpg") center / cover no-repeat;
+    background: url("/campus-hero.webp") center / cover no-repeat;
     z-index: 0;
 }
 

@@ -16,7 +16,7 @@
 .photo {
     position: absolute;
     inset: 0;
-    background: url("/login-bg.jpg") center / cover no-repeat;
+    background: url("/login-bg.webp") center / cover no-repeat;
     z-index: 0;
 }
 /* soft blue gradient scrim, echoing the landing hero */

@@ -10,7 +10,7 @@
 .photo {
     position: absolute;
     inset: 0;
-    background: url("/campus-footer.jpg") center / cover no-repeat;
+    background: url("/campus-footer.webp") center / cover no-repeat;
     z-index: 0;
 }
 
