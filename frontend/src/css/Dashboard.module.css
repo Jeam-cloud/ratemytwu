@@ -1126,7 +1126,7 @@
 
 .viewTabOn {
     background: var(--surface);
-    color: var(--navy);
+    color: var(--ink);
     box-shadow: var(--shadow-sm);
 }
 
