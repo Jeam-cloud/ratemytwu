@@ -38,11 +38,11 @@ function difficultyTone(d) {
     return styles.diffHard
 }
 
-// Renders the Fall | [Summer or Add-summer btn] | Spring grid for one year
-function YearTerms({ group, startTerm, hasSummer, cards, startYear, onDelete, onUpdate, autoEditCardId, onAutoEditDone, onAddSummer, styles }) {
+// Renders Fall → Spring → Summer for each academic year (Summer optional)
+function YearTerms({ group, hasSummer, cards, startYear, onDelete, onUpdate, autoEditCardId, onAutoEditDone, onAddSummer, styles }) {
     const byTerm = (t) => group.columns.find(c => c.term === t)
-    const firstCol  = startTerm === "Spring" ? byTerm("Spring") : byTerm("Fall")
-    const lastCol   = startTerm === "Spring" ? byTerm("Fall")   : byTerm("Spring")
+    const fallCol   = byTerm("Fall")
+    const springCol = byTerm("Spring")
     const summerCol = byTerm("Summer")
 
     const colProps = (col) => ({
@@ -58,11 +58,11 @@ function YearTerms({ group, startTerm, hasSummer, cards, startYear, onDelete, on
 
     return (
         <div className={hasSummer ? styles.termsThree : styles.termsTwo}>
-            {firstCol  && <DashBoardColumn {...colProps(firstCol)} />}
+            {fallCol   && <DashBoardColumn {...colProps(fallCol)} />}
+            {springCol && <DashBoardColumn {...colProps(springCol)} />}
             {hasSummer && summerCol && <DashBoardColumn {...colProps(summerCol)} />}
-            {lastCol   && <DashBoardColumn {...colProps(lastCol)} />}
 
-            {/* Full-width "Add summer term" button below Fall + Spring */}
+            {/* Full-width "Add summer term" button after Fall + Spring */}
             {!hasSummer && (
                 <button
                     className={styles.addSummerCard}
@@ -808,7 +808,6 @@ export default function Dashboard() {
                                                 {/* Term columns — only when expanded */}
                                                 {open && <YearTerms
                                                     group={group}
-                                                    startTerm={startTerm}
                                                     hasSummer={summerYears.has(group.year)}
                                                     cards={cards}
                                                     startYear={startYear}
