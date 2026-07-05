@@ -98,6 +98,8 @@ export default function Dashboard() {
     const [isGuest, setIsGuest] = useState(false)
     const [guestQuery, setGuestQuery] = useState("")
     const [guestResults, setGuestResults] = useState([])
+    const [sidebarQuery, setSidebarQuery] = useState("")
+    const [sidebarResults, setSidebarResults] = useState([])
     const [activeItem, setActiveItem] = useState(null)
     const [years, setYears] = useState(null)
     const [error, setError] = useState(null)
@@ -336,37 +338,12 @@ export default function Dashboard() {
         setGuestResults(data.slice(0, 8))
     }
 
-    // on drag logic of firing making a new card dragging from bookmarks/search to actual column
-    const handleDragEnd = async (event) => {
-        const { active, over } = event
-
-        setActiveItem(null)
-
-        if (!over) return
-
-        const col = over.data.current.col
-        const dragged = active.data.current
-
-        // moving an existing board card → update its year/term
-        if (dragged.card) {
-            const card = dragged.card
-            if (card.year === col.year && card.term === col.term) return
-            handleUpdate(card.id, {
-                year: col.year, term: col.term,
-                credits: card.credits ?? null, status: card.status ?? "Planned",
-                grade: card.grade ?? null, notes: card.notes ?? null,
-            })
-            return
-        }
-
-        // course being placed → create a new card
-        const course = dragged.course
-
+    // shared helper — add a course to a planner column (used by drag-end and sidebar picker)
+    const addCourseToCol = async (course, col) => {
         if (isGuest) {
-            // already on board?
             if (cards.some(c => c.course_id === course.id)) return
             const newCard = {
-                id: -Date.now(),   // negative local ID
+                id: -Date.now(),
                 course_id: course.id,
                 year: col.year, term: col.term,
                 code: course.code,
@@ -393,6 +370,44 @@ export default function Dashboard() {
         const newCard = await response.json()
         setCards((prev) => [...prev, newCard])
         setAutoEditCardId(newCard.id)
+    }
+
+    // sidebar course search (logged-in)
+    const handleSidebarSearch = async (e) => {
+        const q = e.target.value
+        setSidebarQuery(q)
+        setSemPickerFor(null)
+        if (q.trim().length < 2) { setSidebarResults([]); return }
+        const res = await fetch(`${API_URL}/course/?search_course=${q.trim()}`)
+        const data = await res.json()
+        setSidebarResults(data.slice(0, 6))
+    }
+
+    // on drag logic of firing making a new card dragging from bookmarks/search to actual column
+    const handleDragEnd = async (event) => {
+        const { active, over } = event
+
+        setActiveItem(null)
+
+        if (!over) return
+
+        const col = over.data.current.col
+        const dragged = active.data.current
+
+        // moving an existing board card → update its year/term
+        if (dragged.card) {
+            const card = dragged.card
+            if (card.year === col.year && card.term === col.term) return
+            handleUpdate(card.id, {
+                year: col.year, term: col.term,
+                credits: card.credits ?? null, status: card.status ?? "Planned",
+                grade: card.grade ?? null, notes: card.notes ?? null,
+            })
+            return
+        }
+
+        // course being placed → create a new card
+        await addCourseToCol(dragged.course, col)
     }
 
     const handleDelete = async (cardId) => {
@@ -634,18 +649,44 @@ export default function Dashboard() {
                                     </>
                                 ) : (
                                     <>
-                                        <p className={styles.bookmarkKicker}>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
-                                            </svg>
-                                            Bookmarked
-                                        </p>
-                                        {availableBookmarks.length === 0 ? (
-                                            <p className={styles.bookmarkEmpty}>No bookmarks left to place.</p>
+                                        {/* ── Course search ── */}
+                                        <div className={styles.sidebarSearchWrap}>
+                                            <input
+                                                type="text"
+                                                className={styles.sidebarSearchInput}
+                                                placeholder="Search courses…"
+                                                value={sidebarQuery}
+                                                onChange={handleSidebarSearch}
+                                            />
+                                        </div>
+
+                                        {/* ── Results (draggable) or bookmarks ── */}
+                                        {sidebarQuery.length >= 2 ? (
+                                            sidebarResults.length === 0 ? (
+                                                <p className={styles.bookmarkEmpty}>No courses found.</p>
+                                            ) : (
+                                                sidebarResults
+                                                    .filter(course => !cards.some(c => c.course_id === course.id))
+                                                    .map(course => (
+                                                        <BookMarkCard key={course.id} course={course} />
+                                                    ))
+                                            )
                                         ) : (
-                                            availableBookmarks.map(course => (
-                                                <BookMarkCard key={course.id} course={course} />
-                                            ))
+                                            <>
+                                                <p className={styles.bookmarkKicker}>
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" />
+                                                    </svg>
+                                                    Bookmarked
+                                                </p>
+                                                {availableBookmarks.length === 0 ? (
+                                                    <p className={styles.bookmarkEmpty}>No bookmarks left to place.</p>
+                                                ) : (
+                                                    availableBookmarks.map(course => (
+                                                        <BookMarkCard key={course.id} course={course} />
+                                                    ))
+                                                )}
+                                            </>
                                         )}
                                     </>
                                 )}

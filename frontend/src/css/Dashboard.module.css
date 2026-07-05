@@ -485,6 +485,31 @@
     margin: 0;
 }
 
+/* ── Sidebar course search ── */
+.sidebarSearchWrap {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.sidebarSearchInput {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--ink);
+    background: var(--cream);
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color var(--dur) var(--ease);
+}
+.sidebarSearchInput:focus {
+    border-color: var(--blue);
+}
+.sidebarSearchInput::placeholder { color: var(--ink-3); }
+
+
 /* ── Lifespan prompt ── */
 .lifespan {
     background: var(--surface);
