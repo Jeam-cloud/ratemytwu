@@ -17,10 +17,12 @@ const SECTIONS = [
     { id: "electives", label: "Electives", target: 28 },
 ]
 
-const STORE_KEY    = "rmtwu_checklist_v2"
-const MAJOR_KEY    = "rmtwu_major"
-const PROG_KEY     = "rmtwu_major_program"       // explicit fallback for the selected program name
-const YEAR_KEY     = "rmtwu_major_calendar_year" // explicit fallback for the calendar year badge
+const STORE_KEY      = "rmtwu_checklist_v2"
+const MAJOR_KEY      = "rmtwu_major"
+const PROG_KEY       = "rmtwu_major_program"
+const YEAR_KEY       = "rmtwu_major_calendar_year"
+const MINOR_PROG_KEY = "rmtwu_minor_program"
+const MINOR_YEAR_KEY = "rmtwu_minor_calendar_year"
 
 // Flat list of every core slot (groups → subgroups → slots), tagged with its group.
 const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
@@ -33,7 +35,9 @@ const LIBRARY_KEY = "rmtwu_checklist_library"
 // ── Community DB helpers ─────────────────────────────────────────────────────
 function readLocalLibrary() {
     try {
-        const lib = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
+        const raw = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]")
+        // Drop any entries where the program name has no letters (e.g. stale "2023-24" entries)
+        const lib = raw.filter(t => /[a-zA-Z]/.test(t.program || ""))
         for (const opt of MAJOR_OPTIONS) {
             const tpl = MAJOR_TEMPLATES[opt.key]
             if (!tpl) continue
@@ -318,13 +322,20 @@ export default function ChecklistTab({ cards = [] }) {
     const [selectedCode, setSelected]       = useState(null) // click-to-place
     const [query, setQuery]                 = useState("")
     const [majorSearchOpen, setMajorSearchOpen] = useState(false)
-    // Explicit state: set directly in applyMajorItem so the bar updates in the same render,
-    // no dependency on the template memo which may still reflect the previous selection.
+    const [minorSearchOpen, setMinorSearchOpen] = useState(false)
+    // Explicit state for major — set directly in applyMajorItem so the bar updates in the same render
     const [savedMajorName, setSavedMajorName] = useState(() => {
         try { return localStorage.getItem(PROG_KEY) || "" } catch (_) { return "" }
     })
     const [savedCalendarYear, setSavedCalendarYear] = useState(() => {
         try { return localStorage.getItem(YEAR_KEY) || "" } catch (_) { return "" }
+    })
+    // Minor — label only, no course sorting
+    const [savedMinorName, setSavedMinorName] = useState(() => {
+        try { return localStorage.getItem(MINOR_PROG_KEY) || "" } catch (_) { return "" }
+    })
+    const [savedMinorCalendarYear, setSavedMinorCalendarYear] = useState(() => {
+        try { return localStorage.getItem(MINOR_YEAR_KEY) || "" } catch (_) { return "" }
     })
     // Bumped on every applyMajorItem so the template memo re-reads localStorage even when major stays ""
     const [templateKey, setTemplateKey] = useState(0)
@@ -405,6 +416,24 @@ export default function ChecklistTab({ cards = [] }) {
         setSavedCalendarYear(calYear)
         setMajorSearchOpen(false)
     }, [cards])
+
+    // Apply a minor selected from the search (label-only — no course sorting)
+    const applyMinorItem = useCallback((item) => {
+        const name = item.program || ""
+        const year = item.calendarYear || ""
+        try { localStorage.setItem(MINOR_PROG_KEY, name) } catch (_) {}
+        try { localStorage.setItem(MINOR_YEAR_KEY, year) } catch (_) {}
+        setSavedMinorName(name)
+        setSavedMinorCalendarYear(year)
+        setMinorSearchOpen(false)
+    }, [])
+
+    const clearMinor = useCallback(() => {
+        try { localStorage.removeItem(MINOR_PROG_KEY) } catch (_) {}
+        try { localStorage.removeItem(MINOR_YEAR_KEY) } catch (_) {}
+        setSavedMinorName("")
+        setSavedMinorCalendarYear("")
+    }, [])
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -536,30 +565,53 @@ export default function ChecklistTab({ cards = [] }) {
         >
             <div className={styles.checklist}>
 
-                {/* ── Major status bar ── */}
+                {/* ── Major / Minor bar ── */}
                 <div className={styles.majorBar}>
-                    <span className={styles.majorLabel}>Major</span>
-                    {(majorSearchOpen || !currentProgram) ? (
-                        <MajorSearch
-                            onSelect={applyMajorItem}
-                            onClose={() => setMajorSearchOpen(false)}
-                        />
-                    ) : (
-                        <>
-                            <span className={styles.majorName}>{currentProgram}</span>
-                            {currentCalendarYear && (
-                                <span className={styles.majorBadge}>{currentCalendarYear}</span>
-                            )}
-                            <button
-                                onClick={() => setMajorSearchOpen(true)}
-                                style={{
-                                    marginLeft: "auto", fontFamily: "var(--font-sans)",
-                                    fontSize: 12, color: "var(--blue)", background: "none",
-                                    border: "none", cursor: "pointer", padding: 0,
-                                }}
-                            >Change</button>
-                        </>
-                    )}
+                    {/* Major half */}
+                    <div className={styles.majorHalf}>
+                        <span className={styles.majorLabel}>Major</span>
+                        {(majorSearchOpen || !currentProgram) ? (
+                            <MajorSearch
+                                onSelect={applyMajorItem}
+                                onClose={() => setMajorSearchOpen(false)}
+                            />
+                        ) : (
+                            <>
+                                <span className={styles.majorName}>{currentProgram}</span>
+                                {currentCalendarYear && (
+                                    <span className={styles.majorBadge}>{currentCalendarYear}</span>
+                                )}
+                                <button className={styles.barChangeBtn} onClick={() => setMajorSearchOpen(true)}>Change</button>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Divider */}
+                    <div className={styles.majorDivider} />
+
+                    {/* Minor half */}
+                    <div className={styles.majorHalf}>
+                        <span className={styles.majorLabel}>Minor</span>
+                        {minorSearchOpen ? (
+                            <MajorSearch
+                                onSelect={applyMinorItem}
+                                onClose={() => setMinorSearchOpen(false)}
+                            />
+                        ) : savedMinorName ? (
+                            <>
+                                <span className={styles.majorName}>{savedMinorName}</span>
+                                {savedMinorCalendarYear && (
+                                    <span className={styles.majorBadge}>{savedMinorCalendarYear}</span>
+                                )}
+                                <button className={styles.barChangeBtn} onClick={() => setMinorSearchOpen(true)}>Change</button>
+                                <button className={styles.barClearBtn} onClick={clearMinor} aria-label="Remove minor">×</button>
+                            </>
+                        ) : (
+                            <button className={styles.addMinorBtn} onClick={() => setMinorSearchOpen(true)}>
+                                + Add minor
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Click-to-place banner */}

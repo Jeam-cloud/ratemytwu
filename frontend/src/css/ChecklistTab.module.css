@@ -369,17 +369,78 @@
     cursor: pointer;
 }
 
-/* ── Major selector bar ── */
+/* ── Major / Minor selector bar ── */
 .majorBar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 0;
+    padding: 0;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    flex-wrap: wrap;
+    overflow: hidden;
 }
+
+/* Each half (major left, minor right) */
+.majorHalf {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+}
+
+/* Vertical divider between major and minor */
+.majorDivider {
+    width: 1px;
+    align-self: stretch;
+    background: var(--border);
+    flex: none;
+}
+
+/* "Change" link inside a half */
+.barChangeBtn {
+    margin-left: auto;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--blue);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex: none;
+    white-space: nowrap;
+}
+.barChangeBtn:hover { text-decoration: underline; }
+
+/* × remove button for minor */
+.barClearBtn {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    color: var(--ink-3);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    flex: none;
+}
+.barClearBtn:hover { color: var(--negative); }
+
+/* "+ Add minor" prompt */
+.addMinorBtn {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--blue);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.75;
+}
+.addMinorBtn:hover { opacity: 1; text-decoration: underline; }
 .majorLabel {
     font-family: var(--font-sans);
     font-size: 12px;
