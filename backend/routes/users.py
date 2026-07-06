@@ -303,11 +303,18 @@ _ANCILLARY_SUBHDR = re.compile(
 _KIND_ALT = r'MAJOR|MINOR\s*/\s*CONCENTRATION|CONCENTRATION\s*/\s*MINOR|MINOR|CONCENTRATION'
 _DOC_TITLE = re.compile(
     r'(?P<prog>[A-Z][A-Za-z &+]+?)\s*(?:/[A-Za-z ]+)?\s+'
+    # The kind keyword is OPTIONAL — most Major checklists never actually
+    # write the word "MAJOR" at all (e.g. "Bachelor Of Arts In Business
+    # Administration Checklist"), only Minor/Concentration/dual documents
+    # reliably say so. Treating a missing keyword as "unknown" (rather than
+    # defaulting to major) let a Major PDF slip straight through the
+    # Minor/Concentration upload guardrail undetected — confirmed with a real
+    # upload. Absence of the keyword now means "major", not "no opinion".
     # Negative lookbehind excludes "DOUBLE CONCENTRATION" — that's a MAJOR's
     # own title (e.g. "Arts, Media + Culture Double Concentration Checklist"),
     # not a document of kind "concentration"; without this it would falsely
     # reject a legitimate Major upload as the wrong document type.
-    r'(?<!DOUBLE )(?P<kind>' + _KIND_ALT + r')\s+CHECKLIST\s*[-–—]?\s*'
+    r'(?:(?<!DOUBLE )(?P<kind>' + _KIND_ALT + r')\s+)?CHECKLIST\s*[-–—]?\s*'
     # Credits: single ("24"), slash-range ("24/30" — dual doc), or
     # hyphen-range ("24-26" — one tier with a flexible target).
     r'\((?P<c1>\d+)(?:\s*[/-]\s*(?P<c2>\d+))?\s*s\.h',
@@ -355,13 +362,65 @@ def _detect_doc_title(text: str) -> dict | None:
     m = _DOC_TITLE.search(text) or _DOC_TITLE_ALT.search(text)
     if not m:
         return None
-    kind_norm = re.sub(r'\s*/\s*', '/', m.group("kind").strip())
+    # No kind keyword at all (common for Major checklists — see note above
+    # _DOC_TITLE) means "major", not "unknown".
+    kind_norm = re.sub(r'\s*/\s*', '/', m.group("kind").strip()) if m.group("kind") else "MAJOR"
     return {
         "kind": _DOC_KIND_MAP[kind_norm],
         "program": m.group("prog").title().strip(),
         "c1": int(m.group("c1")),
         "c2": int(m.group("c2")) if m.group("c2") else None,
     }
+
+
+_CHECKLIST_WORD = re.compile(r'\bCHECKLIST\b', re.IGNORECASE)
+
+
+def _detect_doc_kind(text: str) -> str:
+    """
+    Robust upload-type guardrail check — deliberately separate from
+    _detect_doc_title's rigid "PROGRAM KIND CHECKLIST (credits)" shape, which
+    turned out to break on real title variance: "CHECKLIST: ALL STREAMS
+    (122 s.h.)", "MAJOR (DEGREE COMPLETION) CHECKLIST (122 s.h.)", "(B.Sc.)
+    HONOURS: CHECKLIST (134 s.h.)", etc. — confirmed against the real 62-major
+    corpus, where 13 titles silently failed to match at all and fell through
+    the guardrail undetected.
+
+    Instead of requiring a strict shape, this only asks: near the CHECKLIST
+    that actually introduces the title (i.e. the one on the same line as a
+    credit total like "(24 s.h.)" or "(24/30 s.h.)" — NOT the boilerplate
+    "THIS CHECKLIST IS INTENDED TO ASSIST..." sentence every one of these
+    PDFs also contains), do the words MINOR / CONCENTRATION appear? Absence of
+    both means "major" — the correct default, since most Major checklists
+    never write the word "MAJOR" at all.
+    """
+    title_match = None
+    for m in _CHECKLIST_WORD.finditer(text):
+        line_start = text.rfind('\n', 0, m.start()) + 1
+        line_end = text.find('\n', m.end())
+        if line_end == -1:
+            line_end = len(text)
+        line = text[line_start:line_end]
+        if re.search(r'\(\s*\d+[^)]*s\.h', line, re.IGNORECASE):
+            title_match = m
+            break
+    if not title_match:
+        return "major"
+
+    window = text[max(0, title_match.start() - 150):title_match.start() + 20]
+    # "DOUBLE CONCENTRATION" is a MAJOR's own title (e.g. Arts, Media +
+    # Culture) — strip before checking, so it doesn't falsely read as a
+    # Concentration-type document.
+    window = re.sub(r'\bDOUBLE\s+CONCENTRATION\b', '', window, flags=re.IGNORECASE)
+    has_minor = re.search(r'\bMINOR\b', window, re.IGNORECASE) is not None
+    has_conc = re.search(r'\bCONCENTRATION\b', window, re.IGNORECASE) is not None
+    if has_minor and has_conc:
+        return "dual"
+    if has_conc:
+        return "concentration"
+    if has_minor:
+        return "minor"
+    return "major"
 
 
 def _choose_codes(clause: str) -> list[str]:
@@ -866,8 +925,7 @@ async def parse_checklist(
         raise HTTPException(status_code=400, detail="Could not read PDF")
 
     text = "\n".join(_extract_checklist_pages(reader, content))
-    title = _detect_doc_title(text)
-    detected_kind = title["kind"] if title else None
+    detected_kind = _detect_doc_kind(text)  # always "major" | "minor" | "concentration" | "dual"
 
     if doc_type == "major":
         if detected_kind in ("minor", "concentration", "dual"):
@@ -883,7 +941,7 @@ async def parse_checklist(
                 status_code=422,
                 detail="This looks like a Major checklist, not a Minor/Concentration checklist.",
             )
-        if detected_kind not in (None, "dual", doc_type):
+        if detected_kind not in ("dual", doc_type):
             # e.g. doc_type == "concentration" but this document is a
             # Minor-only checklist with no Concentration tier at all.
             raise HTTPException(
