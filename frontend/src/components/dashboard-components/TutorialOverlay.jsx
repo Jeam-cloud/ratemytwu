@@ -136,7 +136,17 @@ export default function TutorialOverlay({ step, onNext, onPrev, onSkip }) {
             return
         }
         const el = findEl(current.key)
-        if (!el) { setSpot(s => ({ ...s, visible: false })); return }
+        if (!el) {
+            // Target element doesn't exist — e.g. guest users never see the
+            // Import/Export buttons at all, so those steps have nothing to
+            // point at. Previously this just hid the spotlight while leaving
+            // the full-page dimming backdrop up; the tooltip card (the only
+            // way to advance/skip) also loses its computed position with no
+            // spot to anchor to, so the whole tour silently soft-locked the
+            // page for guests. Skip straight to the next step instead.
+            onNext()
+            return
+        }
 
         const measure = () => {
             const r = el.getBoundingClientRect()
