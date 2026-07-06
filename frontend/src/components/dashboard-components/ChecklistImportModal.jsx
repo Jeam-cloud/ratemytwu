@@ -19,6 +19,19 @@ async function publishToDb(template, type = "major") {
         if (!prog || !/[a-zA-Z]/.test(prog)) return
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
+
+        // Don't blindly overwrite — if a row for this program/year already
+        // exists and was uploaded by someone else, leave it alone. Only the
+        // original uploader (or a fresh program/year combo) can write.
+        const { data: existing } = await supabase
+            .from("program_checklists")
+            .select("uploaded_by")
+            .eq("program", prog)
+            .eq("calendar_year", template.calendarYear || "")
+            .maybeSingle()
+
+        if (existing && existing.uploaded_by && existing.uploaded_by !== session.user.id) return
+
         await supabase.from("program_checklists").upsert({
             program: prog,
             calendar_year: template.calendarYear || "",
@@ -51,9 +64,15 @@ function saveToLibrary(template) {
  *   onClose       – close the modal
  *   onImported    – (major mode) called after "Sort my courses"
  *   onMinorImported(parsed) – (minor mode) called instead of sorting; sets the minor label
+ *   onAttachmentImported(parsed) – (attachment mode) for concentration/specialization
+ *                                  checklists a major requires attaching; merges the
+ *                                  parsed sections into the active major template
+ *   attachmentLabel – e.g. "First Academic (Teachable) Specialization" — shown in
+ *                     the modal title/preview when in attachment mode
  */
-export default function ChecklistImportModal({ cards = [], onClose, onImported, onMinorImported }) {
+export default function ChecklistImportModal({ cards = [], onClose, onImported, onMinorImported, onAttachmentImported, attachmentLabel }) {
     const isMinorMode = !!onMinorImported
+    const isAttachMode = !!onAttachmentImported
     const fileRef = useRef(null)
     const [step, setStep]         = useState("idle")   // idle | parsing | preview
     const [dragging, setDragging] = useState(false)
@@ -66,13 +85,15 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
 
         const { data } = await supabase.auth.getSession()
         const token = data.session?.access_token
+        if (!token) { setError("You must be logged in to import a checklist."); setStep("idle"); return }
+
         const form = new FormData()
         form.append("file", file)
 
         try {
             const res = await fetch(`${API_URL}/user/parse-checklist`, {
                 method: "POST",
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                headers: { Authorization: `Bearer ${token}` },
                 body: form,
             })
             if (!res.ok) {
@@ -81,7 +102,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
             }
             const result = await res.json()
             saveToLibrary(result)
-            publishToDb(result, isMinorMode ? "minor" : "major") // non-blocking
+            publishToDb(result, isMinorMode ? "minor" : isAttachMode ? "concentration" : "major") // non-blocking
             setParsed(result)
             setStep("preview")
         } catch (e) {
@@ -110,7 +131,10 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
         <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>
             <div className={styles.modal}>
                 <div className={styles.head}>
-                    <h2 className={styles.title}>{isMinorMode ? "Import minor checklist PDF" : "Import checklist PDF"}</h2>
+                    <h2 className={styles.title}>
+                        {isAttachMode ? `Attach ${attachmentLabel || "specialization"} checklist`
+                            : isMinorMode ? "Import minor checklist PDF" : "Import checklist PDF"}
+                    </h2>
                     <button className={styles.close} onClick={onClose} aria-label="Close">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M18 6 6 18M6 6l12 12" />
@@ -122,7 +146,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
                     {step !== "preview" ? (
                         <>
                             <p className={styles.hint} style={{ marginBottom: 14 }}>
-                                Upload your {isMinorMode ? "minor" : "major"} checklist PDF from{" "}
+                                Upload your {isAttachMode ? (attachmentLabel || "specialization") : isMinorMode ? "minor" : "major"} checklist PDF from{" "}
                                 <a href="https://twu.ca/academics/academic-advising/degree-planning/" target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>
                                     twu.ca/advising
                                 </a>
@@ -166,6 +190,19 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
                                     {error}
                                 </p>
                             )}
+                        </>
+                    ) : isAttachMode ? (
+                        /* ── Attachment preview: confirm + merge into the active major ── */
+                        <>
+                            <p className={styles.hint}>
+                                Parsed <strong>{parsed.program || "this checklist"}</strong>
+                                {parsed.calendarYear ? ` (${parsed.calendarYear})` : ""}. Its required
+                                courses will count toward your <strong>{attachmentLabel || "specialization"}</strong> requirement
+                                and sort into the Major tab.
+                            </p>
+                            <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--ink-3)", marginTop: 10 }}>
+                                ✓ Added to the community pool so other TWU students can find it.
+                            </p>
                         </>
                     ) : isMinorMode ? (
                         /* ── Minor preview: just confirm the name, no course-sort table ── */
@@ -213,7 +250,11 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
                 <div className={styles.footer}>
                     <button className={styles.cancelBtn} onClick={onClose}>Cancel</button>
                     {step === "preview" && (
-                        isMinorMode ? (
+                        isAttachMode ? (
+                            <button className={styles.exportBtn} onClick={() => { onAttachmentImported(parsed); onClose() }}>
+                                Attach checklist
+                            </button>
+                        ) : isMinorMode ? (
                             <button className={styles.exportBtn} onClick={() => { onMinorImported(parsed); onClose() }}>
                                 Set as my minor
                             </button>

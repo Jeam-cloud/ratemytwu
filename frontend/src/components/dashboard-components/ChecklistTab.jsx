@@ -21,6 +21,19 @@ const MINOR_PROG_KEY  = "rmtwu_minor_program"
 const MINOR_YEAR_KEY  = "rmtwu_minor_calendar_year"
 const MINOR_STORE_KEY = "rmtwu_minor_checklist"   // stores full minor template (sections)
 
+// Attached concentration/specialization/teachable checklists — keyed by
+// "<program>::<calendarYear>" so switching majors OR calendar years (e.g.
+// importing a prior year's checklist later) never leaks a stale attachment
+// from a different major/year into the wrong one.
+const ATTACH_STORE_KEY = "rmtwu_attached_concentrations"
+
+function readAttachStore() {
+    try { return JSON.parse(localStorage.getItem(ATTACH_STORE_KEY) || "{}") } catch (_) { return {} }
+}
+function writeAttachStore(store) {
+    try { localStorage.setItem(ATTACH_STORE_KEY, JSON.stringify(store)) } catch (_) {}
+}
+
 // Flat list of every core slot (groups → subgroups → slots), tagged with its group.
 const CORE_SLOTS = CORE_GROUPS.flatMap(g =>
     g.subgroups.flatMap(sg => sg.slots.map(s => ({ ...s, groupId: g.id })))
@@ -411,6 +424,58 @@ export default function ChecklistTab({ cards = [] }) {
     const currentProgram      = savedMajorName || template?.program || null
     const currentCalendarYear = savedCalendarYear || template?.calendarYear || null
 
+    // ── Attached concentration/specialization/teachable checklists ──────────
+    // Some majors (parser tags these sections key:"attachment") don't list
+    // real courses themselves — they point at a SEPARATE checklist the
+    // student must pick and attach (e.g. Humanities' "Minors and
+    // Concentrations", Education's two Teachable Specializations). This
+    // stores whichever checklist the student attached for each such slot,
+    // scoped to the current program+year so switching majors (or importing
+    // a different calendar year later) never carries over a stale one.
+    const majorSignature = `${currentProgram || ""}::${currentCalendarYear || ""}`
+    const [attachKey, setAttachKey] = useState(0) // bump to force re-read after (de)attaching
+    const [attachModalSlot, setAttachModalSlot] = useState(null) // slot title currently being attached, or null
+
+    const attachedForMajor = useMemo(() => {
+        return readAttachStore()[majorSignature] || {}
+    }, [majorSignature, attachKey])
+
+    const attachSlots = useMemo(
+        () => (template?.sections || []).filter(s => s.key === "attachment"),
+        [template],
+    )
+
+    const saveAttachment = useCallback((slotTitle, parsed) => {
+        const store = readAttachStore()
+        store[majorSignature] = { ...(store[majorSignature] || {}), [slotTitle]: parsed }
+        writeAttachStore(store)
+        setAttachKey(k => k + 1)
+    }, [majorSignature])
+
+    const removeAttachment = useCallback((slotTitle) => {
+        const store = readAttachStore()
+        if (store[majorSignature]) {
+            const next = { ...store[majorSignature] }
+            delete next[slotTitle]
+            store[majorSignature] = next
+            writeAttachStore(store)
+        }
+        setAttachKey(k => k + 1)
+    }, [majorSignature])
+
+    // The template actually used for classification: the base major template
+    // plus every attached checklist's major/ancillary sections folded in, so
+    // an attached concentration's courses count toward Major/Ancillary same
+    // as if they'd been listed on the original checklist.
+    const effectiveTemplate = useMemo(() => {
+        if (!template) return template
+        const extra = Object.values(attachedForMajor).flatMap(
+            parsed => (parsed?.sections || []).filter(s => s.key === "major" || s.key === "ancillary")
+        )
+        if (extra.length === 0) return template
+        return { ...template, sections: [...template.sections, ...extra] }
+    }, [template, attachedForMajor])
+
     // Status map: code → "Completed" | "In Progress" | "Planned"
     // When a course appears multiple times, pick the highest-priority status.
     const statusMap = useMemo(() => {
@@ -557,8 +622,8 @@ export default function ChecklistTab({ cards = [] }) {
             // 3a. Major template — "major"/"ancillary" are final; "electives" is tentative
             //     (null = core-eligible but slot full, falls through too)
             let majorResult = null
-            if (template) {
-                majorResult = classifyCourse(c.code, template)
+            if (effectiveTemplate) {
+                majorResult = classifyCourse(c.code, effectiveTemplate)
                 if (majorResult && majorResult !== "electives") { res[c.code] = majorResult; continue }
             }
 
@@ -583,7 +648,7 @@ export default function ChecklistTab({ cards = [] }) {
         }
 
         return res
-    }, [courses, placements, template, minorTemplate])
+    }, [courses, placements, effectiveTemplate, minorTemplate])
 
     const coursesIn = target => courses.filter(c => assignment[c.code] === target)
     const pool = coursesIn("pool")
@@ -720,6 +785,36 @@ export default function ChecklistTab({ cards = [] }) {
                         )}
                     </div>
                 </div>
+
+                {/* Concentration / Specialization / Teachable attachment slots —
+                    only rendered when the active major's parsed template has
+                    section(s) the parser couldn't fill from a single PDF. */}
+                {attachSlots.length > 0 && (
+                    <div className={styles.majorBar} style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+                        {attachSlots.map(slot => {
+                            const attached = attachedForMajor[slot.title]
+                            return (
+                                <div key={slot.title} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-sans)", fontSize: 13 }}>
+                                    <span style={{ color: "var(--ink-3)", fontWeight: 600, minWidth: 0 }}>
+                                        {slot.title}{slot.credits ? ` (${slot.credits} s.h.)` : ""}
+                                    </span>
+                                    {attached ? (
+                                        <>
+                                            <span className={styles.majorName}>{attached.program || "Attached"}</span>
+                                            {attached.calendarYear && <span className={styles.majorBadge}>{attached.calendarYear}</span>}
+                                            <button className={styles.barChangeBtn} onClick={() => setAttachModalSlot(slot.title)}>Change</button>
+                                            <button className={styles.barClearBtn} onClick={() => removeAttachment(slot.title)} aria-label="Remove attachment">×</button>
+                                        </>
+                                    ) : (
+                                        <button className={styles.addMinorBtn} onClick={() => setAttachModalSlot(slot.title)}>
+                                            + Attach checklist
+                                        </button>
+                                    )}
+                                </div>
+                            )
+                        })}
+                    </div>
+                )}
 
                 {/* Click-to-place banner */}
                 {selectedCode && (
@@ -913,6 +1008,34 @@ export default function ChecklistTab({ cards = [] }) {
                         setMinorTemplateKey(k => k + 1)
                         setMinorImportOpen(false)
                         setMinorSearchOpen(false)
+                    }}
+                />
+            )}
+
+            {attachModalSlot && (
+                <ChecklistImportModal
+                    cards={cards}
+                    attachmentLabel={attachModalSlot}
+                    onClose={() => setAttachModalSlot(null)}
+                    onAttachmentImported={(parsed) => {
+                        // Clear elective/pool placements for the attached checklist's
+                        // courses so they fall through to Major/Ancillary classification
+                        // instead of staying wherever they'd landed before.
+                        const attachedCodes = new Set(
+                            (parsed.sections || []).flatMap(s => [
+                                ...(s.required || []),
+                                ...(s.choose  || []),
+                            ])
+                        )
+                        setPlacements(prev => {
+                            const next = { ...prev }
+                            for (const code of attachedCodes) {
+                                if (next[code] === "electives" || next[code] === "pool") delete next[code]
+                            }
+                            return next
+                        })
+                        saveAttachment(attachModalSlot, parsed)
+                        setAttachModalSlot(null)
                     }}
                 />
             )}
