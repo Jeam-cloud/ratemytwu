@@ -19,14 +19,23 @@ const levelOf = code => {
 
 // Returns "ancillary" | "major" | "electives", or null when the course belongs
 // to Core (handled by auto-fill).
+//
+// Many real checklists have MORE THAN ONE section tagged "major" (e.g. a
+// program with "Required Courses" + "Specialization Courses" + "Stream
+// Courses" are all classified "major" by the backend parser since none of
+// them say "ancillary"/"elective"/"core" in the title). Only checking the
+// first major/ancillary section silently dropped everything after it, so
+// this checks every section of each kind instead of just the first.
 export function classifyCourse(code, template) {
     if (CORE_ELIGIBLE.has(code)) return null
 
-    const major = template.sections.find(s => s.key === "major")
-    const anc   = template.sections.find(s => s.key === "ancillary")
+    const majorSections = template.sections.filter(s => s.key === "major")
+    const ancSections   = template.sections.filter(s => s.key === "ancillary")
 
-    if (anc?.required?.includes(code)) return "ancillary"
-    if (major) {
+    for (const anc of ancSections) {
+        if (anc.required?.includes(code)) return "ancillary"
+    }
+    for (const major of majorSections) {
         if (major.required?.includes(code) || major.choose?.includes(code)) return "major"
         if (major.electivePrefix &&
             code.toUpperCase().startsWith(major.electivePrefix.toUpperCase()) &&
