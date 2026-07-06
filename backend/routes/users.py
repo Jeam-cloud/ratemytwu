@@ -14,6 +14,15 @@ router = APIRouter(prefix="/user", tags=["users"])
 
 current_user = Annotated[str, Depends(get_current_user_id)]
 
+# Reject uploads bigger than this before doing any parsing/OCR work.
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def _check_size(content: bytes):
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
+
+
 @router.get("/reviews", response_model=List[CreatedReviewsOut])
 def get_user_reviews(db: db_dependency, user_id: current_user):
     user_reviews = db.execute(
@@ -107,10 +116,11 @@ def _extract_checklist_pages(reader, raw_bytes: bytes = b"") -> list[str]:
 
 
 @router.post("/parse-transcript")
-async def parse_transcript(file: UploadFile = File(...)):
+async def parse_transcript(user_id: current_user, file: UploadFile = File(...)):
     """
     Accepts a TWU unofficial transcript PDF and returns a list of parsed courses.
     Each entry: {course_code, calendar_year, term, grade, credits, status}
+    Requires auth so anonymous callers can't hammer the (OCR-capable) parser.
     """
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
@@ -121,6 +131,7 @@ async def parse_transcript(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="pypdf not installed")
 
     content = await file.read()
+    _check_size(content)
     try:
         reader = PdfReader(io.BytesIO(content))
     except Exception:
@@ -196,7 +207,7 @@ async def parse_transcript(file: UploadFile = File(...)):
 
 
 @router.post("/debug-transcript")
-async def debug_transcript(file: UploadFile = File(...)):
+async def debug_transcript(user_id: current_user, file: UploadFile = File(...)):
     """
     Returns the raw text lines pypdf extracts from the PDF.
     Use this to diagnose parser issues.
@@ -207,6 +218,7 @@ async def debug_transcript(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="pypdf not installed")
 
     content = await file.read()
+    _check_size(content)
     try:
         reader = PdfReader(io.BytesIO(content))
     except Exception:
@@ -228,11 +240,42 @@ async def debug_transcript(file: UploadFile = File(...)):
 
 _SH_HDR = re.compile(
     r'(?:^|\n)\s{0,8}(\d)\s*[.]\s+'   # digit + dot + any whitespace
-    r'([A-Za-z][^(\n]{3,80}?)'         # title: non-greedy, up to 81 chars
-    r'\s*\((\d+)\s*s\.h\.',            # (N s.h.
+    r'([A-Za-z][^\n]{3,80}?)'          # title: non-greedy, up to 81 chars
+                                        # (allows an embedded "(B.A.)"-style
+                                        # designation — non-greedy backtracks
+                                        # past it to find the real credit paren)
+    # (N s.h. OR (N - M s.h. — numbers allow a stray internal space
+    # (e.g. "(4 5 s.h.)") since pypdf sometimes splits multi-digit
+    # numbers across a kerning gap in justified table layouts.
+    r'\s*\((\d(?:\s?\d)*)(?:\s*[-–—]\s*(\d(?:\s?\d)*))?\s*s\.h\.',
     re.MULTILINE,
 )
 _CK_CODE = re.compile(r'\b([A-Z]{2,5})\s+(\d{3})[A-Z]?\b')
+
+# A handful of programs (Biology, BHKIN, Computing Science, Media Comm) split
+# their major requirement into multiple named streams and the section header
+# has NO credit total at all — e.g. "2. Stream Courses – Choose your stream
+# below." — so _SH_HDR never matches it and the program's entire major course
+# list was silently dropped. Narrowly scoped to lines containing "Stream" with
+# no parenthetical on the line, so it can't accidentally swallow unrelated text.
+_SH_HDR_BARE_STREAM = re.compile(
+    r'(?:^|\n)\s{0,8}(\d)\s*[.]\s+(?=[^\n(]*[Ss]tream)([A-Za-z][^\n(]{1,60}?)\s*[-–—*]*\s*(?=\n)',
+    re.MULTILINE,
+)
+
+# Some programs (Education's Teachable Specializations, Humanities/Natural
+# Sciences' "Minors and Concentrations", double-major concentrations, etc.)
+# don't list courses at all — they're a blank fill-in box pointing the
+# student at a SEPARATE checklist PDF they need to attach. There's no course
+# code to extract here, ever; the honest answer is to flag it, not guess.
+_SH_HDR_BARE_ATTACH = re.compile(
+    r'(?:^|\n)\s{0,8}(\d)\s*[.]\s+'
+    r'(?=[^\n(]*(?:[Cc]oncentration|[Ss]pecialization|[Mm]inor))'
+    r'([A-Za-z][^\n(]{1,60}?)\s*[-–—*:]*\s*(?=\n)',
+    re.MULTILINE,
+)
+_BLANK_FILL = re.compile(r'_{5,}')
+_ATTACH_CREDITS = re.compile(r'\(\s*(\d+)(?:\s*[-–—]\s*(\d+))?\s*s\.h')
 
 # Core prefixes TWU always puts in section 1 — never treat as major courses
 _CORE_PREFIXES = {"ENGL", "FNDN", "RELS", "PHIL", "BIOL", "CHEM",
@@ -242,7 +285,12 @@ _CORE_PREFIXES = {"ENGL", "FNDN", "RELS", "PHIL", "BIOL", "CHEM",
 
 
 _YEAR_PLAN_CUT = re.compile(
-    r'\n[^\n]*(?:\d[- ]?Year Plan|Sample Plan|Degree Plan|FOR OFFICE USE)[^\n]*\n'
+    # Negative lookbehind excludes "...there is no specific 4-year plan" —
+    # flexible-structure programs (Humanities, Natural Sciences, General
+    # Studies) say this in prose, and it used to false-match here, truncating
+    # away everything after it (including their real "Minors and
+    # Concentrations" attachment section).
+    r'\n[^\n]*(?<!no specific )(?:\d[- ]?Year Plan|Sample Plan|Degree Plan|FOR OFFICE USE)[^\n]*\n'
     r'|\n\s*✓\s+s\.h\.[ \t]+(?:Fall|Spring|Summer)\b'
     r'|\n[ \t]{2,}YEAR[ \t]{2,}\d\b',
     re.IGNORECASE,
@@ -389,26 +437,80 @@ def _parse_checklist(text: str) -> dict:
         out["calendarYear"] = ym.group(1)
 
     hdrs = list(_SH_HDR.finditer(text))
-    for i, h in enumerate(hdrs):
+
+    # Merge in bare "Stream Courses" headers that have no credit total, as
+    # long as they don't overlap a header already found above.
+    covered = [(h.start(), h.end()) for h in hdrs]
+    bare_stream = [b for b in _SH_HDR_BARE_STREAM.finditer(text)
+                   if not any(s <= b.start() < e for s, e in covered)]
+    covered += [(b.start(), b.end()) for b in bare_stream]
+
+    # Candidate "attach a separate checklist" headers — confirmed below by
+    # checking the block actually looks like a blank fill-in box, not a real
+    # course list (some programs DO list real concentration courses inline).
+    attach_candidates = [b for b in _SH_HDR_BARE_ATTACH.finditer(text)
+                         if not any(s <= b.start() < e for s, e in covered)]
+
+    entries = sorted(
+        [(h.start(), h, "real") for h in hdrs]
+        + [(b.start(), b, "stream") for b in bare_stream]
+        + [(b.start(), b, "attach") for b in attach_candidates],
+        key=lambda t: t[0],
+    )
+
+    for i, (_, h, kind) in enumerate(entries):
         title = h.group(2).strip()
-        credits = int(h.group(3))
         start = h.end()
-        end = hdrs[i + 1].start() if i + 1 < len(hdrs) else len(text)
+        end = entries[i + 1][1].start() if i + 1 < len(entries) else len(text)
         block = text[start:end]
 
+        if kind == "stream":
+            credits = 0  # unknown — real total lives on the stream's own sub-headers
+        elif kind == "attach":
+            am = _ATTACH_CREDITS.search(block)
+            credits = int(am.group(2) or am.group(1)) if am else 0
+        else:
+            # A range like "(29 - 35 s.h.)" reports the upper bound as the
+            # credit target — group(4) is only set when a range was matched.
+            # Strip any stray internal space from split numbers ("4 5" -> "45").
+            credits = int((h.group(4) or h.group(3)).replace(" ", ""))
+
         low = title.lower()
-        if "ancillary" in low:
+        # The blank box itself is drawn differently across PDFs — sometimes a
+        # run of underscores (Humanities), sometimes just wide whitespace
+        # before the credit total (EDUC) — so the real signal is "this
+        # section's block has zero actual course codes in it at all."
+        looks_like_attachment = (
+            re.search(r'concentration|specialization|teachable|\bminor\b', low)
+            and not _codes_in(block)
+        )
+        if looks_like_attachment:
+            # Blank fill-in box pointing at a SEPARATE checklist (concentration,
+            # specialization, teachable, etc.) — no course code ever lives here,
+            # whether or not this header happened to have a credit number on
+            # its own line (some do, e.g. EDUC's "First Academic (Teachable)
+            # Specialization: ___ (24-30 s.h.)").
+            key = "attachment"
+        elif "ancillary" in low:
             key = "ancillary"
         elif "elective" in low:
             key = "electives"
         elif "core" in low or "inquiry" in low or "ways of knowing" in low:
             key = "core"   # handled by the universal Core data on the frontend
+        elif kind == "attach":
+            # Looked like a concentration/specialization header but the block
+            # actually has real course codes — treat it as a normal major
+            # section instead of forcing the attachment flow on it.
+            key = "major"
         else:
             key = "major"
 
         sec = {"key": key, "title": title, "credits": credits}
 
-        if key == "major":
+        if key == "attachment":
+            sec["note"] = ("This program requires attaching a separate "
+                            "concentration/specialization checklist.")
+        elif key == "major":
             choose = []
             for ch in re.findall(r'Choose from:\s*([A-Z0-9, ]+?)\.', block):
                 nums = re.findall(r'\d{3}', ch)
@@ -431,8 +533,16 @@ def _parse_checklist(text: str) -> dict:
 
         out["sections"].append(sec)
 
+    # A program whose ENTIRE major requirement is an "attachment" (e.g.
+    # Humanities' "Minors and Concentrations") has nothing left to guess —
+    # that's the correct, honest result. Don't let the blind fallbacks below
+    # stomp on it with a fabricated course list; only fall back when we
+    # genuinely found nothing usable at all.
+    has_attachment = any(s["key"] == "attachment" for s in out["sections"])
+
     # ── Fallback 1: well-known programs → exact hardcoded template ───────
-    if out["program"] and not any(s["key"] in ("major", "ancillary") for s in out["sections"]):
+    if (out["program"] and not has_attachment
+            and not any(s["key"] in ("major", "ancillary") for s in out["sections"])):
         prog = out["program"].lower()
         if "computing science" in prog or "computer science" in prog:
             out["sections"] = [
@@ -455,7 +565,7 @@ def _parse_checklist(text: str) -> dict:
             ]
 
     # ── Fallback 2: any other program → infer from course codes in the PDF ─
-    if not any(s["key"] in ("major", "ancillary") for s in out["sections"]):
+    if not has_attachment and not any(s["key"] in ("major", "ancillary") for s in out["sections"]):
         inferred = _infer_sections_from_codes(text, out.get("program") or "")
         if inferred:
             out["sections"] = inferred
@@ -464,13 +574,14 @@ def _parse_checklist(text: str) -> dict:
 
 
 @router.post("/debug-checklist")
-async def debug_checklist(file: UploadFile = File(...)):
+async def debug_checklist(user_id: current_user, file: UploadFile = File(...)):
     """Returns raw extracted text + found codes — use to diagnose parser failures."""
     try:
         from pypdf import PdfReader
     except ImportError:
         raise HTTPException(status_code=500, detail="pypdf not installed")
     content = await file.read()
+    _check_size(content)
     try:
         reader = PdfReader(io.BytesIO(content))
     except Exception:
@@ -484,11 +595,13 @@ async def debug_checklist(file: UploadFile = File(...)):
 
 
 @router.post("/parse-checklist")
-async def parse_checklist(file: UploadFile = File(...)):
+async def parse_checklist(user_id: current_user, file: UploadFile = File(...)):
     """
     Accepts a TWU program checklist PDF and returns its structured requirements:
     { program, calendarYear, totalCredits, sections: [{key, title, credits, ...}] }
     where key is one of major | ancillary | electives | core.
+    Requires auth — this endpoint also feeds the shared community checklist
+    pool, so anonymous/unbounded access isn't allowed.
     """
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
@@ -499,6 +612,7 @@ async def parse_checklist(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail="pypdf not installed")
 
     content = await file.read()
+    _check_size(content)
     try:
         reader = PdfReader(io.BytesIO(content))
     except Exception:
@@ -506,7 +620,10 @@ async def parse_checklist(file: UploadFile = File(...)):
 
     parsed = _parse_checklist("\n".join(_extract_checklist_pages(reader, content)))
 
-    if not any(s["key"] in ("major", "ancillary") for s in parsed["sections"]):
+    # A program can be legitimately "attachment-only" (its whole major
+    # requirement is "attach a concentration/specialization checklist" — e.g.
+    # Humanities) — that's a valid, honest result, not a parse failure.
+    if not any(s["key"] in ("major", "ancillary", "attachment") for s in parsed["sections"]):
         raise HTTPException(status_code=422, detail="Couldn't find requirement sections in this PDF")
 
     return parsed
