@@ -51,6 +51,15 @@ function readLocalLibrary(type = "major") {
             // Only cached items whose name contains "minor"
             return lib.filter(t => /minor/i.test(t.program || ""))
         }
+        if (type === "concentration") {
+            // The local cache (rmtwu_checklist_library) never recorded which
+            // type an item was uploaded as, so there's no reliable way to
+            // filter it down to "just concentrations" — showing unrelated
+            // majors/minors here would be worse than showing nothing. The
+            // community DB search (searchCommunity, filtered server-side by
+            // type="concentration") is the real source for this list.
+            return []
+        }
         // major: exclude items that look like minors, seed built-in templates
         const majorLib = lib.filter(t => !/minor/i.test(t.program || ""))
         for (const opt of MAJOR_OPTIONS) {
@@ -244,9 +253,13 @@ function CoursePill({ code, where, onRemove, onSelect, selected, status }) {
         data: { code },
     })
 
-    // Pick dot style based on completion status
+    // Pick dot style based on completion status. "Planned" previously fell
+    // through to `null` here — visually identical to a course with no status
+    // at all — so a planned-but-unfinished course looked indistinguishable
+    // from an unclassified one. Give it its own (blue) dot.
     const dotCls = status === "Completed"   ? styles.statusCompleted
                  : status === "In Progress" ? styles.statusProgress
+                 : status === "Planned"     ? styles.statusPlanned
                  : null
 
     return (
@@ -283,6 +296,24 @@ function Drop({ id, className, children, onClick }) {
     )
 }
 
+// When a slot is only partially filled, tell the student what's still
+// needed instead of just showing an empty gap. If exactly as many eligible
+// courses remain as slots still open, there's no real choice left (e.g.
+// Foundations: FNDN 101 + 102 taken, only FNDN 201 is eligible and only one
+// slot remains) — name it directly. Otherwise there's still a genuine
+// choice among several options (e.g. Academic Writing: any 2 of ENGL
+// 101–104), so a specific name would be misleading — show a generic count.
+function remainingHint(slot, courses) {
+    const have = new Set(courses.map(c => c.code))
+    const needed = slot.capacity - courses.length
+    if (needed <= 0) return null
+    const remainingEligible = (slot.eligible || []).filter(code => !have.has(code))
+    if (remainingEligible.length > 0 && remainingEligible.length === needed) {
+        return `still need: ${remainingEligible.join(", ")}`
+    }
+    return `choose ${needed} more`
+}
+
 // ── One core requirement row ──────────────────────────────────────────────────
 function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onRemove, onPlace, statusMap }) {
     const [menu, setMenu] = useState(false)
@@ -293,7 +324,11 @@ function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onR
         : allCompleted ? "verified"
         : filled >= slot.capacity ? "done"
         : filled > 0 ? "partial" : "empty"
-    const icon = { sat: "✓", verified: "✓", done: "✓", partial: "•", empty: "○" }[status]
+    // "done" means the slot is FULL but the course(s) in it aren't all marked
+    // Completed yet (e.g. still Planned/In Progress) — that's not the same as
+    // actually finished, so it shouldn't get the same ✓ as "verified"/"sat".
+    // Give it its own dot instead, matching the yellow used for Planned pills.
+    const icon = { sat: "✓", verified: "✓", done: "●", partial: "•", empty: "○" }[status]
     const cls = `${styles.slotRow} ${target ? styles.slotTarget : ""} ${muted ? styles.slotMuted : ""}`
 
     return (
@@ -303,10 +338,11 @@ function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onR
             <div className={styles.slotMain}>
                 {slot.label && <div className={styles.slotLabel}>{slot.label}</div>}
                 <div className={styles.slotChips}>
-                    {satisfied
-                        ? <span className={styles.satTag}>Satisfied — no course needed</span>
-                        : filled
-                            ? courses.map(c => (
+                    {satisfied ? (
+                        <span className={styles.satTag}>Satisfied — no course needed</span>
+                    ) : filled ? (
+                        <>
+                            {courses.map(c => (
                                 <CoursePill
                                     key={c.code}
                                     code={c.code}
@@ -314,10 +350,16 @@ function CoreSlotRow({ slot, courses, satisfied, target, muted, onToggleSat, onR
                                     onRemove={() => onRemove(c.code)}
                                     status={statusMap[c.code]}
                                 />
-                              ))
-                            : <span className={styles.dropHint}>
-                                {slot.hint || (slot.capacity > 1 ? `drag ${slot.capacity} courses here` : "drag a course here")}
-                              </span>}
+                            ))}
+                            {filled < slot.capacity && (
+                                <span className={styles.dropHint}>{remainingHint(slot, courses)}</span>
+                            )}
+                        </>
+                    ) : (
+                        <span className={styles.dropHint}>
+                            {slot.hint || (slot.capacity > 1 ? `drag ${slot.capacity} courses here` : "drag a course here")}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -404,20 +446,6 @@ export default function ChecklistTab({ cards = [] }) {
         return null
     }, [minorTemplateKey])
 
-    // Section tabs — Minor tab only appears when a minor is selected
-    const SECTIONS = useMemo(() => {
-        const base = [
-            { id: "core",      label: "Core",      target: 43 },
-            { id: "major",     label: "Major",     target: 42 },
-            { id: "ancillary", label: "Ancillary", target: 9  },
-        ]
-        if (savedMinorName || minorTemplate) {
-            base.push({ id: "minor", label: "Minor", target: minorTemplate?.totalCredits || 24 })
-        }
-        base.push({ id: "electives", label: "Electives", target: 28 })
-        return base
-    }, [savedMinorName, minorTemplate])
-
     // Human-readable name for the currently active template.
     // savedMajorName is set directly in applyMajorItem so it's always current —
     // prefer it over template?.program which may still be the previous selection's value.
@@ -434,7 +462,8 @@ export default function ChecklistTab({ cards = [] }) {
     // a different calendar year later) never carries over a stale one.
     const majorSignature = `${currentProgram || ""}::${currentCalendarYear || ""}`
     const [attachKey, setAttachKey] = useState(0) // bump to force re-read after (de)attaching
-    const [attachModalSlot, setAttachModalSlot] = useState(null) // slot title currently being attached, or null
+    const [attachModalSlot, setAttachModalSlot] = useState(null) // slot title currently in the upload modal, or null
+    const [attachSearchSlot, setAttachSearchSlot] = useState(null) // slot title currently showing the inline search, or null
 
     const attachedForMajor = useMemo(() => {
         return readAttachStore()[majorSignature] || {}
@@ -444,6 +473,28 @@ export default function ChecklistTab({ cards = [] }) {
         () => (template?.sections || []).filter(s => s.key === "attachment"),
         [template],
     )
+
+    // The Concentration slot is always available, regardless of whether the
+    // active major actually requires one — every student can voluntarily add
+    // a concentration/specialization, not just majors with a mandatory one.
+    // If the parsed template DOES have a real "attachment" section (e.g.
+    // Humanities), use its real title/credits so it still reads as required;
+    // otherwise fall back to a generic, stable title so the slot's storage
+    // key doesn't change across majors that have no such requirement.
+    const primaryConcentrationSlot = attachSlots[0] || { title: "Concentration", credits: 0 }
+
+    // Light sanity check (not a hard block) — a legit concentration/
+    // specialization checklist should have at least one major/ancillary
+    // section with real required courses in it. If someone attaches
+    // something else by mistake (wrong PDF, a checklist that itself needs
+    // its OWN attachment, etc.) there'd be nothing to actually count toward
+    // the slot — worth a visible warning so the student notices before
+    // wondering why their courses aren't sorting.
+    const attachmentLooksPlausible = (parsed) => {
+        if (!parsed?.sections?.length) return false
+        return parsed.sections.some(s =>
+            (s.key === "major" || s.key === "ancillary") && (s.required?.length || s.choose?.length))
+    }
 
     const saveAttachment = useCallback((slotTitle, parsed) => {
         const store = readAttachStore()
@@ -463,18 +514,70 @@ export default function ChecklistTab({ cards = [] }) {
         setAttachKey(k => k + 1)
     }, [majorSignature])
 
-    // The template actually used for classification: the base major template
-    // plus every attached checklist's major/ancillary sections folded in, so
-    // an attached concentration's courses count toward Major/Ancillary same
-    // as if they'd been listed on the original checklist.
-    const effectiveTemplate = useMemo(() => {
-        if (!template) return template
-        const extra = Object.values(attachedForMajor).flatMap(
+    // Every attached concentration's major/ancillary sections, combined into
+    // one synthetic template — this is its OWN tab (like Minor), not folded
+    // into Major/Ancillary, so a student can see concentration courses
+    // separately from their main major's requirements.
+    const concentrationTemplate = useMemo(() => {
+        const attachedList = Object.values(attachedForMajor)
+        if (attachedList.length === 0) return null
+        const sections = attachedList.flatMap(
             parsed => (parsed?.sections || []).filter(s => s.key === "major" || s.key === "ancillary")
         )
-        if (extra.length === 0) return template
-        return { ...template, sections: [...template.sections, ...extra] }
-    }, [template, attachedForMajor])
+        const totalCredits = attachedList.reduce((sum, p) => sum + (p?.totalCredits || 0), 0)
+            || primaryConcentrationSlot.credits || 30
+        return { sections, totalCredits }
+    }, [attachedForMajor, primaryConcentrationSlot])
+
+    // Section tabs — Minor/Concentration tabs only appear once something's
+    // actually attached/selected for them.
+    //
+    // Major/Ancillary targets used to be hardcoded to 42/9 regardless of
+    // which major was active — those numbers only happened to be right for
+    // Computing Science. Every parsed template already carries its own real
+    // credit totals per section (template.sections[].credits), so sum those
+    // instead of guessing. Falls back to 42/9 only when there's no template
+    // loaded yet (nothing better to show).
+    const CORE_CREDITS_TARGET = 43 // University Core requirement — fixed across all TWU programs
+    const majorCreditsTarget = useMemo(() => {
+        if (!template) return 42
+        const sum = (template.sections || [])
+            .filter(s => s.key === "major")
+            .reduce((a, s) => a + (s.credits || 0), 0)
+        return sum || 42
+    }, [template])
+    const ancillaryCreditsTarget = useMemo(() => {
+        if (!template) return 9
+        const sum = (template.sections || [])
+            .filter(s => s.key === "ancillary")
+            .reduce((a, s) => a + (s.credits || 0), 0)
+        return sum || 9
+    }, [template])
+    // Electives isn't its own section in any parsed template — it's whatever
+    // credit is left over after Core/Major/Ancillary. Derive it from the
+    // major's total program credits when we have one; otherwise fall back to
+    // a generic 28 s.h. placeholder.
+    const electivesCreditsTarget = useMemo(() => {
+        if (!template?.totalCredits) return 28
+        const remaining = template.totalCredits - CORE_CREDITS_TARGET - majorCreditsTarget - ancillaryCreditsTarget
+        return remaining > 0 ? remaining : 28
+    }, [template, majorCreditsTarget, ancillaryCreditsTarget])
+
+    const SECTIONS = useMemo(() => {
+        const base = [
+            { id: "core",      label: "Core",      target: CORE_CREDITS_TARGET },
+            { id: "major",     label: "Major",     target: majorCreditsTarget },
+            { id: "ancillary", label: "Ancillary", target: ancillaryCreditsTarget },
+        ]
+        if (savedMinorName || minorTemplate) {
+            base.push({ id: "minor", label: "Minor", target: minorTemplate?.totalCredits || 24 })
+        }
+        if (concentrationTemplate) {
+            base.push({ id: "concentration", label: "Concentration", target: concentrationTemplate.totalCredits || 30 })
+        }
+        base.push({ id: "electives", label: "Electives", target: electivesCreditsTarget })
+        return base
+    }, [savedMinorName, minorTemplate, concentrationTemplate, majorCreditsTarget, ancillaryCreditsTarget, electivesCreditsTarget])
 
     // Status map: code → "Completed" | "In Progress" | "Planned"
     // When a course appears multiple times, pick the highest-priority status.
@@ -615,19 +718,35 @@ export default function ChecklistTab({ cards = [] }) {
             if (slot) { res[c.code] = slot.id; bump(slot.id) }
         }
 
-        // Pass 3: major template classification, then minor, then pool
+        // Pass 3: major template classification, then concentration, then minor, then pool
         for (const c of courses) {
             if (res[c.code] !== undefined) continue
 
             // 3a. Major template — "major"/"ancillary" are final; "electives" is tentative
             //     (null = core-eligible but slot full, falls through too)
             let majorResult = null
-            if (effectiveTemplate) {
-                majorResult = classifyCourse(c.code, effectiveTemplate)
+            if (template) {
+                majorResult = classifyCourse(c.code, template)
                 if (majorResult && majorResult !== "electives") { res[c.code] = majorResult; continue }
             }
 
-            // 3b. Minor template beats the elective fallback
+            // 3b. Concentration template — its own tab, checked the same way as
+            //     Minor below (required/choose lists + electivePrefix ranges),
+            //     so an attached concentration's courses show up separately
+            //     instead of being folded into Major/Ancillary.
+            if (concentrationTemplate) {
+                const lvl = code => { const m = String(code || "").match(/(\d{3})/); return m ? Number(m[1]) : 0 }
+                const inConcentration = (concentrationTemplate.sections || []).some(s => {
+                    if ((s.required || []).includes(c.code) || (s.choose || []).includes(c.code)) return true
+                    if (s.electivePrefix &&
+                        c.code.toUpperCase().startsWith(s.electivePrefix.toUpperCase()) &&
+                        lvl(c.code) >= (s.electiveMinLevel || 130)) return true
+                    return false
+                })
+                if (inConcentration) { res[c.code] = "concentration"; continue }
+            }
+
+            // 3c. Minor template beats the elective fallback
             //     Checks: explicit required/choose lists AND electivePrefix for
             //     open-slot minors (e.g. Psychology Minor where most slots are
             //     "choose any PSYC 300+ course")
@@ -643,12 +762,12 @@ export default function ChecklistTab({ cards = [] }) {
                 if (inMinor) { res[c.code] = "minor"; continue }
             }
 
-            // 3c. Commit elective or pool
+            // 3d. Commit elective or pool
             res[c.code] = majorResult || "pool"
         }
 
         return res
-    }, [courses, placements, effectiveTemplate, minorTemplate])
+    }, [courses, placements, template, concentrationTemplate, minorTemplate])
 
     const coursesIn = target => courses.filter(c => assignment[c.code] === target)
     const pool = coursesIn("pool")
@@ -729,7 +848,12 @@ export default function ChecklistTab({ cards = [] }) {
         >
             <div className={styles.checklist}>
 
-                {/* ── Major / Minor bar ── */}
+                {/* ── Major / Minor / Concentration bar ──
+                    Concentration is always shown as a third column — every
+                    student can add one, not just majors that require it. If
+                    the active major's parsed template DOES have a real
+                    "attachment" section (e.g. Humanities), that real slot is
+                    used so it still reads as required for that major. */}
                 <div className={styles.majorBar}>
                     {/* Major half */}
                     <div className={styles.majorHalf}>
@@ -784,37 +908,102 @@ export default function ChecklistTab({ cards = [] }) {
                             </button>
                         )}
                     </div>
+
+                    {/* Divider */}
+                    <div className={styles.majorDivider} />
+
+                    {/* Concentration half — always available. Only the FIRST
+                        attachment slot renders here; any additional REAL slots
+                        (e.g. Education's two Teachables) render as extra stacked
+                        rows below since this column only has room for one. */}
+                    {(() => {
+                        const slot = primaryConcentrationSlot
+                        const attached = attachedForMajor[slot.title]
+                        const searching = attachSearchSlot === slot.title
+                        return (
+                            <div className={styles.majorHalf}>
+                                <span className={styles.majorLabel}>Concentration</span>
+                                {searching ? (
+                                    <MajorSearch
+                                        type="concentration"
+                                        onSelect={(item) => { saveAttachment(slot.title, item); setAttachSearchSlot(null) }}
+                                        onClose={() => setAttachSearchSlot(null)}
+                                        onUpload={() => { setAttachSearchSlot(null); setAttachModalSlot(slot.title) }}
+                                    />
+                                ) : attached ? (
+                                    <>
+                                        <span className={styles.majorName}>{attached.program || "Attached"}</span>
+                                        {attached.calendarYear && <span className={styles.majorBadge}>{attached.calendarYear}</span>}
+                                        <button className={styles.barChangeBtn} onClick={() => setAttachSearchSlot(slot.title)}>Change</button>
+                                        <button className={styles.barClearBtn} onClick={() => removeAttachment(slot.title)} aria-label="Remove attachment">×</button>
+                                    </>
+                                ) : (
+                                    <button className={styles.addMinorBtn} onClick={() => setAttachSearchSlot(slot.title)}>
+                                        + Attach checklist
+                                    </button>
+                                )}
+                            </div>
+                        )
+                    })()}
                 </div>
 
-                {/* Concentration / Specialization / Teachable attachment slots —
-                    only rendered when the active major's parsed template has
-                    section(s) the parser couldn't fill from a single PDF. */}
-                {attachSlots.length > 0 && (
-                    <div className={styles.majorBar} style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
-                        {attachSlots.map(slot => {
-                            const attached = attachedForMajor[slot.title]
-                            return (
-                                <div key={slot.title} style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-sans)", fontSize: 13 }}>
-                                    <span style={{ color: "var(--ink-3)", fontWeight: 600, minWidth: 0 }}>
-                                        {slot.title}{slot.credits ? ` (${slot.credits} s.h.)` : ""}
-                                    </span>
-                                    {attached ? (
-                                        <>
-                                            <span className={styles.majorName}>{attached.program || "Attached"}</span>
-                                            {attached.calendarYear && <span className={styles.majorBadge}>{attached.calendarYear}</span>}
-                                            <button className={styles.barChangeBtn} onClick={() => setAttachModalSlot(slot.title)}>Change</button>
-                                            <button className={styles.barClearBtn} onClick={() => removeAttachment(slot.title)} aria-label="Remove attachment">×</button>
-                                        </>
-                                    ) : (
-                                        <button className={styles.addMinorBtn} onClick={() => setAttachModalSlot(slot.title)}>
-                                            + Attach checklist
-                                        </button>
-                                    )}
+                {/* Plausibility warning for the primary Concentration slot, and any
+                    additional REAL attachment slots beyond the first (rare — only
+                    multi-slot majors like Education's two Teachables need these). */}
+                {(() => {
+                    const firstSlot = primaryConcentrationSlot
+                    const firstAttached = attachedForMajor[firstSlot.title]
+                    const firstPlausible = firstAttached ? attachmentLooksPlausible(firstAttached) : true
+                    const restSlots = attachSlots.slice(1)
+                    if (firstPlausible && restSlots.length === 0) return null
+                    return (
+                        <div className={styles.majorBar} style={{ flexDirection: "column", alignItems: "stretch", gap: 6, padding: "10px 14px" }}>
+                            {firstAttached && !firstPlausible && (
+                                <div style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--negative, #b45309)" }}>
+                                    ⚠ This checklist doesn't seem to list real course requirements — double check it's the right one for {firstSlot.title.replace(/:$/, "")}.
                                 </div>
-                            )
-                        })}
-                    </div>
-                )}
+                            )}
+                            {restSlots.map(slot => {
+                                const attached = attachedForMajor[slot.title]
+                                const searching = attachSearchSlot === slot.title
+                                const plausible = attached ? attachmentLooksPlausible(attached) : true
+                                return (
+                                    <div key={slot.title}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-sans)", fontSize: 13 }}>
+                                            <span style={{ color: "var(--ink-3)", fontWeight: 600, minWidth: 0, whiteSpace: "nowrap" }}>
+                                                {slot.title}{slot.credits ? ` (${slot.credits} s.h.)` : ""}
+                                            </span>
+                                            {searching ? (
+                                                <MajorSearch
+                                                    type="concentration"
+                                                    onSelect={(item) => { saveAttachment(slot.title, item); setAttachSearchSlot(null) }}
+                                                    onClose={() => setAttachSearchSlot(null)}
+                                                    onUpload={() => { setAttachSearchSlot(null); setAttachModalSlot(slot.title) }}
+                                                />
+                                            ) : attached ? (
+                                                <>
+                                                    <span className={styles.majorName}>{attached.program || "Attached"}</span>
+                                                    {attached.calendarYear && <span className={styles.majorBadge}>{attached.calendarYear}</span>}
+                                                    <button className={styles.barChangeBtn} onClick={() => setAttachSearchSlot(slot.title)}>Change</button>
+                                                    <button className={styles.barClearBtn} onClick={() => removeAttachment(slot.title)} aria-label="Remove attachment">×</button>
+                                                </>
+                                            ) : (
+                                                <button className={styles.addMinorBtn} onClick={() => setAttachSearchSlot(slot.title)}>
+                                                    + Attach checklist
+                                                </button>
+                                            )}
+                                        </div>
+                                        {attached && !plausible && (
+                                            <div style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--negative, #b45309)", marginTop: 2 }}>
+                                                ⚠ This checklist doesn't seem to list real course requirements — double check it's the right one for {slot.title.replace(/:$/, "")}.
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )
+                })()}
 
                 {/* Click-to-place banner */}
                 {selectedCode && (
@@ -908,7 +1097,9 @@ export default function ChecklistTab({ cards = [] }) {
                                                     ? <span className={styles.checkDone}>✓</span>
                                                     : st === "In Progress"
                                                         ? <span className={styles.checkProgress}>◑</span>
-                                                        : <span className={styles.checkEmpty}>○</span>}
+                                                        : st === "Planned"
+                                                            ? <span className={styles.checkPlanned}>●</span>
+                                                            : <span className={styles.checkEmpty}>○</span>}
                                             </td>
                                             <td>
                                                 <CoursePill

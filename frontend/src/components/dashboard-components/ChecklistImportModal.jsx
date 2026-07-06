@@ -6,6 +6,10 @@ import styles from "../../css/ExportPDF.module.css"
 
 const LIBRARY_KEY = "rmtwu_checklist_library"
 const MAJOR_KEY   = "rmtwu_major"
+// Must match ChecklistTab.jsx's PROG_KEY/YEAR_KEY — these back savedMajorName/
+// savedCalendarYear, which currentProgram prefers over template?.program.
+const PROG_KEY = "rmtwu_major_program"
+const YEAR_KEY = "rmtwu_major_calendar_year"
 
 function normProgram(s) {
     return (s || "")
@@ -20,27 +24,44 @@ async function publishToDb(template, type = "major") {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session) return
 
-        // Don't blindly overwrite — if a row for this program/year already
-        // exists and was uploaded by someone else, leave it alone. Only the
-        // original uploader (or a fresh program/year combo) can write.
+        const calendarYear = template.calendarYear || ""
+
+        // Scoped by (program, calendar_year, TYPE) — not just program+year.
+        // A Concentration and a Major (or Minor) can share the same program
+        // name in the same calendar year (e.g. "History" the major vs a
+        // "History" concentration attached to Humanities) and are logically
+        // different rows; the old upsert's onConflict only covered
+        // program+year, so those two would have collided and silently
+        // overwritten each other. Doing an explicit select-then-update/insert
+        // here means correctness doesn't depend on a DB constraint we don't
+        // control from this file.
         const { data: existing } = await supabase
             .from("program_checklists")
-            .select("uploaded_by")
+            .select("id, uploaded_by")
             .eq("program", prog)
-            .eq("calendar_year", template.calendarYear || "")
+            .eq("calendar_year", calendarYear)
+            .eq("type", type)
             .maybeSingle()
 
+        // Don't blindly overwrite — if this exact (program, year, type) row
+        // already exists and was uploaded by someone else, leave it alone.
         if (existing && existing.uploaded_by && existing.uploaded_by !== session.user.id) return
 
-        await supabase.from("program_checklists").upsert({
+        const row = {
             program: prog,
-            calendar_year: template.calendarYear || "",
+            calendar_year: calendarYear,
             total_credits: template.totalCredits || null,
             sections: template.sections,
             type,
             uploaded_by: session.user.id,
             uploaded_at: new Date().toISOString(),
-        }, { onConflict: "program,calendar_year" })
+        }
+
+        if (existing) {
+            await supabase.from("program_checklists").update(row).eq("id", existing.id)
+        } else {
+            await supabase.from("program_checklists").insert(row)
+        }
     } catch (_) {}
 }
 
@@ -87,8 +108,15 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
         const token = data.session?.access_token
         if (!token) { setError("You must be logged in to import a checklist."); setStep("idle"); return }
 
+        // Tells the backend which parser to use AND lets it cross-check the
+        // PDF's own title against what was requested — so uploading a Major
+        // checklist into the Minor/Concentration slot (or vice versa) gets
+        // rejected with a clear reason instead of silently mis-parsing.
+        const docType = isMinorMode ? "minor" : isAttachMode ? "concentration" : "major"
+
         const form = new FormData()
         form.append("file", file)
+        form.append("doc_type", docType)
 
         try {
             const res = await fetch(`${API_URL}/user/parse-checklist`, {
@@ -102,7 +130,36 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
             }
             const result = await res.json()
             saveToLibrary(result)
-            publishToDb(result, isMinorMode ? "minor" : isAttachMode ? "concentration" : "major") // non-blocking
+            publishToDb(result, docType) // non-blocking
+
+            // Most Minor/Concentration checklists bundle BOTH tiers in one
+            // PDF (backend reports this as docKind: "dual"). Whichever slot
+            // the student uploaded into, seed the OTHER tier's community-pool
+            // entry from the same file too — so one upload makes it
+            // searchable under both Minor and Concentration, not just the
+            // one it happened to be uploaded through.
+            const otherType = docType === "minor" ? "concentration"
+                             : docType === "concentration" ? "minor"
+                             : null
+            if (otherType && result.docKind === "dual") {
+                (async () => {
+                    try {
+                        const otherForm = new FormData()
+                        otherForm.append("file", file)
+                        otherForm.append("doc_type", otherType)
+                        const otherRes = await fetch(`${API_URL}/user/parse-checklist`, {
+                            method: "POST",
+                            headers: { Authorization: `Bearer ${token}` },
+                            body: otherForm,
+                        })
+                        if (otherRes.ok) {
+                            const otherResult = await otherRes.json()
+                            publishToDb(otherResult, otherType)
+                        }
+                    } catch (_) { /* best-effort — the primary upload already succeeded */ }
+                })()
+            }
+
             setParsed(result)
             setStep("preview")
         } catch (e) {
@@ -119,6 +176,14 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
     const applyParsed = () => {
         applyChecklistImport(parsed, cards)
         try { localStorage.removeItem(MAJOR_KEY) } catch (_) {}
+        // Keep the displayed major badge (savedMajorName/savedCalendarYear,
+        // read from PROG_KEY/YEAR_KEY) in sync with the template we just
+        // wrote to STORE_KEY. Without this, currentProgram kept showing
+        // whatever major was active before this import — e.g. the badge
+        // said "Computing Science" while template/attachSlots had already
+        // switched to a just-imported Humanities checklist.
+        try { localStorage.setItem(PROG_KEY, parsed.program || "") } catch (_) {}
+        try { localStorage.setItem(YEAR_KEY, parsed.calendarYear || "") } catch (_) {}
         onImported?.()
         onClose()
     }
@@ -147,7 +212,7 @@ export default function ChecklistImportModal({ cards = [], onClose, onImported, 
                         <>
                             <p className={styles.hint} style={{ marginBottom: 14 }}>
                                 Upload your {isAttachMode ? (attachmentLabel || "specialization") : isMinorMode ? "minor" : "major"} checklist PDF from{" "}
-                                <a href="https://twu.ca/academics/academic-advising/degree-planning/" target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>
+                                <a href="https://www.twu.ca/academics/library/learning-commons/academic-advising" target="_blank" rel="noreferrer" style={{ color: "var(--blue)" }}>
                                     twu.ca/advising
                                 </a>
                                 . It&apos;ll be saved to the community pool so other students can find it too.
