@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy import select
 import re
 import io
@@ -274,8 +274,213 @@ _SH_HDR_BARE_ATTACH = re.compile(
     r'([A-Za-z][^\n(]{1,60}?)\s*[-–—*:]*\s*(?=\n)',
     re.MULTILINE,
 )
-_BLANK_FILL = re.compile(r'_{5,}')
 _ATTACH_CREDITS = re.compile(r'\(\s*(\d+)(?:\s*[-–—]\s*(\d+))?\s*s\.h')
+
+# Stream-based majors (Chemistry, Computing Science, Game Development,
+# Mathematics) nest an "Ancillary Requirements (N s.h.)" sub-header INSIDE
+# each stream's own block, with no leading section number at all — so it
+# never became its own top-level section, and its courses (e.g. Computing
+# Science's MATH 123/124, NATS 483) were silently absorbed into the parent
+# Stream's "major" required list instead of Ancillary. Some majors repeat
+# this sub-header once per stream (different streams can need slightly
+# different ancillary courses) — codes from every occurrence are merged.
+_ANCILLARY_SUBHDR = re.compile(
+    r'\n[ \t]+Ancillary Requirements\s*\(\s*(\d+)\s*s\.h\.\)',
+    re.IGNORECASE,
+)
+
+# ── Minor / Concentration checklist parser ──────────────────────────────────
+# Minor and Concentration checklists NEVER use the numbered section headers
+# (_SH_HDR) major checklists always do — confirmed against all 40 real
+# 2026-27 minor/concentration PDFs, every one of which returned zero sections
+# from the major-checklist parser. Instead they use bare "Minor" /
+# "Concentration" tier labels, and many bundle BOTH tiers in the same PDF
+# (e.g. "Computing Science Minor/Concentration Checklist (24/30 s.h.)" has a
+# full Minor course list AND a separate, larger Concentration course list).
+# This title regex also lets the upload endpoint detect a MISMATCH — e.g.
+# someone uploading a Major checklist into the Minor/Concentration slot, or
+# vice versa — instead of silently mis-parsing it.
+_KIND_ALT = r'MAJOR|MINOR\s*/\s*CONCENTRATION|CONCENTRATION\s*/\s*MINOR|MINOR|CONCENTRATION'
+_DOC_TITLE = re.compile(
+    r'(?P<prog>[A-Z][A-Za-z &+]+?)\s*(?:/[A-Za-z ]+)?\s+'
+    # Negative lookbehind excludes "DOUBLE CONCENTRATION" — that's a MAJOR's
+    # own title (e.g. "Arts, Media + Culture Double Concentration Checklist"),
+    # not a document of kind "concentration"; without this it would falsely
+    # reject a legitimate Major upload as the wrong document type.
+    r'(?<!DOUBLE )(?P<kind>' + _KIND_ALT + r')\s+CHECKLIST\s*[-–—]?\s*'
+    # Credits: single ("24"), slash-range ("24/30" — dual doc), or
+    # hyphen-range ("24-26" — one tier with a flexible target).
+    r'\((?P<c1>\d+)(?:\s*[/-]\s*(?P<c2>\d+))?\s*s\.h',
+)
+# A handful of titles put the credit total BEFORE "CHECKLIST" instead of
+# after (e.g. "EDUCATION MINOR / CONCENTRATION (24/30 s.h.) CHECKLIST").
+_DOC_TITLE_ALT = re.compile(
+    r'(?P<prog>[A-Z][A-Za-z &+]+?)\s+'
+    r'(?<!DOUBLE )(?P<kind>' + _KIND_ALT + r')\s*'
+    r'\((?P<c1>\d+)(?:\s*[/-]\s*(?P<c2>\d+))?\s*s\.h\.?\)\s*CHECKLIST',
+)
+_DOC_KIND_MAP = {
+    "MAJOR": "major",
+    "MINOR/CONCENTRATION": "dual",
+    "CONCENTRATION/MINOR": "dual",
+    "MINOR": "minor",
+    "CONCENTRATION": "concentration",
+}
+
+# A bare tier label on its own line — "Minor", "Minor (24 s.h.)", "Minor for
+# B.B.A. or B.A. Business Students", "Concentration (30 s.h.)", etc. Some
+# documents (Accounting) repeat the SAME tier twice as alternate paths
+# ("Minor for B.B.A. ..." / "Minor for Non-Business Students") — both get
+# grouped under the one "minor" tier since either path satisfies it.
+_TIER_HDR = re.compile(
+    r'(?:^|\n)[ \t]*(Minor|Concentration)\b[^\n]{0,70}(?=\n)',
+    re.MULTILINE,
+)
+
+# Same idea as _ANCILLARY_SUBHDR above but for the bare (unnumbered) minor/
+# concentration document style.
+_BARE_ANCILLARY = re.compile(
+    r'\n[ \t]*Ancillary Requirements\s*\(\s*(\d+)\s*s\.h\.\)',
+    re.IGNORECASE,
+)
+
+
+def _detect_doc_title(text: str) -> dict | None:
+    """
+    Lightweight title-only check used to catch upload-type mismatches (e.g. a
+    Major checklist uploaded into the Minor/Concentration slot) before
+    parsing. Returns {"kind": "major"|"dual"|"minor"|"concentration", ...} or
+    None if the title line doesn't match any known checklist format at all.
+    """
+    m = _DOC_TITLE.search(text) or _DOC_TITLE_ALT.search(text)
+    if not m:
+        return None
+    kind_norm = re.sub(r'\s*/\s*', '/', m.group("kind").strip())
+    return {
+        "kind": _DOC_KIND_MAP[kind_norm],
+        "program": m.group("prog").title().strip(),
+        "c1": int(m.group("c1")),
+        "c2": int(m.group("c2")) if m.group("c2") else None,
+    }
+
+
+def _choose_codes(clause: str) -> list[str]:
+    """
+    Parses "Choose from: PHIL 303, 304, 305; RELS 225, 365, 366." style
+    clauses where a prefix is only written once per run and the bare numbers
+    that follow belong to that same prefix until a new one appears — unlike
+    a plain _codes_in() scan, which would miss every number not immediately
+    preceded by its own prefix.
+    """
+    codes = []
+    current_prefix = None
+    for tok in re.findall(r'[A-Z]{2,4}(?=\s*\d)|\d{3}', clause):
+        if re.match(r'^[A-Z]{2,4}$', tok):
+            current_prefix = tok
+        elif current_prefix:
+            codes.append(f"{current_prefix} {tok}")
+    return list(dict.fromkeys(codes))
+
+
+def _parse_tiered_checklist(text: str, requested_type: str) -> dict:
+    """
+    Parser for Minor/Concentration checklists (requested_type is "minor" or
+    "concentration"). When a document bundles both tiers together, this pulls
+    out only the tier matching requested_type — so uploading the same PDF as
+    Minor vs Concentration returns the right half, not both merged or the
+    wrong one.
+    """
+    text = _preprocess(text)
+    out = {"program": None, "calendarYear": None, "totalCredits": None, "sections": [], "docKind": None}
+
+    tm = _detect_doc_title(text)
+    if tm:
+        out["program"] = tm["program"]
+        # Tells the frontend whether this same PDF also has the OTHER tier —
+        # so uploading it once (say, into the Minor slot) can also seed the
+        # Concentration community-pool entry from the same file, instead of
+        # only being searchable under whichever slot it happened to be
+        # uploaded into.
+        out["docKind"] = tm["kind"]
+        c1 = tm["c1"]
+        c2 = tm["c2"]
+        if c2 is not None:
+            # Concentration always requires MORE credits than Minor when a
+            # document lists both (e.g. "24/30 s.h." = 24 for Minor, 30 for
+            # Concentration) — pick the smaller/larger number accordingly
+            # rather than assuming a fixed left/right position.
+            out["totalCredits"] = min(c1, c2) if requested_type == "minor" else max(c1, c2)
+        else:
+            out["totalCredits"] = c1
+    ym = re.search(r'(\d{4}-\d{2})\s+Academic Calendar', text)
+    if ym:
+        out["calendarYear"] = ym.group(1)
+
+    tier_hdrs = list(_TIER_HDR.finditer(text))
+    if tier_hdrs:
+        tiers: dict[str, list[str]] = {}
+        for i, m in enumerate(tier_hdrs):
+            tier = m.group(1).lower()
+            start = m.end()
+            end = tier_hdrs[i + 1].start() if i + 1 < len(tier_hdrs) else len(text)
+            tiers.setdefault(tier, []).append(text[start:end])
+        if requested_type not in tiers:
+            # Document has tier headers but not the one requested (e.g. a
+            # Minor-only doc with no "Concentration" tier at all) — nothing
+            # to extract. The endpoint surfaces this as a clear error instead
+            # of silently returning an empty template.
+            return out
+        block = "\n".join(tiers[requested_type])
+    else:
+        # No bare tier headers at all (e.g. Catholic Studies Minor, Gender
+        # Studies Minor) — the whole body IS the one tier this document is.
+        block = text
+
+    anc_credits, anc_codes = 0, []
+    am = _BARE_ANCILLARY.search(block)
+    if am:
+        anc_credits = int(am.group(1))
+        anc_codes = _codes_in(block[am.end():])
+        block = block[:am.start()]
+
+    choose = []
+    for ch in re.findall(r'Choose (?:from|one of):\s*([A-Z0-9, .;]+?)[.\n]', block):
+        choose += _choose_codes(ch)
+    block_nc = re.sub(r'Choose (?:from|one of):[^.\n]*[.\n]', '', block)
+    required = _codes_in(block_nc)
+    prefixes = [c.split()[0] for c in required]
+    prefix = max(set(prefixes), key=prefixes.count) if prefixes else None
+
+    # Some minors/concentrations (e.g. Philosophy) don't list any real course
+    # codes at all — every slot is a blank fill-in box like "PHIL _________"
+    # meaning "any course in this prefix" rather than a fixed list. Without
+    # this, `required` and `prefix` both come back empty and the section gets
+    # dropped entirely even though the requirement is real.
+    if not required and not choose:
+        blank_prefixes = re.findall(r'\b([A-Z]{2,5})\s+_{2,}', block)
+        if blank_prefixes:
+            prefix = max(set(blank_prefixes), key=blank_prefixes.count)
+
+    if required or choose or prefix:
+        out["sections"].append({
+            "key": "major",
+            "title": f"{requested_type.title()} Requirements",
+            "credits": out["totalCredits"] or 0,
+            "required": required,
+            "choose": choose,
+            "electivePrefix": prefix,
+            "electiveMinLevel": 130,
+        })
+    if anc_codes:
+        out["sections"].append({
+            "key": "ancillary",
+            "title": "Ancillary Requirements",
+            "credits": anc_credits,
+            "required": anc_codes,
+        })
+
+    return out
+
 
 # Core prefixes TWU always puts in section 1 — never treat as major courses
 _CORE_PREFIXES = {"ENGL", "FNDN", "RELS", "PHIL", "BIOL", "CHEM",
@@ -533,6 +738,33 @@ def _parse_checklist(text: str) -> dict:
 
         out["sections"].append(sec)
 
+    # Pull out a nested, unnumbered "Ancillary Requirements (N s.h.)" sub-header
+    # (see _ANCILLARY_SUBHDR above) that got buried inside a Stream Courses
+    # block instead of becoming its own section. Different streams can list
+    # slightly different ancillary requirements, and reliably telling exactly
+    # where one stream's short ancillary list ends and the next stream's own
+    # course table begins is unreliable — pypdf's linear text extraction
+    # bleeds the two-column layout together past a certain distance. Rather
+    # than merge every occurrence (which was pulling in the NEXT stream's
+    # major courses as false "ancillary" codes — worse than not fixing this
+    # at all, since ancillary is checked before major during classification),
+    # only take the first occurrence with a tight window: one stream's clean,
+    # uncontaminated ancillary set beats a merged, contaminated one.
+    ancillary_subhdr_codes = []
+    m = _ANCILLARY_SUBHDR.search(text)
+    if m:
+        ancillary_subhdr_codes = _codes_in(text[m.end():m.end() + 200])
+    if ancillary_subhdr_codes:
+        # Only add if there's no genuine top-level ancillary section already
+        # covering this (avoids a redundant duplicate section).
+        if not any(s["key"] == "ancillary" for s in out["sections"]):
+            out["sections"].append({
+                "key": "ancillary",
+                "title": "Ancillary Requirements",
+                "credits": 0,
+                "required": list(dict.fromkeys(ancillary_subhdr_codes)),
+            })
+
     # A program whose ENTIRE major requirement is an "attachment" (e.g.
     # Humanities' "Minors and Concentrations") has nothing left to guess —
     # that's the correct, honest result. Don't let the blind fallbacks below
@@ -595,16 +827,31 @@ async def debug_checklist(user_id: current_user, file: UploadFile = File(...)):
 
 
 @router.post("/parse-checklist")
-async def parse_checklist(user_id: current_user, file: UploadFile = File(...)):
+async def parse_checklist(
+    user_id: current_user,
+    file: UploadFile = File(...),
+    doc_type: str = Form("major"),
+):
     """
     Accepts a TWU program checklist PDF and returns its structured requirements:
     { program, calendarYear, totalCredits, sections: [{key, title, credits, ...}] }
     where key is one of major | ancillary | electives | core.
+
+    `doc_type` ("major" | "minor" | "concentration") tells the parser which
+    kind of document to expect AND which parser to use — Major checklists use
+    numbered section headers; Minor/Concentration checklists never do, and
+    often bundle both tiers in one PDF (see _parse_tiered_checklist). It's
+    also cross-checked against the PDF's own title line so uploading, say, a
+    Major checklist into the Minor/Concentration slot (or vice versa) is
+    rejected with a clear reason instead of silently mis-parsing.
+
     Requires auth — this endpoint also feeds the shared community checklist
     pool, so anonymous/unbounded access isn't allowed.
     """
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
+    if doc_type not in ("major", "minor", "concentration"):
+        raise HTTPException(status_code=400, detail="Invalid doc_type")
 
     try:
         from pypdf import PdfReader
@@ -618,7 +865,33 @@ async def parse_checklist(user_id: current_user, file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=400, detail="Could not read PDF")
 
-    parsed = _parse_checklist("\n".join(_extract_checklist_pages(reader, content)))
+    text = "\n".join(_extract_checklist_pages(reader, content))
+    title = _detect_doc_title(text)
+    detected_kind = title["kind"] if title else None
+
+    if doc_type == "major":
+        if detected_kind in ("minor", "concentration", "dual"):
+            raise HTTPException(
+                status_code=422,
+                detail=f"This looks like a {detected_kind.title()} checklist, not a Major checklist. "
+                       f"Upload it under Minor or Concentration instead.",
+            )
+        parsed = _parse_checklist(text)
+    else:
+        if detected_kind == "major":
+            raise HTTPException(
+                status_code=422,
+                detail="This looks like a Major checklist, not a Minor/Concentration checklist.",
+            )
+        if detected_kind not in (None, "dual", doc_type):
+            # e.g. doc_type == "concentration" but this document is a
+            # Minor-only checklist with no Concentration tier at all.
+            raise HTTPException(
+                status_code=422,
+                detail=f"This document doesn't appear to have a {doc_type.title()} tier — "
+                       f"it looks like a {detected_kind.title()}-only checklist.",
+            )
+        parsed = _parse_tiered_checklist(text, doc_type)
 
     # A program can be legitimately "attachment-only" (its whole major
     # requirement is "attach a concentration/specialization checklist" — e.g.
