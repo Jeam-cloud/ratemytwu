@@ -96,8 +96,13 @@ def get_stats(db: db_dependency, admin_id: current_admin):
         select(func.min(ReviewFlag.reported_at)).where(ReviewFlag.status == "pending")
     ).scalar()
 
+    # Excludes professor_takedown - that gets its own dedicated stat/card
+    # below, so the two numbers don't double-count the same reports.
     pending_reports = db.execute(
-        select(func.count(SiteReport.id)).where(SiteReport.status == "pending")
+        select(func.count(SiteReport.id)).where(
+            SiteReport.status == "pending",
+            SiteReport.category != "professor_takedown",
+        )
     ).scalar() or 0
 
     pending_takedowns = db.execute(
