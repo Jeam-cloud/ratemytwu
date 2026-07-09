@@ -9,12 +9,18 @@ import uuid
 
 class Professor(Base):
     __tablename__ = "professor"
- 
+
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
     department: Mapped[str] = mapped_column(String, nullable=False)
 
-    reviews = relationship("Reviews", back_populates="professor") 
+    # Set when a verified professor takedown request is approved. Hidden
+    # professors (and their reviews) drop off every public list/detail page,
+    # same pattern as Reviews.is_hidden.
+    is_hidden: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    hidden_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    reviews = relationship("Reviews", back_populates="professor")
     courses = relationship("ProfessorCourse", back_populates="professor")
 
 
@@ -110,7 +116,14 @@ class ReviewFlag(Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
-    review_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("reviews.id"), nullable=False, index=True)
+
+    # Nullable on purpose: when a professor is permanently deleted (takedown
+    # "Delete permanently"), their reviews are deleted too. Rather than
+    # deleting flags on those reviews too (which would erase moderation
+    # history), review_id gets nulled and the *_snapshot columns below
+    # capture what the flag was actually about, so the audit trail survives
+    # the review itself being gone.
+    review_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("reviews.id"), nullable=True, index=True)
     reporter_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     reason: Mapped[str] = mapped_column(String, nullable=False)
     other_text: Mapped[str | None] = mapped_column(String(30), nullable=True)
@@ -119,10 +132,56 @@ class ReviewFlag(Base):
     # Moderation queue state. "pending" until an operator makes a call;
     # this is the audit trail the ToS's report-response timelines depend on.
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending", server_default="pending")
-    resolution: Mapped[str | None] = mapped_column(String, nullable=True)  # "removed" | "kept" | "edited"
+    resolution: Mapped[str | None] = mapped_column(String, nullable=True)  # "removed" | "kept"
     resolution_note: Mapped[str | None] = mapped_column(String, nullable=True)
     resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Snapshot taken at the moment review_id is nulled out by a professor
+    # deletion - only ever populated in that one case.
+    review_text_snapshot: Mapped[str | None] = mapped_column(String, nullable=True)
+    professor_name_snapshot: Mapped[str | None] = mapped_column(String, nullable=True)
+    course_code_snapshot: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class SiteReport(Base):
+    """
+    General-purpose reports that AREN'T about a specific flagged review
+    (that's ReviewFlag, kept separate on purpose - see ReportPage). Covers
+    three categories submitted from the public Report page:
+      - "wrong_info"          : a professor/course detail is inaccurate
+      - "professor_takedown"  : a professor requesting their profile removed
+      - "bug"                 : something on the site is broken
+    "Inappropriate review" is NOT a category here - that's handled entirely
+    by the existing review-flag button on the review itself.
+    """
+    __tablename__ = "site_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=False)
+    category: Mapped[str] = mapped_column(String, nullable=False, index=True)
+
+    # who to follow up with - not a required site account, since a professor
+    # filing a takedown request isn't necessarily a logged-in user
+    contact_email: Mapped[str] = mapped_column(String, nullable=False)
+    submitted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+
+    # optional linkage so wrong_info / professor_takedown reports can point
+    # at a specific professor without free-typing a name
+    professor_id: Mapped[int | None] = mapped_column(ForeignKey("professor.id"), nullable=True, index=True)
+    course_code: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    description: Mapped[str] = mapped_column(String, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    # same pending -> resolved shape as ReviewFlag, kept in its own table so
+    # the two queues never mix
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending", server_default="pending")
+    resolution: Mapped[str | None] = mapped_column(String, nullable=True)  # "approved" | "dismissed"
+    resolution_note: Mapped[str | None] = mapped_column(String, nullable=True)
+    resolved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    professor = relationship("Professor")
 
 
 class UserCourseCard(Base):

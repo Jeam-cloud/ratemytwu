@@ -35,6 +35,7 @@ def get_professor(db: db_dependency, search_professor: Optional[str] = None):
             func.count(Reviews.id).label("review_count"),
         )
         .outerjoin(Reviews, (Reviews.professor_id == Professor.id) & (Reviews.is_hidden == False))  # noqa: E712
+        .where(Professor.is_hidden == False)  # noqa: E712
         .group_by(Professor.id, Professor.name, Professor.department)
     )
 
@@ -66,7 +67,7 @@ def get_professor(db: db_dependency, search_professor: Optional[str] = None):
 def get_everything(professor_id: int, db: db_dependency):
 
     professor = db.execute(
-        select(Professor).where(Professor.id == professor_id)
+        select(Professor).where(Professor.id == professor_id, Professor.is_hidden == False)  # noqa: E712
     ).scalars().first()
 
     if not professor:
@@ -133,7 +134,7 @@ def get_everything(professor_id: int, db: db_dependency):
 def get_professor_courses(professor_id: int, db: db_dependency):
 
     professor = db.execute(
-        select(Professor).where(Professor.id == professor_id)
+        select(Professor).where(Professor.id == professor_id, Professor.is_hidden == False)  # noqa: E712
     ).scalars().first()
 
     if not professor:

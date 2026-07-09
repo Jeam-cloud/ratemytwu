@@ -45,8 +45,11 @@ def get_department_professors(department_name: str, db: db_dependency):
             func.round(cast(func.avg(Reviews.take_again), Numeric), 2).label("average_take_again"),
             func.count(Reviews.id).label("review_count")
         )
-        .outerjoin(Reviews, Reviews.professor_id == Professor.id)
-        .where(Professor.department.contains(department_name))
+        .outerjoin(Reviews, (Reviews.professor_id == Professor.id) & (Reviews.is_hidden == False))  # noqa: E712
+        .where(
+            Professor.department.contains(department_name),
+            Professor.is_hidden == False,  # noqa: E712
+        )
         .group_by(Professor.id, Professor.name, Professor.department)
     ).all()
 
