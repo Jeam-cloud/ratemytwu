@@ -125,13 +125,13 @@ export default function HomeProf() {
         <>
             <SEO
                 path="/"
-                description="Rate and review Trinity Western University professors. Find honest course reviews, difficulty ratings, and GPA tools from real TWU students."
+                description="Know what to expect from Trinity Western University professors and courses. Honest, constructive insight from real TWU students, plus GPA and planning tools."
                 jsonLd={{
                     "@context": "https://schema.org",
                     "@type": "WebSite",
                     "name": "RateMyTWU",
                     "url": "https://ratemytwu.com",
-                    "description": "Rate and review TWU professors and courses",
+                    "description": "Know what to expect from TWU professors and courses",
                     "potentialAction": {
                         "@type": "SearchAction",
                         "target": "https://ratemytwu.com/search?q={search_term_string}",
@@ -147,14 +147,14 @@ export default function HomeProf() {
 
                     <div className={styles.heroInner}>
                         <h1 className={styles.heroTitle}>
-                            Rate professors. Find courses.
+                            Know what to expect. Find your courses.
                             <br />
                             <span className={styles.heroAccent}>Plan your degree.</span>
                         </h1>
 
                         <p className={styles.heroSub}>
-                            The course &amp; professor guide for Trinity Western. Read honest
-                            reviews and plan your semester before you register.
+                            The course &amp; professor guide for Trinity Western. Get a real sense
+                            of what a class is like from students who've taken it, before you register.
                         </p>
 
                         {mode === "professor" ? <SearchBarProf /> : <SearchBarCourse />}
@@ -197,8 +197,8 @@ export default function HomeProf() {
                             {[
                                 {
                                     num: "01",
-                                    title: "Rate professors",
-                                    body: "Honest ratings on difficulty, workload, and would-take-again — written by students who actually took the class.",
+                                    title: "Know your professors",
+                                    body: "See what to expect on difficulty, workload, and teaching style — shared by students who actually took the class.",
                                     icon: (
                                         <path d="M12 2 15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z" />
                                     ),
@@ -249,9 +249,9 @@ export default function HomeProf() {
                             <span className={styles.kickerBlue}>Professors</span>
                             <h2 className={styles.bandTitleDark}>Know your prof before day one</h2>
                             <p className={styles.bandBodyDark}>
-                                Professor pages summarize real student reviews — overall rating,
-                                difficulty, and would-take-again — plus the courses they teach this
-                                semester.
+                                Professor pages summarize what students actually experienced —
+                                teaching style, workload, and what helped them succeed — plus the
+                                courses they teach this semester.
                             </p>
                             <a className={styles.bandLinkBlue} href="/professor">Browse professors →</a>
                         </div>

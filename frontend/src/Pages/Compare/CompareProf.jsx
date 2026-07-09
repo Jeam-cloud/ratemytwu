@@ -159,9 +159,10 @@ export default function CompareProf() {
         <Layout>
             <SEO title="Compare Professors" path="/compare" description="Compare TWU professors side by side. See ratings, difficulty, and take-again percentages to pick the best class." />
             <div className={styles.page}>
-                <h1 className={styles.title}>Compare professors</h1>
+                <h1 className={styles.title}>Compare sections</h1>
                 <p className={styles.subtitle}>
-                    Put two professors side by side. The stronger number on each stat is highlighted in green.
+                    Choosing between two sections of the same course? See what to expect from each,
+                    side by side.
                 </p>
 
                 {/* ── Slots ── */}

@@ -299,5 +299,52 @@ class ReviewFlagOut(BaseModel):
     reason: str
     other_text: str | None = None
     reported_at: datetime
+    status: str
 
     model_config = {"from_attributes": True}
+
+
+# Admin / moderation queue schemas
+
+class AdminFlagOut(BaseModel):
+    id: int
+    review_id: UUID
+    reason: str
+    other_text: str | None = None
+    reported_at: datetime
+    status: str
+    resolution: str | None = None
+    resolution_note: str | None = None
+    resolved_at: datetime | None = None
+
+    # denormalized context so the operator doesn't need a second request
+    # to see what's actually being reported
+    review_text: str
+    review_is_hidden: bool
+    professor_id: int
+    professor_name: str
+    course_code: str
+
+    model_config = {"from_attributes": True}
+
+
+VALID_RESOLUTIONS = {"removed", "kept", "edited"}
+
+
+class ResolveFlagIn(BaseModel):
+    resolution: str
+    note: str | None = None
+
+    @field_validator("resolution")
+    @classmethod
+    def resolution_valid(cls, v):
+        if v not in VALID_RESOLUTIONS:
+            raise ValueError(f"resolution must be one of: {', '.join(sorted(VALID_RESOLUTIONS))}")
+        return v
+
+    @field_validator("note")
+    @classmethod
+    def note_length(cls, v):
+        if v is not None and len(v) > 500:
+            raise ValueError("note must be 500 characters or fewer")
+        return v

@@ -1,5 +1,5 @@
 from uuid import UUID
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Annotated
 
@@ -48,6 +48,25 @@ def flag_review(review_id: UUID, body: ReviewFlagIn, db: db_dependency, user_id:
 
     db.add(flag)
     db.commit()
+
+    # Auto-hide: once a review has 2+ open flags, pull it from public view
+    # pending a manual decision, rather than leaving it live while it sits
+    # in the queue. This does not delete anything - an operator still makes
+    # the final call via /admin/flags/{id}/resolve, and the review is
+    # restored automatically if the flags are dismissed.
+    open_flag_count = db.execute(
+        select(func.count(ReviewFlag.id)).where(
+            ReviewFlag.review_id == review_id,
+            ReviewFlag.status == "pending",
+        )
+    ).scalar()
+
+    if open_flag_count is not None and open_flag_count >= 2 and not review.is_hidden:
+        review.is_hidden = True
+        review.hidden_reason = "auto-hidden: multiple reports pending review"
+        db.add(review)
+        db.commit()
+
     db.refresh(flag)
 
     return flag

@@ -50,7 +50,7 @@ export default function ProfessorList() {
 
     return (
         <Layout>
-            <SEO title="Professors" path="/professor" description="Browse and search all Trinity Western University professors. Read student reviews and ratings." />
+            <SEO title="Professors" path="/professor" description="Browse Trinity Western University professors and see what to expect from real student experiences." />
             <div className={styles.page}>
                 <span className={styles.kicker}>{query ? "Showing results for" : "All professors"}</span>
 

@@ -34,7 +34,7 @@ def get_professor(db: db_dependency, search_professor: Optional[str] = None):
             func.round(cast(func.avg(Reviews.take_again), Numeric), 2).label("average_take_again"),
             func.count(Reviews.id).label("review_count"),
         )
-        .outerjoin(Reviews, Reviews.professor_id == Professor.id)
+        .outerjoin(Reviews, (Reviews.professor_id == Professor.id) & (Reviews.is_hidden == False))  # noqa: E712
         .group_by(Professor.id, Professor.name, Professor.department)
     )
 
@@ -78,11 +78,17 @@ def get_everything(professor_id: int, db: db_dependency):
             func.round(cast(func.avg(Reviews.difficulty), Numeric), 2),
             func.round(cast(func.avg(Reviews.take_again), Numeric), 2),
         )
-        .where(Reviews.professor_id == professor_id)
+        .where(
+            Reviews.professor_id == professor_id,
+            Reviews.is_hidden == False,  # noqa: E712
+        )
     ).first()
 
     reviews = db.execute(
-        select(Reviews).where(Reviews.professor_id == professor_id)
+        select(Reviews).where(
+            Reviews.professor_id == professor_id,
+            Reviews.is_hidden == False,  # noqa: E712 - SQLAlchemy requires == for column comparisons
+        )
     ).scalars().all()
 
     review_list = []

@@ -172,7 +172,7 @@ export default function ProfessorPage() {
             <SEO
                 title={profName}
                 path={`/professor/${id}`}
-                description={`Read ${reviewCount} student review${reviewCount !== 1 ? "s" : ""} for ${profName} at Trinity Western University. Rating: ${avgRating ?? "N/A"}/5.`}
+                description={`See what to expect from ${profName} at Trinity Western University, based on ${reviewCount} student experience${reviewCount !== 1 ? "s" : ""}. Overall: ${avgRating ?? "N/A"}/5.`}
                 type="profile"
                 jsonLd={jsonLd}
             />
@@ -263,7 +263,7 @@ export default function ProfessorPage() {
                 {/* ── Reviews ── */}
                 <section className={styles.reviewsSection}>
                     <p className={styles.sectionKicker}>
-                        {reviews.length} student {reviews.length === 1 ? "review" : "reviews"}
+                        What to expect · {reviews.length} student {reviews.length === 1 ? "experience" : "experiences"} shared
                     </p>
 
                     {reviews.map(review => (
@@ -374,10 +374,10 @@ export default function ProfessorPage() {
                             >
                                 Log in
                             </a>{" "}
-                            to leave a review
+                            to share what to expect
                         </p>
                     )}
-                    <button className={styles.leaveReviewBtn} onClick={redirectReview}>Leave a review</button>
+                    <button className={styles.leaveReviewBtn} onClick={redirectReview}>Share what to expect</button>
                 </div>
             </div>
 
@@ -401,7 +401,7 @@ export default function ProfessorPage() {
 
                         <h3 className={styles.flagTitle}>Report this review</h3>
                         <p className={styles.flagDesc}>
-                            Help us keep RateMyTWU honest. What's wrong with this review?
+                            Help us keep RateMyTWU constructive. What's wrong with this review?
                         </p>
 
                         <select

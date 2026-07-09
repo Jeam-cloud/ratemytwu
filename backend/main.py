@@ -5,7 +5,7 @@ from fastapi.responses import Response
 from sqlalchemy import select, text
 
 from models import Professor, Courses
-from routes import reviews, professors, courses, departments, bookmarks, users, cards, planner, flags
+from routes import reviews, professors, courses, departments, bookmarks, users, cards, planner, flags, admin
 
 app = FastAPI()
 
@@ -37,6 +37,7 @@ app.include_router(users.router)
 app.include_router(cards.router)
 app.include_router(planner.router)
 app.include_router(flags.router)
+app.include_router(admin.router)
 
 @app.get("/sitemap.xml", include_in_schema=False)
 def sitemap():

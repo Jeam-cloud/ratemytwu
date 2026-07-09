@@ -16,8 +16,8 @@ export default function Footer() {
                         </span>
                     </Link>
                     <p className={styles.tagline}>
-                        The course &amp; professor guide for Trinity Western students. Read honest
-                        reviews, find who's teaching, and plan your degree.
+                        The course &amp; professor guide for Trinity Western students. Know what to
+                        expect, find who's teaching, and plan your degree.
                     </p>
                 </div>
 

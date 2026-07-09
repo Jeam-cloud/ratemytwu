@@ -193,10 +193,10 @@ export default function ReviewPage() {
                     Back to {profName}
                 </button>
 
-                <span className={styles.kicker}>Leave a review</span>
+                <span className={styles.kicker}>Share what to expect</span>
                 <h1 className={styles.profName}>{profName}</h1>
                 <p className={styles.meta}>
-                    {department && <>Department of {department} · </>}Your review is posted anonymously
+                    {department && <>Department of {department} · </>}Posted anonymously — help the next student know what they're walking into
                 </p>
 
                 {error && <p className={styles.error}>{error}</p>}
@@ -382,12 +382,12 @@ export default function ReviewPage() {
 
                     <div className={styles.field}>
                         <div className={styles.labelRow}>
-                            <p className={styles.fieldLabel}>Your honest review</p>
+                            <p className={styles.fieldLabel}>What should the next student know?</p>
                             <span className={styles.optional}>{review.length} / 500</span>
                         </div>
                         <textarea
                             className={styles.textarea}
-                            placeholder="What were the lectures, exams, and workload actually like? What should the next student know?"
+                            placeholder="What were the lectures, exams, and workload actually like? What would have helped you succeed in this class?"
                             value={review}
                             maxLength={500}
                             onChange={(e) => setReview(e.target.value)}
@@ -427,8 +427,8 @@ export default function ReviewPage() {
                                 <path d="m5 12 5 5 9-11" />
                             </svg>
                         </div>
-                        <h2 className={styles.successTitle}>Review posted — thank you</h2>
-                        <p className={styles.successText}>Your honest take helps the next student choose well.</p>
+                        <h2 className={styles.successTitle}>Posted — thank you</h2>
+                        <p className={styles.successText}>What you shared helps the next student know what to expect.</p>
                         <button className={`${styles.submitBtn} ${styles.successBtn}`} onClick={() => navigate(`/professor/${id}`)}>
                             Back to {profName}
                         </button>
