@@ -124,9 +124,6 @@ def resolve_flag(
         # Reports dismissed - restore visibility if it was auto-hidden.
         review.is_hidden = False
         review.hidden_reason = None
-    # "edited" leaves is_hidden as-is; the operator edits the review content
-    # separately via the existing review update path, then this just closes
-    # out the report with a record of what changed and why.
 
     db.add(review)
     db.commit()

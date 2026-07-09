@@ -328,7 +328,7 @@ class AdminFlagOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-VALID_RESOLUTIONS = {"removed", "kept", "edited"}
+VALID_RESOLUTIONS = {"removed", "kept"}
 
 
 class ResolveFlagIn(BaseModel):
