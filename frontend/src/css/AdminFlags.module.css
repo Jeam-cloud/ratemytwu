@@ -213,11 +213,6 @@
     color: var(--ink-2);
 }
 
-.editBtn {
-    color: var(--blue);
-    border-color: var(--blue);
-}
-
 .removeBtn {
     color: var(--white) !important;
     background: var(--negative) !important;

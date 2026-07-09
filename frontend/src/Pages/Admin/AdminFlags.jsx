@@ -56,6 +56,21 @@ export default function AdminFlags() {
 
     useEffect(() => { loadFlags() }, [loadFlags])
 
+    // If the signed-in user changes underneath this page (sign out, switch
+    // accounts, session expiry) without a full page reload, wipe whatever
+    // was already fetched and re-check access under the new session. Without
+    // this, a non-admin who lands here right after an admin was signed in
+    // in the same tab could briefly see the previous admin's stale data.
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+            setFlags([])
+            setForbidden(false)
+            setLoading(true)
+            loadFlags()
+        })
+        return () => subscription.unsubscribe()
+    }, [loadFlags])
+
     const resolve = async (flagId, resolution) => {
         setResolvingId(flagId)
         try {
@@ -170,13 +185,6 @@ export default function AdminFlags() {
                                                 onClick={() => resolve(flag.id, "kept")}
                                             >
                                                 Keep review
-                                            </button>
-                                            <button
-                                                className={styles.editBtn}
-                                                disabled={resolvingId === flag.id}
-                                                onClick={() => resolve(flag.id, "edited")}
-                                            >
-                                                Mark edited
                                             </button>
                                             <button
                                                 className={styles.removeBtn}
