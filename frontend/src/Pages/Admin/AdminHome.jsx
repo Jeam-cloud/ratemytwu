@@ -171,10 +171,16 @@ export default function AdminHome() {
                                 sub={daysSinceOldestPending !== null ? `Oldest: ${daysSinceOldestPending} day${daysSinceOldestPending === 1 ? "" : "s"} ago` : "None waiting"}
                             />
                             <StatCard
+                                label="Pending professor takedowns"
+                                value={stats.pending_professor_takedowns}
+                                tone={stats.pending_professor_takedowns > 0 ? "warn" : "ok"}
+                                sub="Highest priority"
+                            />
+                            <StatCard
                                 label="Pending site reports"
                                 value={stats.pending_site_reports}
-                                tone={stats.pending_professor_takedowns > 0 ? "warn" : stats.pending_site_reports > 0 ? "neutral" : "ok"}
-                                sub={stats.pending_professor_takedowns > 0 ? `${stats.pending_professor_takedowns} professor takedown${stats.pending_professor_takedowns === 1 ? "" : "s"}` : "None waiting"}
+                                tone={stats.pending_site_reports > 0 ? "neutral" : "ok"}
+                                sub="Wrong info & bugs"
                             />
                             <StatCard
                                 label="Resolved flags (7 days)"
