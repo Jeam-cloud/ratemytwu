@@ -1,14 +1,14 @@
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Annotated, Optional
 
 from auth import get_current_admin_id
 from database import db_dependency
-from models import ReviewFlag, Reviews, Professor
-from schema import AdminFlagOut, ResolveFlagIn
+from models import ReviewFlag, Reviews, Professor, Courses
+from schema import AdminFlagOut, ResolveFlagIn, AdminStatsOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -31,6 +31,57 @@ def _to_admin_flag_out(flag: ReviewFlag, review: Reviews, professor: Professor) 
         "professor_id": professor.id,
         "professor_name": professor.name,
         "course_code": review.course_code,
+    }
+
+
+# Dashboard summary - the numbers an operator wants at a glance without
+# digging into the queue. Kept cheap (a handful of counts) so this can sit
+# on a landing page that's checked often.
+@router.get("/stats", response_model=AdminStatsOut)
+def get_stats(db: db_dependency, admin_id: current_admin):
+    pending_count = db.execute(
+        select(func.count(ReviewFlag.id)).where(ReviewFlag.status == "pending")
+    ).scalar() or 0
+
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+    resolved_last_7_days = db.execute(
+        select(func.count(ReviewFlag.id)).where(
+            ReviewFlag.status == "resolved",
+            ReviewFlag.resolved_at >= seven_days_ago,
+        )
+    ).scalar() or 0
+
+    removed_last_7_days = db.execute(
+        select(func.count(ReviewFlag.id)).where(
+            ReviewFlag.status == "resolved",
+            ReviewFlag.resolution == "removed",
+            ReviewFlag.resolved_at >= seven_days_ago,
+        )
+    ).scalar() or 0
+
+    hidden_reviews = db.execute(
+        select(func.count(Reviews.id)).where(Reviews.is_hidden == True)  # noqa: E712
+    ).scalar() or 0
+
+    total_reviews = db.execute(select(func.count(Reviews.id))).scalar() or 0
+    total_professors = db.execute(select(func.count(Professor.id))).scalar() or 0
+    total_courses = db.execute(select(func.count(Courses.id))).scalar() or 0
+
+    # oldest pending flag's age tells you how close you are to breaching
+    # the ToS's 5-business-day resolution promise
+    oldest_pending = db.execute(
+        select(func.min(ReviewFlag.reported_at)).where(ReviewFlag.status == "pending")
+    ).scalar()
+
+    return {
+        "pending_flags": pending_count,
+        "resolved_last_7_days": resolved_last_7_days,
+        "removed_last_7_days": removed_last_7_days,
+        "hidden_reviews": hidden_reviews,
+        "total_reviews": total_reviews,
+        "total_professors": total_professors,
+        "total_courses": total_courses,
+        "oldest_pending_reported_at": oldest_pending,
     }
 
 
