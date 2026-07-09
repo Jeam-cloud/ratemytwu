@@ -1,4 +1,3 @@
-from uuid import UUID
 from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import select, func, update, delete
