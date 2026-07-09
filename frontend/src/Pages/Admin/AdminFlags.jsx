@@ -12,6 +12,45 @@ const REASON_LABEL = {
     "Other": "Other",
 }
 
+// business-day math for the ToS's "decide within 5 business days" promise —
+// counts forward from reportedAt, skipping Sat/Sun, and returns how many
+// business days are left before that deadline (negative = overdue).
+function businessDaysUntilDeadline(reportedAtIso, deadlineDays = 5) {
+    const reported = new Date(reportedAtIso)
+    const now = new Date()
+
+    let cursor = new Date(reported)
+    let daysElapsed = 0
+    while (cursor < now) {
+        cursor.setDate(cursor.getDate() + 1)
+        const day = cursor.getDay()
+        if (day !== 0 && day !== 6) daysElapsed++
+    }
+
+    return deadlineDays - daysElapsed
+}
+
+function DeadlineBadge({ reportedAt }) {
+    const daysLeft = businessDaysUntilDeadline(reportedAt)
+
+    let tone = "ok"
+    let label = `${daysLeft} business day${daysLeft === 1 ? "" : "s"} left`
+    if (daysLeft <= 0) {
+        tone = "overdue"
+        label = daysLeft === 0 ? "Due today" : `${Math.abs(daysLeft)} day${Math.abs(daysLeft) === 1 ? "" : "s"} overdue`
+    } else if (daysLeft === 1) {
+        tone = "urgent"
+    }
+
+    const toneClass = {
+        ok: styles.deadlineOk,
+        urgent: styles.deadlineUrgent,
+        overdue: styles.deadlineOverdue,
+    }[tone]
+
+    return <span className={`${styles.deadlineBadge} ${toneClass}`}>{label}</span>
+}
+
 export default function AdminFlags() {
     const [statusFilter, setStatusFilter] = useState("pending")
     const [flags, setFlags] = useState([])
@@ -55,6 +94,21 @@ export default function AdminFlags() {
     }, [statusFilter, authHeaders])
 
     useEffect(() => { loadFlags() }, [loadFlags])
+
+    // If the signed-in user changes underneath this page (sign out, switch
+    // accounts, session expiry) without a full page reload, wipe whatever
+    // was already fetched and re-check access under the new session. Without
+    // this, a non-admin who lands here right after an admin was signed in
+    // in the same tab could briefly see the previous admin's stale data.
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+            setFlags([])
+            setForbidden(false)
+            setLoading(true)
+            loadFlags()
+        })
+        return () => subscription.unsubscribe()
+    }, [loadFlags])
 
     const resolve = async (flagId, resolution) => {
         setResolvingId(flagId)
@@ -134,9 +188,12 @@ export default function AdminFlags() {
                                         {flag.other_text && <span className={styles.otherText}>&ldquo;{flag.other_text}&rdquo;</span>}
                                         {flag.review_is_hidden && <span className={styles.hiddenBadge}>Hidden from public view</span>}
                                     </div>
-                                    <span className={styles.reportedAt}>
-                                        Reported {new Date(flag.reported_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}
-                                    </span>
+                                    <div className={styles.headerRight}>
+                                        <span className={styles.reportedAt}>
+                                            Reported {new Date(flag.reported_at).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}
+                                        </span>
+                                        {flag.status === "pending" && <DeadlineBadge reportedAt={flag.reported_at} />}
+                                    </div>
                                 </div>
 
                                 <div className={styles.context}>
@@ -170,13 +227,6 @@ export default function AdminFlags() {
                                                 onClick={() => resolve(flag.id, "kept")}
                                             >
                                                 Keep review
-                                            </button>
-                                            <button
-                                                className={styles.editBtn}
-                                                disabled={resolvingId === flag.id}
-                                                onClick={() => resolve(flag.id, "edited")}
-                                            >
-                                                Mark edited
                                             </button>
                                             <button
                                                 className={styles.removeBtn}

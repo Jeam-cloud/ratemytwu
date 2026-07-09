@@ -328,7 +328,18 @@ class AdminFlagOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-VALID_RESOLUTIONS = {"removed", "kept", "edited"}
+VALID_RESOLUTIONS = {"removed", "kept"}
+
+
+class AdminStatsOut(BaseModel):
+    pending_flags: int
+    resolved_last_7_days: int
+    removed_last_7_days: int
+    hidden_reviews: int
+    total_reviews: int
+    total_professors: int
+    total_courses: int
+    oldest_pending_reported_at: Optional[datetime] = None
 
 
 class ResolveFlagIn(BaseModel):
