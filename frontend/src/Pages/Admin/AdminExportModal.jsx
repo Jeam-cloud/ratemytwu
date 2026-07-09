@@ -200,16 +200,14 @@ ${sectionsHtml}
 
                     <div className={styles.termList}>
                         {SECTIONS.map(s => (
-                            <label key={s.key} className={`${styles.sectionRow} ${selected.has(s.key) ? styles.sectionRowSel : ""}`}>
+                            <label key={s.key} className={`${styles.termRow} ${selected.has(s.key) ? styles.termRowSel : ""}`}>
                                 <input
                                     type="checkbox"
                                     checked={selected.has(s.key)}
                                     onChange={() => toggle(s.key)}
                                 />
-                                <span className={styles.sectionRowBody}>
-                                    <span className={styles.sectionRowName}>{s.label}</span>
-                                    <span className={styles.sectionRowDesc}>{s.desc}</span>
-                                </span>
+                                <span className={styles.termName}>{s.label}</span>
+                                <span className={styles.termMeta}>{s.desc}</span>
                             </label>
                         ))}
                     </div>

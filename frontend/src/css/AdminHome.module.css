@@ -1,8 +1,7 @@
 .page {
-    /* capped by the shared .app-main--wide container at 1500px */
-    max-width: 1500px;
+    max-width: 1240px;
     margin: 0 auto;
-    padding: 48px 40px 100px;
+    padding: 48px 32px 100px;
 }
 
 .pageHeader {
@@ -80,9 +79,9 @@
 /* ── Stat cards ── */
 .statGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 18px;
-    margin-bottom: 28px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 .statCard {
