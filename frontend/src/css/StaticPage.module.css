@@ -247,6 +247,37 @@
 }
 .socialLink:hover { opacity: 0.75; }
 
+/* ── Legal tabs (Terms / Privacy) ── */
+.legalTabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+}
+
+.legalTab {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-3);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 6px;
+    margin-bottom: -1px;
+    cursor: pointer;
+    transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.legalTab:hover {
+    color: var(--ink);
+}
+
+.legalTabOn {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+}
+
 /* ── Prose (Privacy) ── */
 .prose {
     display: flex;

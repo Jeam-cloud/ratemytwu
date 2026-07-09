@@ -1,10 +1,12 @@
 import { Link, NavLink, useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { supabase } from "../supabaseClient"
+import { API_URL } from "../config"
 import "../styles/layout.css"
 
 export default function Layout({ children, fullBleed = false, wide = false }) {
     const [session, setSession] = useState(null)
+    const [isAdmin, setIsAdmin] = useState(false)
     const [searchInput, setSearchInput] = useState("")
     const [scrolled, setScrolled] = useState(false)
     const [menuOpen, setMenuOpen] = useState(false)
@@ -36,6 +38,20 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
         })
         return () => listener.subscription.unsubscribe()
     }, [])
+
+    // Checked once per session change, not per navigation — cheap, and
+    // never surfaces a 403; check-access always returns 200 with a boolean.
+    useEffect(() => {
+        if (!session?.access_token) { setIsAdmin(false); return }
+        let cancelled = false
+        fetch(`${API_URL}/admin/check-access`, {
+            headers: { "Authorization": `Bearer ${session.access_token}` },
+        })
+            .then(r => r.ok ? r.json() : { is_admin: false })
+            .then(d => { if (!cancelled) setIsAdmin(!!d.is_admin) })
+            .catch(() => { if (!cancelled) setIsAdmin(false) })
+        return () => { cancelled = true }
+    }, [session?.access_token])
 
     // only track scroll on landing — keeps every other page untouched
     useEffect(() => {
@@ -92,6 +108,9 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <NavLink to="/course" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Courses</NavLink>
                         <NavLink to="/departments" className={({ isActive }) => isActive ? "app-nav-active" : ""}>Departments</NavLink>
                         <NavLink to="/dashboard" className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
+                        {isAdmin && (
+                            <NavLink to="/admin" className={({ isActive }) => isActive ? "app-nav-active app-nav-admin" : "app-nav-admin"}>Admin</NavLink>
+                        )}
                     </nav>
 
                     {/* Dark mode toggle */}
@@ -163,6 +182,9 @@ export default function Layout({ children, fullBleed = false, wide = false }) {
                         <NavLink to="/course" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Courses</NavLink>
                         <NavLink to="/departments" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>Departments</NavLink>
                         <NavLink to="/dashboard" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active" : ""}>My Courses</NavLink>
+                        {isAdmin && (
+                            <NavLink to="/admin" onClick={closeMobile} className={({ isActive }) => isActive ? "app-nav-active app-nav-admin" : "app-nav-admin"}>Admin</NavLink>
+                        )}
                         <div className="app-mobile-divider" />
                         <button className="app-mobile-theme" onClick={toggleTheme}>
                             {dark ? "☀ Light mode" : "☾ Dark mode"}

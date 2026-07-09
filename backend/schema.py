@@ -308,7 +308,12 @@ class ReviewFlagOut(BaseModel):
 
 class AdminFlagOut(BaseModel):
     id: int
-    review_id: UUID
+    # Nullable: a professor's reviews may have been permanently deleted
+    # (takedown "Delete permanently"), which nulls review_id on any flags
+    # that pointed at them. The flag row itself survives for the audit
+    # trail - see review_text/professor_name/course_code below, which fall
+    # back to a point-in-time snapshot taken right before deletion.
+    review_id: UUID | None = None
     reason: str
     other_text: str | None = None
     reported_at: datetime
@@ -318,12 +323,13 @@ class AdminFlagOut(BaseModel):
     resolved_at: datetime | None = None
 
     # denormalized context so the operator doesn't need a second request
-    # to see what's actually being reported
-    review_text: str
-    review_is_hidden: bool
-    professor_id: int
-    professor_name: str
-    course_code: str
+    # to see what's actually being reported - live values when the review
+    # still exists, snapshot values when it's since been deleted
+    review_text: str | None = None
+    review_is_hidden: bool = True
+    professor_id: int | None = None
+    professor_name: str | None = None
+    course_code: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -340,6 +346,8 @@ class AdminStatsOut(BaseModel):
     total_professors: int
     total_courses: int
     oldest_pending_reported_at: Optional[datetime] = None
+    pending_site_reports: int = 0
+    pending_professor_takedowns: int = 0
 
 
 class ResolveFlagIn(BaseModel):
@@ -351,6 +359,109 @@ class ResolveFlagIn(BaseModel):
     def resolution_valid(cls, v):
         if v not in VALID_RESOLUTIONS:
             raise ValueError(f"resolution must be one of: {', '.join(sorted(VALID_RESOLUTIONS))}")
+        return v
+
+    @field_validator("note")
+    @classmethod
+    def note_length(cls, v):
+        if v is not None and len(v) > 500:
+            raise ValueError("note must be 500 characters or fewer")
+        return v
+
+
+# Site report schemas — the public Report page's three real categories.
+# "Inappropriate review" is intentionally NOT here; that's the existing
+# ReviewFlag flow on the review itself, kept fully separate.
+
+VALID_REPORT_CATEGORIES = {"wrong_info", "professor_takedown", "bug"}
+# "deleted" is only meaningful for professor_takedown - it permanently erases
+# the professor and their reviews rather than just hiding them. Kept as its
+# own resolution value (not a flag on "approved") so the audit trail records
+# which of the two the operator actually chose.
+VALID_REPORT_RESOLUTIONS = {"approved", "dismissed", "deleted"}
+
+
+class SiteReportIn(BaseModel):
+    category: str
+    contact_email: str
+    professor_id: int | None = None
+    course_code: str | None = None
+    description: str
+
+    @field_validator("category")
+    @classmethod
+    def category_valid(cls, v):
+        if v not in VALID_REPORT_CATEGORIES:
+            raise ValueError(f"category must be one of: {', '.join(sorted(VALID_REPORT_CATEGORIES))}")
+        return v
+
+    @field_validator("contact_email")
+    @classmethod
+    def email_valid(cls, v):
+        v = v.strip()
+        if "@" not in v or "." not in v.split("@")[-1] or len(v) > 254:
+            raise ValueError("Enter a valid email address")
+        return v
+
+    @field_validator("description")
+    @classmethod
+    def description_valid(cls, v):
+        v = v.strip()
+        if len(v) < 10:
+            raise ValueError("Please provide a bit more detail (10+ characters)")
+        if len(v) > 2000:
+            raise ValueError("description must be 2000 characters or fewer")
+        return v
+
+
+# Hidden professors listing - the "restore" side of the takedown flow.
+# Only professors with is_hidden=True show up here; nothing about a
+# permanently deleted professor appears anywhere, since that's not reversible.
+class AdminHiddenProfessorOut(BaseModel):
+    id: int
+    name: str
+    department: str
+    hidden_reason: str | None = None
+    review_count: int
+
+    model_config = {"from_attributes": True}
+
+
+class SiteReportOut(BaseModel):
+    id: int
+    category: str
+    status: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AdminSiteReportOut(BaseModel):
+    id: int
+    category: str
+    contact_email: str
+    professor_id: int | None = None
+    professor_name: str | None = None
+    course_code: str | None = None
+    description: str
+    created_at: datetime
+    status: str
+    resolution: str | None = None
+    resolution_note: str | None = None
+    resolved_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class ResolveSiteReportIn(BaseModel):
+    resolution: str
+    note: str | None = None
+
+    @field_validator("resolution")
+    @classmethod
+    def resolution_valid(cls, v):
+        if v not in VALID_REPORT_RESOLUTIONS:
+            raise ValueError(f"resolution must be one of: {', '.join(sorted(VALID_REPORT_RESOLUTIONS))}")
         return v
 
     @field_validator("note")

@@ -42,7 +42,7 @@ export default function Footer() {
                     <Link to="/how-it-works" className={styles.link}>How it works</Link>
                     <Link to="/report" className={styles.link}>Report</Link>
                     <Link to="/contact" className={styles.link}>Contact</Link>
-                    <Link to="/privacy" className={styles.link}>Privacy</Link>
+                    <Link to="/privacy" className={styles.link}>Terms &amp; Privacy</Link>
                 </div>
             </div>
 

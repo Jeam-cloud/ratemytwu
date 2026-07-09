@@ -74,8 +74,12 @@ def get_course_taught(course_id: int, db: db_dependency):
             func.count(Reviews.id).label("review_count")
         )
         .join(ProfessorCourse, ProfessorCourse.professor_id == Professor.id)
-        .outerjoin(Reviews, Reviews.professor_id == Professor.id)
-        .where(ProfessorCourse.course_id == course_id, ProfessorCourse.semester.in_(ACTIVE_SEMESTERS))
+        .outerjoin(Reviews, (Reviews.professor_id == Professor.id) & (Reviews.is_hidden == False))  # noqa: E712
+        .where(
+            ProfessorCourse.course_id == course_id,
+            ProfessorCourse.semester.in_(ACTIVE_SEMESTERS),
+            Professor.is_hidden == False,  # noqa: E712
+        )
         .group_by(Professor.id, Professor.name, Professor.department)
     ).all()
 
