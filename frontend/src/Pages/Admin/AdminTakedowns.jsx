@@ -111,9 +111,11 @@ export default function AdminTakedowns() {
                     <div>
                         <h1 className={styles.title}>Professor takedowns</h1>
                         <p className={styles.subtitle}>
-                            Highest-priority requests, split out from site reports.
-                            "Hide" is reversible from <Link to="/admin/hidden-professors">Hidden professors</Link>.
-                            "Delete permanently" is not.
+                            Highest-priority requests — split out from the general site reports queue
+                            on purpose. "Hide" keeps their reviews in the database and is reversible
+                            from <Link to="/admin/hidden-professors">Hidden professors</Link>. "Delete
+                            permanently" erases the professor and every review — use it only when the
+                            professor has explicitly asked for their data gone, not just off the site.
                         </p>
                     </div>
                     <div className={styles.filters}>
