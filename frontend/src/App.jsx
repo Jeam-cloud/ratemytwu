@@ -19,6 +19,8 @@ import LoginPage from "./auth/LoginPage"
 
 import Dashboard from "./Pages/Dashboard/Dashboard"
 import AdminFlags from "./Pages/Admin/AdminFlags"
+import AdminHome from "./Pages/Admin/AdminHome"
+import AdminAuditLog from "./Pages/Admin/AdminAuditLog"
 
 import ProtectedRoute from "./components/ProtectedRoute"
 
@@ -80,9 +82,19 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
 
             {/* moderation - backend still enforces the ADMIN_USER_IDS allowlist */}
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminHome />
+              </ProtectedRoute>
+            } />
             <Route path="/admin/flags" element={
               <ProtectedRoute>
                 <AdminFlags />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/audit-log" element={
+              <ProtectedRoute>
+                <AdminAuditLog />
               </ProtectedRoute>
             } />
 

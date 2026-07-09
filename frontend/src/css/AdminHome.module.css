@@ -1,0 +1,130 @@
+.page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px 100px;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(28px, 4vw, 40px);
+    color: var(--ink);
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+}
+
+.subtitle {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-2);
+    margin: 0 0 32px;
+}
+
+.error {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--negative);
+    background: color-mix(in srgb, var(--negative) 10%, white);
+    border: 1px solid var(--negative);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+}
+
+.empty {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-3);
+    padding: 40px 0;
+    text-align: center;
+}
+
+.forbidden {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--ink-2);
+    padding: 40px 0;
+    text-align: center;
+}
+
+.statGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 32px;
+}
+
+.statCard {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    background: var(--white);
+}
+
+.statLabel {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-3);
+    margin: 0 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.statValue {
+    font-family: var(--font-display);
+    font-size: 32px;
+    color: var(--ink);
+    margin: 0 0 4px;
+}
+
+.statWarn {
+    color: #92400e;
+}
+
+.statOk {
+    color: #166534;
+}
+
+.statSub {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--ink-3);
+    margin: 0;
+}
+
+.cardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.actionCard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    background: var(--white);
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+}
+
+.actionCard:hover {
+    border-color: var(--blue);
+}
+
+.actionTitle {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.actionBody {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.4;
+}
