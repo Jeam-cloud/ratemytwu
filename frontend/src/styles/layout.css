@@ -98,6 +98,14 @@
     background: var(--gold, #c9a84c);
     border-radius: 2px;
 }
+.app-nav a.app-nav-admin,
+.app-mobile-menu a.app-nav-admin {
+    color: var(--gold, #c9a84c);
+}
+.app-nav a.app-nav-admin:hover {
+    color: var(--gold, #c9a84c);
+    background: rgba(201, 168, 76, 0.14);
+}
 
 /* Avatar + login */
 .app-avatar-wrap {

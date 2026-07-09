@@ -1,7 +1,16 @@
 .page {
-    max-width: 900px;
+    max-width: 1240px;
     margin: 0 auto;
-    padding: 48px 24px 100px;
+    padding: 48px 32px 100px;
+}
+
+.pageHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
 }
 
 .title {
@@ -17,7 +26,27 @@
     font-family: var(--font-sans);
     font-size: 14px;
     color: var(--ink-2);
-    margin: 0 0 32px;
+    margin: 0 0 24px;
+}
+
+.exportTrigger {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 9px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex: none;
+    margin-top: 4px;
+}
+
+.exportTrigger:hover {
+    border-color: var(--blue);
+    color: var(--blue);
 }
 
 .error {
@@ -47,17 +76,18 @@
     text-align: center;
 }
 
+/* ── Stat cards ── */
 .statGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin-bottom: 32px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
 }
 
 .statCard {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 16px 18px;
+    padding: 18px 20px;
     background: var(--white);
 }
 
@@ -73,18 +103,13 @@
 
 .statValue {
     font-family: var(--font-display);
-    font-size: 32px;
+    font-size: 34px;
     color: var(--ink);
     margin: 0 0 4px;
 }
 
-.statWarn {
-    color: #92400e;
-}
-
-.statOk {
-    color: #166534;
-}
+.statWarn { color: #92400e; }
+.statOk { color: #166534; }
 
 .statSub {
     font-family: var(--font-sans);
@@ -93,6 +118,281 @@
     margin: 0;
 }
 
+/* ── Charts row ── */
+.chartRow {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+@media (max-width: 860px) {
+    .chartRow { grid-template-columns: 1fr; }
+}
+
+.chartCard {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px 22px;
+    background: var(--white);
+}
+
+.chartTitle {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 18px;
+}
+
+.barChart {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.barRow {
+    display: grid;
+    grid-template-columns: 140px 1fr 28px;
+    align-items: center;
+    gap: 10px;
+}
+
+.barLabel {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--ink-2);
+}
+
+.barTrack {
+    height: 10px;
+    border-radius: 999px;
+    background: var(--bg-2, #f4f5f7);
+    overflow: hidden;
+}
+
+.barFill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.3s ease;
+}
+
+.barValue {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: right;
+}
+
+.donutWrap {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.donut {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+}
+
+.donutHole {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background: var(--white);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.donutPct {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--ink);
+}
+
+.donutLabel {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.donutLegend p {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-2);
+    margin: 0 0 8px;
+}
+
+.dotHidden, .dotVisible {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dotHidden { background: #92400e; }
+.dotVisible { background: #e5e7eb; }
+
+/* ── Takedown fast-track section ── */
+.takedownSection {
+    border: 1px solid #f2d59a;
+    background: #fffbea;
+    border-radius: var(--radius-md);
+    padding: 22px 24px;
+    margin-bottom: 32px;
+}
+
+.takedownHeader {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.takedownTitle {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    font-weight: 700;
+    color: #92400e;
+    margin: 0;
+}
+
+.takedownLink {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400e;
+    text-decoration: none;
+}
+
+.takedownLink:hover { text-decoration: underline; }
+
+.takedownList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+.takedownCard {
+    background: var(--white);
+    border: 1px solid #f2d59a;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.takedownCardTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.takedownProf {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.takedownDate {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--ink-3);
+}
+
+.takedownEmail {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--blue);
+    margin: 0;
+}
+
+.takedownDesc {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.4;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.takedownNote {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.takedownBtns {
+    display: flex;
+    gap: 8px;
+}
+
+.takedownBtns button {
+    flex: 1;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--ink-2);
+}
+
+.takedownBtns button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.takedownApprove {
+    color: var(--white) !important;
+    background: #92400e !important;
+    border-color: #92400e !important;
+}
+
+.takedownDelete {
+    color: var(--negative) !important;
+    border-color: var(--negative) !important;
+}
+
+.takedownMore {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--ink-3);
+    margin: 14px 0 0;
+}
+
+.takedownMore a {
+    color: #92400e;
+    font-weight: 600;
+}
+
+/* ── Action cards ── */
 .cardGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

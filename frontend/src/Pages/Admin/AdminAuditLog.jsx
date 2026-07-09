@@ -63,13 +63,9 @@ export default function AdminAuditLog() {
 
     const visible = entries.filter(e => resolutionFilter === "all" || e.resolution === resolutionFilter)
 
-    const copyAsText = () => {
-        const lines = visible.map(e => {
-            const resolvedDate = e.resolved_at ? new Date(e.resolved_at).toISOString() : ""
-            return `${resolvedDate} | ${e.resolution?.toUpperCase()} | ${e.professor_name} (${e.course_code}) | reason: ${e.reason} | note: ${e.resolution_note || "—"} | review: "${e.review_text}"`
-        })
-        navigator.clipboard.writeText(lines.join("\n"))
-    }
+    // PDF export moved to the admin dashboard (AdminHome) so it can cover
+    // review flags, professor takedowns, wrong info, and bug reports in one
+    // place with a section picker - see AdminExportModal.
 
     if (forbidden) {
         return (
@@ -95,9 +91,6 @@ export default function AdminAuditLog() {
                             not the working queue.
                         </p>
                     </div>
-                    <button className={styles.copyBtn} onClick={copyAsText} disabled={visible.length === 0}>
-                        Copy as text
-                    </button>
                 </div>
 
                 <div className={styles.filters}>

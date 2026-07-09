@@ -21,6 +21,9 @@ import Dashboard from "./Pages/Dashboard/Dashboard"
 import AdminFlags from "./Pages/Admin/AdminFlags"
 import AdminHome from "./Pages/Admin/AdminHome"
 import AdminAuditLog from "./Pages/Admin/AdminAuditLog"
+import AdminReports from "./Pages/Admin/AdminReports"
+import AdminTakedowns from "./Pages/Admin/AdminTakedowns"
+import AdminHiddenProfessors from "./Pages/Admin/AdminHiddenProfessors"
 
 import ProtectedRoute from "./components/ProtectedRoute"
 
@@ -95,6 +98,21 @@ export default function App() {
             <Route path="/admin/audit-log" element={
               <ProtectedRoute>
                 <AdminAuditLog />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/reports" element={
+              <ProtectedRoute>
+                <AdminReports />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/takedowns" element={
+              <ProtectedRoute>
+                <AdminTakedowns />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/hidden-professors" element={
+              <ProtectedRoute>
+                <AdminHiddenProfessors />
               </ProtectedRoute>
             } />
 
