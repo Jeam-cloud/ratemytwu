@@ -5,7 +5,7 @@ import styles from "../../css/TutorialOverlay.module.css"
 // ── Step definitions ──────────────────────────────────────────────────────────
 // key: matches data-tutorial="..." on the target element (null = centered modal)
 // placement: where the tooltip card appears relative to the spotlight
-const STEPS = [
+const PLANNER_STEPS = [
     {
         key: null,
         title: "Welcome to your degree planner",
@@ -50,6 +50,59 @@ const STEPS = [
     },
 ]
 
+// Checklist tab tour — mirrors the planner tour's structure/tone but points at
+// the degree-checklist-specific UI (major bar, tabs, core groups, unsorted pool).
+export const CHECKLIST_STEPS = [
+    {
+        key: null,
+        title: "Welcome to your degree checklist",
+        body: "See exactly what's left to graduate, organized the same way TWU's official checklist is. Let's take a quick tour.",
+        placement: "center",
+    },
+    {
+        key: "select-major",
+        title: "Select major",
+        body: "Search for your major here to auto-sort your planned courses into Core, Major, Ancillary, and Electives.",
+        placement: "bottom",
+    },
+    {
+        key: "select-minor",
+        title: "Select minor",
+        body: "Have a minor? Select it here — its courses get their own tab instead of being buried in Electives.",
+        placement: "bottom",
+    },
+    {
+        key: "select-concentration",
+        title: "Select concentration",
+        body: "Adding a concentration or specialization? Select it here — every student can add one, whether or not your major requires it.",
+        placement: "bottom",
+    },
+    {
+        key: "checklist-import-btn",
+        title: "Import your major's checklist",
+        body: "Already have the official checklist PDF from your advisor? Upload it here to import all your requirements at once.",
+        placement: "bottom",
+    },
+    {
+        key: "checklist-tabs",
+        title: "Switch between sections",
+        body: "Core, Major, Ancillary, Minor, Concentration, and Electives each get their own tab — tap one to see what's filled in.",
+        placement: "bottom",
+    },
+    {
+        key: "checklist-core",
+        title: "Core requirements",
+        body: "Every TWU student needs these. Drag a course into a slot, or use the ⋯ menu to mark one satisfied if your major already covers it.",
+        placement: "top",
+    },
+    {
+        key: "checklist-pool",
+        title: "Your unsorted courses",
+        body: "Anything that doesn't automatically match a requirement lands here — drag it into whichever section it actually belongs in.",
+        placement: "top",
+    },
+]
+
 const TOOLTIP_W = 310
 const GAP = 14
 const PAD = 8   // spotlight padding around the element
@@ -86,9 +139,18 @@ function getSpotRect(el) {
 const CARD_H_EST = 190  // estimated card height in px
 
 function computeTooltipStyle(spot, placement) {
-    if (!spot || placement === "center") return {}
+    if (placement === "center") return {}
     const vw = window.innerWidth
     const vh = window.innerHeight
+
+    // No spot to anchor to (still measuring, or the skip-ahead above hasn't
+    // committed its re-render yet) — fall back to a fixed, always-on-screen
+    // position instead of returning {} and leaving top/left unset. An
+    // unset position:fixed card falls back to its normal document-flow
+    // position, which for a portaled element is often far below all page
+    // content — invisible without scrolling, which is exactly what made the
+    // tour look like it "just ends" with nothing to click.
+    if (!spot) return { top: 90, left: Math.max(16, (vw - TOOLTIP_W) / 2) }
 
     let top, left
 
@@ -121,12 +183,12 @@ function computeTooltipStyle(spot, placement) {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function TutorialOverlay({ step, onNext, onPrev, onSkip }) {
+export default function TutorialOverlay({ step, onNext, onPrev, onSkip, steps = PLANNER_STEPS }) {
     // Always keep a spot object — use `visible` flag to fade in/out
     // This way the div is never unmounted and CSS transitions always have
     // a "from" state to animate from (no snap-to-zero jitter)
     const [spot, setSpot] = useState({ top: 0, left: 0, width: 0, height: 0, visible: false })
-    const current = STEPS[step]
+    const current = steps[step]
 
     // useLayoutEffect runs synchronously after DOM mutations, before the browser
     // paints — eliminates the one-frame flash that useEffect would cause
@@ -150,6 +212,15 @@ export default function TutorialOverlay({ step, onNext, onPrev, onSkip }) {
 
         const measure = () => {
             const r = el.getBoundingClientRect()
+            // The element exists in the DOM but has zero size — e.g. it's
+            // behind a `display: none` ancestor, or a step's key matched
+            // something that hasn't actually laid out yet. A 0x0 spotlight
+            // hole is invisible (the backdrop just looks like a flat dim
+            // screen), and the tooltip card ends up with nothing valid to
+            // anchor to, effectively soft-locking the tour the same way the
+            // "element not found" case above already fixed. Treat it the
+            // same way: skip straight to the next step.
+            if (r.width === 0 && r.height === 0) { onNext(); return }
             setSpot({
                 top:     r.top    - PAD,
                 left:    r.left   - PAD,
@@ -168,11 +239,11 @@ export default function TutorialOverlay({ step, onNext, onPrev, onSkip }) {
         // Only re-measure on resize (backdrop blocks scroll, so no scroll listener needed)
         window.addEventListener("resize", measure)
         return () => window.removeEventListener("resize", measure)
-    }, [step])
+    }, [step, steps])
 
     if (step === null || step === undefined || !current) return null
 
-    const isLast     = step === STEPS.length - 1
+    const isLast     = step === steps.length - 1
     const isCentered = current.placement === "center"
     const tipStyle   = isCentered ? {} : computeTooltipStyle(spot.visible ? spot : null, current.placement)
 
@@ -200,7 +271,7 @@ export default function TutorialOverlay({ step, onNext, onPrev, onSkip }) {
             >
                 {/* Progress dots */}
                 <div className={`${styles.dots} ${isCentered ? styles.dotsCentered : ""}`}>
-                    {STEPS.map((_, i) => (
+                    {steps.map((_, i) => (
                         <span
                             key={i}
                             className={`${styles.dot} ${i === step ? styles.dotActive : i < step ? styles.dotDone : ""}`}
