@@ -192,7 +192,6 @@
 .group {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    overflow: hidden;
     background: var(--surface);
 }
 .groupHead {
@@ -205,6 +204,12 @@
     font-size: 13px;
     font-weight: 700;
     padding: 9px 14px;
+    /* .group used to clip overflow to keep this header's corners rounded —
+       but that also clipped the ⋯ row menu (position: absolute) whenever it
+       popped open near the top/bottom of a group. Round the header's own
+       corners instead so the parent no longer needs overflow: hidden. */
+    border-top-left-radius: var(--radius-md);
+    border-top-right-radius: var(--radius-md);
 }
 .groupProg { font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.8); }
 .groupDone { color: #7CD6A0; }

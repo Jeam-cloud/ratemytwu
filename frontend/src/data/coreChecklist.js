@@ -123,10 +123,18 @@ export const CORE_GROUPS = [
         }],
       },
       {
-        // Usually covered by the major (e.g. CMPT 140 / MATH 190) — no eligible list,
-        // so it never pulls a major course out of the Major tab; mark it satisfied.
         title: "Quantitative & Computational",
-        slots: [{ id: "wok-quant", capacity: 1, credits: 0, hint: "usually covered by your major — use ⋯ to satisfy", eligible: [] }],
+        slots: [{
+          id: "wok-quant", capacity: 1, credits: 3, hint: "e.g. CMPT 140, MATH 123, STAT 102",
+          eligible: [
+            "BUSI 176", "BUSI 275", "CHEM 104", "CHEM 112",
+            "CMPT 140", "DATA 100", "ECON 176", "ECON 275",
+            "GENV 282", "GENV 382", "GENV 383",
+            "MATH 102", "MATH 108", "MATH 123", "MATH 150", "MATH 190", "MATH 191",
+            "PHYS 112", "PSYC 207", "SOCI 207", "SOCS 305", "SOCS 383",
+            "STAT 102", "STAT 108",
+          ],
+        }],
       },
     ],
   },

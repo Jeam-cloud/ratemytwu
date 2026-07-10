@@ -538,7 +538,13 @@ export default function ChecklistTab({ cards = [] }) {
     // credit totals per section (template.sections[].credits), so sum those
     // instead of guessing. Falls back to 42/9 only when there's no template
     // loaded yet (nothing better to show).
-    const CORE_CREDITS_TARGET = 43 // University Core requirement — fixed across all TWU programs
+    // University Core requirement — fixed across all TWU programs. Foundational
+    // Inquiries (28 s.h.) + Ways of Knowing (6 categories x 3 s.h. = 18 s.h.) = 46 s.h.
+    // total, per coreChecklist.js. Now that Quantitative & Computational counts
+    // real credits like every other Ways of Knowing category (see below), this
+    // must match the true sum or the Core tab's overall progress bar would be
+    // wrong even when every slot is filled.
+    const CORE_CREDITS_TARGET = 46
     const majorCreditsTarget = useMemo(() => {
         if (!template) return 42
         const sum = (template.sections || [])
