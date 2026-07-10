@@ -13,7 +13,7 @@ import BookMarkCard from "../../components/dashboard-components/BookMarkCard"
 import DashBoardColumn from "../../components/dashboard-components/DashBoardColumn"
 import TranscriptImportModal from "../../components/dashboard-components/TranscriptImportModal"
 import ExportPDFModal from "../../components/dashboard-components/ExportPDFModal"
-import TutorialOverlay from "../../components/dashboard-components/TutorialOverlay"
+import TutorialOverlay, { CHECKLIST_STEPS } from "../../components/dashboard-components/TutorialOverlay"
 import ChecklistTab from "../../components/dashboard-components/ChecklistTab"
 import ChecklistImportModal from "../../components/dashboard-components/ChecklistImportModal"
 import { exportChecklistPDF } from "../../utils/checklistExport"
@@ -139,6 +139,31 @@ export default function Dashboard() {
     const skipTutorial = () => {
         localStorage.setItem("plannerTutorialDone", "1")
         setTutorialStep(null)
+    }
+
+    // ── Checklist tutorial ──────────────────────────────────────────────────
+    // Separate from the planner tour above — starts null (not on initial
+    // dashboard load, since the default view is "courses") and instead
+    // auto-fires the first time the student switches to "My checklist"
+    // (see the effect below), tracked by its own localStorage flag.
+    const [checklistTutorialStep, setChecklistTutorialStep] = useState(null)
+    useEffect(() => {
+        if (view === "checklist" && checklistTutorialStep === null && !localStorage.getItem("checklistTutorialDone")) {
+            setChecklistTutorialStep(0)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [view])
+    const startChecklistTutorial = () => setChecklistTutorialStep(0)
+    const nextChecklistTutorialStep = () => {
+        setChecklistTutorialStep(s => {
+            if (s >= CHECKLIST_STEPS.length - 1) { localStorage.setItem("checklistTutorialDone", "1"); return null }
+            return s + 1
+        })
+    }
+    const prevChecklistTutorialStep = () => setChecklistTutorialStep(s => Math.max(0, s - 1))
+    const skipChecklistTutorial = () => {
+        localStorage.setItem("checklistTutorialDone", "1")
+        setChecklistTutorialStep(null)
     }
     const [exportEmail, setExportEmail] = useState("")
     const [creditGoal, setCreditGoal] = useState(() => {
@@ -588,8 +613,17 @@ export default function Dashboard() {
                     <div>
                         <h1 className={styles.title}>Your degree planner</h1>
                         <p className={styles.subtitle}>
-                            Drag bookmarked courses into a term. Credits add up toward graduation.{" "}
-                            <button className={styles.tourBtn} onClick={startTutorial}>Take a tour</button>
+                            {view === "checklist" ? (
+                                <>
+                                    Track your degree requirements against your major's official checklist.{" "}
+                                    <button className={styles.tourBtn} onClick={startChecklistTutorial}>Take a tour</button>
+                                </>
+                            ) : (
+                                <>
+                                    Drag bookmarked courses into a term. Credits add up toward graduation.{" "}
+                                    <button className={styles.tourBtn} onClick={startTutorial}>Take a tour</button>
+                                </>
+                            )}
                         </p>
                     </div>
                     <div className={styles.headerActions}>
@@ -622,7 +656,7 @@ export default function Dashboard() {
                                     Export PDF
                                 </button>
                                 {!isGuest && (
-                                    <button className={styles.importTranscriptBtn} onClick={() => setShowChecklistImport(true)}>
+                                    <button data-tutorial="checklist-import-btn" className={styles.importTranscriptBtn} onClick={() => setShowChecklistImport(true)}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
                                             <path d="M14 2v6h6M12 18v-6M9 15l3-3 3 3" />
@@ -1268,6 +1302,19 @@ export default function Dashboard() {
                 onNext={nextTutorialStep}
                 onPrev={prevTutorialStep}
                 onSkip={skipTutorial}
+            />
+        )}
+
+        {/* ── Checklist tutorial overlay — guarded so it never stacks with the
+            planner one above (shouldn't happen anyway since the planner
+            tour's backdrop blocks the view-tab click, but cheap to be safe) ── */}
+        {tutorialStep === null && checklistTutorialStep !== null && (
+            <TutorialOverlay
+                step={checklistTutorialStep}
+                steps={CHECKLIST_STEPS}
+                onNext={nextChecklistTutorialStep}
+                onPrev={prevChecklistTutorialStep}
+                onSkip={skipChecklistTutorial}
             />
         )}
         </>

@@ -287,10 +287,10 @@ function CoursePill({ code, where, onRemove, onSelect, selected, status }) {
 }
 
 // Any box can become a drop target (and an optional click target).
-function Drop({ id, className, children, onClick }) {
+function Drop({ id, className, children, onClick, dataTutorial }) {
     const { setNodeRef, isOver } = useDroppable({ id })
     return (
-        <div ref={setNodeRef} onClick={onClick} className={`${className} ${isOver ? styles.over : ""}`}>
+        <div ref={setNodeRef} onClick={onClick} data-tutorial={dataTutorial} className={`${className} ${isOver ? styles.over : ""}`}>
             {children}
         </div>
     )
@@ -862,7 +862,7 @@ export default function ChecklistTab({ cards = [] }) {
                     used so it still reads as required for that major. */}
                 <div className={styles.majorBar}>
                     {/* Major half */}
-                    <div className={styles.majorHalf}>
+                    <div className={styles.majorHalf} data-tutorial="select-major">
                         <span className={styles.majorLabel}>Major</span>
                         {majorSearchOpen ? (
                             <MajorSearch
@@ -890,7 +890,7 @@ export default function ChecklistTab({ cards = [] }) {
                     <div className={styles.majorDivider} />
 
                     {/* Minor half */}
-                    <div className={styles.majorHalf}>
+                    <div className={styles.majorHalf} data-tutorial="select-minor">
                         <span className={styles.majorLabel}>Minor</span>
                         {minorSearchOpen ? (
                             <MajorSearch
@@ -910,7 +910,7 @@ export default function ChecklistTab({ cards = [] }) {
                             </>
                         ) : (
                             <button className={styles.addMinorBtn} onClick={() => setMinorSearchOpen(true)}>
-                                + Add minor
+                                + Select minor
                             </button>
                         )}
                     </div>
@@ -927,7 +927,7 @@ export default function ChecklistTab({ cards = [] }) {
                         const attached = attachedForMajor[slot.title]
                         const searching = attachSearchSlot === slot.title
                         return (
-                            <div className={styles.majorHalf}>
+                            <div className={styles.majorHalf} data-tutorial="select-concentration">
                                 <span className={styles.majorLabel}>Concentration</span>
                                 {searching ? (
                                     <MajorSearch
@@ -945,7 +945,7 @@ export default function ChecklistTab({ cards = [] }) {
                                     </>
                                 ) : (
                                     <button className={styles.addMinorBtn} onClick={() => setAttachSearchSlot(slot.title)}>
-                                        + Attach checklist
+                                        + Select concentration
                                     </button>
                                 )}
                             </div>
@@ -1020,7 +1020,7 @@ export default function ChecklistTab({ cards = [] }) {
                 )}
 
                 {/* Section tabs — also drop targets */}
-                <div className={styles.tabs}>
+                <div className={styles.tabs} data-tutorial="checklist-tabs">
                     {SECTIONS.map(s => {
                         const cr = sectionCredits(s.id)
                         const pct = Math.min(100, Math.round((cr / s.target) * 100))
@@ -1042,7 +1042,7 @@ export default function ChecklistTab({ cards = [] }) {
 
                 {/* Core = structured groups → sub-sections → slots; other tabs = bucket */}
                 {tab === "core" ? (
-                    <div className={styles.core}>
+                    <div className={styles.core} data-tutorial="checklist-core">
                         {CORE_GROUPS.map(g => {
                             const gs = groupStats(g)
                             return (
@@ -1132,7 +1132,7 @@ export default function ChecklistTab({ cards = [] }) {
                 )}
 
                 {/* Unplaced courses */}
-                <Drop id="pool" className={styles.pool}>
+                <Drop id="pool" className={styles.pool} dataTutorial="checklist-pool">
                     <div className={styles.poolHead}>
                         <span>Your courses</span>
                         {pool.length > 0 && (
