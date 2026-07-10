@@ -88,7 +88,7 @@ export default function Dashboard() {
     const [editingReview, setEditingReview] = useState(null)
     const [editForm, setEditForm] = useState({})
     const [editSaveError, setEditSaveError] = useState("")
-    const { bookmark } = useBookMark()
+    const { bookmark, addBookmark } = useBookMark()
     const navigate = useNavigate()
 
     // PointerSensor for mouse; TouchSensor (press-and-hold) enables dragging on
@@ -465,6 +465,13 @@ export default function Dashboard() {
         const newCard = await response.json()
         setCards((prev) => [...prev, newCard])
         setAutoEditCardId(newCard.id)
+
+        // Dragging a course straight from search onto the board used to skip
+        // bookmarking entirely — the course would land on the planner but
+        // never show up as "Bookmarked" back on the course list page, since
+        // that only happened via the explicit Bookmark button. Bookmark it
+        // here too so search-and-drag behaves like search-then-bookmark.
+        addBookmark(course)
     }
 
     // sidebar course search (logged-in)
