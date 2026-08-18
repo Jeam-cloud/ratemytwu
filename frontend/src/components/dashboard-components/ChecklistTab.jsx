@@ -545,28 +545,33 @@ export default function ChecklistTab({ cards = [] }) {
     // must match the true sum or the Core tab's overall progress bar would be
     // wrong even when every slot is filled.
     const CORE_CREDITS_TARGET = 46
+    // No template loaded yet (nothing selected/uploaded) → null, not a guess.
+    // This used to fall back to 42/9/28 — Computing Science's own numbers —
+    // for literally any major with no data yet, which silently showed the
+    // wrong target for every other program. Every major genuinely has a
+    // different credit breakdown, so "we don't know yet" has to be a real,
+    // visibly-distinct state rather than a borrowed number that happens to
+    // be right only for one program.
     const majorCreditsTarget = useMemo(() => {
-        if (!template) return 42
-        const sum = (template.sections || [])
+        if (!template) return null
+        return (template.sections || [])
             .filter(s => s.key === "major")
             .reduce((a, s) => a + (s.credits || 0), 0)
-        return sum || 42
     }, [template])
     const ancillaryCreditsTarget = useMemo(() => {
-        if (!template) return 9
-        const sum = (template.sections || [])
+        if (!template) return null
+        return (template.sections || [])
             .filter(s => s.key === "ancillary")
             .reduce((a, s) => a + (s.credits || 0), 0)
-        return sum || 9
     }, [template])
     // Electives isn't its own section in any parsed template — it's whatever
-    // credit is left over after Core/Major/Ancillary. Derive it from the
-    // major's total program credits when we have one; otherwise fall back to
-    // a generic 28 s.h. placeholder.
+    // credit is left over after Core/Major/Ancillary. Only computable once we
+    // actually know the major's total program credits; otherwise null (see
+    // above) rather than a generic guessed placeholder.
     const electivesCreditsTarget = useMemo(() => {
-        if (!template?.totalCredits) return 28
-        const remaining = template.totalCredits - CORE_CREDITS_TARGET - majorCreditsTarget - ancillaryCreditsTarget
-        return remaining > 0 ? remaining : 28
+        if (!template?.totalCredits) return null
+        const remaining = template.totalCredits - CORE_CREDITS_TARGET - (majorCreditsTarget || 0) - (ancillaryCreditsTarget || 0)
+        return remaining > 0 ? remaining : null
     }, [template, majorCreditsTarget, ancillaryCreditsTarget])
 
     const SECTIONS = useMemo(() => {
@@ -1023,8 +1028,13 @@ export default function ChecklistTab({ cards = [] }) {
                 <div className={styles.tabs} data-tutorial="checklist-tabs">
                     {SECTIONS.map(s => {
                         const cr = sectionCredits(s.id)
-                        const pct = Math.min(100, Math.round((cr / s.target) * 100))
-                        const frac = s.id === "electives" ? `${cr} s.h.` : `${cr} / ${s.target}`
+                        const hasTarget = s.target != null
+                        // Without a real target, there's nothing honest to show as a
+                        // percentage — 0% (empty bar) rather than dividing by null/NaN.
+                        const pct = hasTarget ? Math.min(100, Math.round((cr / s.target) * 100)) : 0
+                        const frac = s.id === "electives"
+                            ? `${cr} s.h.`
+                            : hasTarget ? `${cr} / ${s.target}` : `${cr} / –`
                         return (
                             <Drop key={s.id} id={`tab:${s.id}`}
                                   className={`${styles.tab} ${tab === s.id ? styles.tabOn : ""}`}>
