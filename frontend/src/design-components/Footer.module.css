@@ -116,6 +116,12 @@
     color: rgba(255, 255, 255, 0.6);
 }
 
+/* The affiliation disclaimer is the one line in the footer that has to be
+   read, not skimmed - keep it a step brighter than the rest of the bar. */
+.disclaimer {
+    color: rgba(255, 255, 255, 0.78);
+}
+
 @media (max-width: 760px) {
     .inner {
         grid-template-columns: 1fr 1fr;

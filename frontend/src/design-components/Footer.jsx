@@ -47,7 +47,9 @@ export default function Footer() {
             </div>
 
             <div className={styles.bottom}>
-                <span>Trinity Western University</span>
+                <span className={styles.disclaimer}>
+                    Not affiliated with, sponsored by, or endorsed by Trinity Western University.
+                </span>
                 <span>Made by students.</span>
             </div>
         </footer>
