@@ -1,93 +1,133 @@
-# RateMyTwu
+# RateMyTWU
 
+A course and professor guide for Trinity Western University students. Look up who's teaching what this semester, read reviews from other students, and plan your degree against your program checklist.
 
+Live at [ratemytwu.com](https://ratemytwu.com).
 
-## Getting started
+**Not affiliated with, sponsored by, or endorsed by Trinity Western University.** This is an independent project built and run by students. Professor and course listings come from publicly published timetables; reviews are written by users and are opinions, not verified facts.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## What it does
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- **Professor and course pages** — every course and instructor from the published timetables, including ones with no reviews yet
+- **Reviews** — difficulty, workload, and what to expect, submitted by signed-in students
+- **Compare** — two professors side by side
+- **Degree planner** — drag courses into a multi-year plan, track credits, bookmark what you're interested in
+- **Checklist tracking** — import your program's checklist PDF and see what's left to graduate
+- **Transcript import** — upload an unofficial transcript to auto-fill courses you've already taken
+- **Moderation** — reviews auto-hide once multiple users report them; professors can request removal of their profile, verified through their `@twu.ca` address
 
-## Add your files
+Uploaded PDFs are parsed in memory and the files are never stored — only the extracted course data is kept.
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Stack
 
+| | |
+|---|---|
+| Frontend | React 19, Vite, CSS Modules, React Router |
+| Backend | FastAPI, SQLAlchemy |
+| Database | Postgres (Supabase) |
+| Auth | Supabase Auth |
+| PDF parsing | pypdf, PyMuPDF, pytesseract |
+
+## Running it locally
+
+You'll need Python 3.12+ and Node 20+.
+
+### Backend
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+fastapi dev main.py               # http://127.0.0.1:8000
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/vatsalyarabari/ratemytwu.git
-git branch -M main
-git push -uf origin main
+
+Create `backend/.env`:
+
+```bash
+DB_HOST=your-project.pooler.supabase.com
+DB_PASSWORD=...
+DB_USER=postgres.your-project-ref
+DB_NAME=postgres
+DB_PORT=5432
+SUPABASE_URL=https://your-project.supabase.co
+ADMIN_USER_IDS=uuid1,uuid2        # optional — unlocks the admin routes
 ```
 
-## Integrate with your tools
+To skip Postgres entirely and run against a local SQLite file, set `TEST_DATABASE_URL=sqlite:///./test.db` instead. That takes priority over everything above.
 
-* [Set up project integrations](https://gitlab.com/vatsalyarabari/ratemytwu/-/settings/integrations)
+### Frontend
 
-## Collaborate with your team
+```bash
+cd frontend
+npm install
+npm run dev                       # http://localhost:5173
+```
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Create `frontend/.env`:
 
-## Test and Deploy
+```bash
+VITE_API_URL=http://127.0.0.1:8000
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_PUBLISHABLE_KEY=...
+```
 
-Use the built-in continuous integration in GitLab.
+Vite bakes these in at build time, so restart the dev server after changing them — and redeploy after changing them in production.
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+## Loading course data
 
-***
+`script.py` reads a published TWU timetable PDF and inserts professors, courses, and the links between them:
 
-# Editing this README
+```bash
+cd backend
+python script.py --pdf Fall2026_Timetable.pdf --semester Fall2026
+```
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+It's safe to re-run — it dedupes on professor name, course code, and the professor/course/semester link. Department detection uses "latest import wins," so import the current semester last if you're loading several.
 
-## Suggestions for a good README
+To undo one:
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```bash
+python rollback.py --semester Fall2021
+```
 
-## Name
-Choose a self-explaining name for your project.
+That removes the semester's links, then any professors and courses left orphaned with no reviews attached.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Which semesters show as current lives in `backend/config.py` as `ACTIVE_SEMESTERS`.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## Tests
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```bash
+cd backend
+pytest
+ruff check .
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Tests run against SQLite, no Postgres needed. GitHub Actions runs them on every push and PR to `main`.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## Deployment
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Frontend builds to `dist` and deploys to Cloudflare Pages. Backend runs on Render. Database is Supabase Postgres.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Two things that will waste your afternoon if you don't know them:
+
+- Render is IPv4-only and Supabase's direct host is IPv6-only, so the backend has to connect through Supabase's **session pooler** (`...pooler.supabase.com`, port 5432, user `postgres.<project-ref>`). Otherwise you get "Network is unreachable."
+- The free Render tier sleeps after 15 minutes. An uptime pinger hits `/health` every 5 minutes to keep it awake, which means the first request after a real outage is still slow.
+
+## Status
+
+Actively worked on, by one person, around classes. It's a real site students use, not a demo, but it's also not a team product — expect rough edges.
+
+Known ones:
+
+- Historical imports left some duplicate professors and courses that still need merging
+- Schema changes are manual `ALTER TABLE` — Alembic isn't set up, and `create_all()` won't add columns to tables that already exist
+- Planner summer-term state doesn't survive a refresh
 
 ## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+Not set up for outside contributions right now. If you spot a bug or something wrong on the site, the [report page](https://ratemytwu.com/report) goes straight to me.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+No open-source license — all rights reserved. The code is public to read, not to reuse.
